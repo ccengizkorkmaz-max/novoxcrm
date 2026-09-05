@@ -107,53 +107,53 @@ const getLeadSourceBadge = (sale: any) => {
     const src = getLeadSource(sale)
     const srcLower = src.toLowerCase()
     let srcLabel = src || '—'
-    let srcColor = 'bg-slate-50 text-slate-500 border-slate-200'
+    let srcColor = 'bg-slate-100 text-slate-800 border-slate-300 font-bold'
 
     if (srcLower.includes('facebook')) {
         srcLabel = '📘 Facebook Ads'
-        srcColor = 'bg-blue-50 text-blue-700 border-blue-200'
+        srcColor = 'bg-blue-100 text-blue-950 border-blue-300 font-bold'
     } else if (srcLower.includes('instagram')) {
         srcLabel = '📸 Instagram'
-        srcColor = 'bg-pink-50 text-pink-700 border-pink-200'
+        srcColor = 'bg-pink-100 text-pink-950 border-pink-300 font-bold'
     } else if (srcLower.includes('google')) {
         srcLabel = '🔍 Google Ads'
-        srcColor = 'bg-emerald-50 text-emerald-700 border-emerald-200'
+        srcColor = 'bg-emerald-100 text-emerald-950 border-emerald-300 font-bold'
     } else if (srcLower.includes('whatsapp') && (srcLower.includes('campaign') || srcLower.includes('kampanya'))) {
         srcLabel = '📢 WA Kampanya'
-        srcColor = 'bg-green-50 text-green-700 border-green-200'
+        srcColor = 'bg-emerald-100 text-emerald-950 border-emerald-300 font-bold'
     } else if (srcLower.includes('whatsapp') && (srcLower.includes('button') || srcLower.includes('buton'))) {
         srcLabel = '💬 WA Buton'
-        srcColor = 'bg-green-50 text-green-700 border-green-200'
+        srcColor = 'bg-emerald-100 text-emerald-950 border-emerald-300 font-bold'
     } else if (srcLower.includes('whatsapp') || srcLower.includes('sohbet')) {
         srcLabel = '💬 WhatsApp'
-        srcColor = 'bg-green-50 text-green-700 border-green-200'
+        srcColor = 'bg-emerald-100 text-emerald-950 border-emerald-300 font-bold'
     } else if (srcLower.includes('sahibinden')) {
         srcLabel = '🟡 Sahibinden'
-        srcColor = 'bg-amber-50 text-amber-700 border-amber-200'
+        srcColor = 'bg-amber-100 text-amber-950 border-amber-300 font-bold'
     } else if (srcLower.includes('hepsiemlak')) {
         srcLabel = '🔴 Hepsiemlak'
-        srcColor = 'bg-red-50 text-red-700 border-red-200'
+        srcColor = 'bg-rose-100 text-rose-950 border-rose-300 font-bold'
     } else if (srcLower.includes('web') || srcLower.includes('form')) {
         srcLabel = '🌐 Web Form'
-        srcColor = 'bg-cyan-50 text-cyan-700 border-cyan-200'
+        srcColor = 'bg-cyan-100 text-cyan-950 border-cyan-300 font-bold'
     } else if (srcLower.includes('e-posta') || srcLower.includes('email')) {
         srcLabel = '📧 E-Posta'
-        srcColor = 'bg-violet-50 text-violet-700 border-violet-200'
+        srcColor = 'bg-violet-100 text-violet-950 border-violet-300 font-bold'
     } else if (srcLower.includes('referans') || srcLower.includes('referral')) {
         srcLabel = '🤝 Referans'
-        srcColor = 'bg-amber-50 text-amber-700 border-amber-200'
+        srcColor = 'bg-amber-100 text-amber-950 border-amber-300 font-bold'
     } else if (srcLower.includes('manuel') || srcLower.includes('manual')) {
         srcLabel = '✏️ Manuel'
-        srcColor = 'bg-slate-100 text-slate-600 border-slate-200'
+        srcColor = 'bg-slate-200 text-slate-900 border-slate-300 font-bold'
     } else if (srcLower.includes('telefon') || srcLower.includes('phone')) {
         srcLabel = '📞 Telefon'
-        srcColor = 'bg-orange-50 text-orange-700 border-orange-200'
+        srcColor = 'bg-orange-100 text-orange-950 border-orange-300 font-bold'
     } else if (srcLower.includes('yürüyüş') || srcLower.includes('walk')) {
         srcLabel = '🚶 Walk-in'
-        srcColor = 'bg-teal-50 text-teal-700 border-teal-200'
+        srcColor = 'bg-teal-100 text-teal-950 border-teal-300 font-bold'
     } else if (srcLower.includes('external') || srcLower.includes('dış')) {
         srcLabel = '🔗 Dış Kaynak'
-        srcColor = 'bg-slate-100 text-slate-600 border-slate-200'
+        srcColor = 'bg-slate-200 text-slate-900 border-slate-300 font-bold'
     }
 
     return { src, srcLabel, srcColor }
@@ -949,20 +949,20 @@ export default function PipelineList({
                                     const isCompleted = sale.status === 'Completed' || sale.status === 'Sold'
                                     const isLost = sale.status === 'Lost'
 
-                                    // Dynamic Status Colors
+                                    // Dynamic Status Colors (High-Contrast)
                                     const getStatusColor = (status: string) => {
                                         switch (status) {
-                                            case 'Lead': return 'bg-slate-100 text-slate-700 border-slate-200'
-                                            case 'Prospect': return 'bg-blue-100 text-blue-700 border-blue-200'
-                                            case 'Reservation': return 'bg-purple-100 text-purple-700 border-purple-200'
-                                            case 'Opsiyon - Kapora Bekleniyor': return 'bg-amber-100 text-amber-700 border-amber-200'
-                                            case 'Proposal': return 'bg-cyan-100 text-cyan-700 border-cyan-200'
-                                            case 'Teklif - Kapora Bekleniyor': return 'bg-indigo-100 text-indigo-700 border-indigo-200'
-                                            case 'Negotiation': return 'bg-pink-100 text-pink-700 border-pink-200'
-                                            case 'Sold': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                                            case 'Completed': return 'bg-green-100 text-green-700 border-green-200'
-                                            case 'Lost': return 'bg-red-100 text-red-700 border-red-200'
-                                            default: return 'bg-slate-50 text-slate-600 border-slate-200'
+                                            case 'Lead': return 'bg-slate-200 text-slate-950 border-slate-300 font-bold'
+                                            case 'Prospect': return 'bg-blue-100 text-blue-950 border-blue-300 font-bold'
+                                            case 'Reservation': return 'bg-purple-100 text-purple-950 border-purple-300 font-bold'
+                                            case 'Opsiyon - Kapora Bekleniyor': return 'bg-amber-100 text-amber-950 border-amber-300 font-bold'
+                                            case 'Proposal': return 'bg-cyan-100 text-cyan-950 border-cyan-300 font-bold'
+                                            case 'Teklif - Kapora Bekleniyor': return 'bg-indigo-100 text-indigo-950 border-indigo-300 font-bold'
+                                            case 'Negotiation': return 'bg-pink-100 text-pink-950 border-pink-300 font-bold'
+                                            case 'Sold': return 'bg-emerald-100 text-emerald-950 border-emerald-300 font-bold'
+                                            case 'Completed': return 'bg-green-100 text-green-950 border-green-300 font-bold'
+                                            case 'Lost': return 'bg-rose-100 text-rose-950 border-rose-300 font-bold'
+                                            default: return 'bg-slate-100 text-slate-900 border-slate-300 font-bold'
                                         }
                                     }
 
@@ -1041,27 +1041,27 @@ export default function PipelineList({
                                                             </div>
                                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                                 {sale.customers?.customer_number && (
-                                                                    <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0">{sale.customers.customer_number}</span>
+                                                                    <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-100 text-blue-950 rounded-md border border-blue-300 flex-shrink-0 shadow-2xs">{sale.customers.customer_number}</span>
                                                                 )}
                                                                 {sale.customers?.phone && (
                                                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                                                        <a href={`tel:${sale.customers.phone}`} className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 bg-slate-50 text-slate-500 rounded-md border border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors flex-shrink-0" title="Telefon">
-                                                                            <Phone className="h-2.5 w-2.5" />
+                                                                        <a href={`tel:${sale.customers.phone}`} className="inline-flex items-center gap-1 text-[10.5px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-900 rounded-md border border-slate-300 hover:bg-blue-50 hover:text-blue-900 hover:border-blue-400 transition-colors flex-shrink-0 shadow-2xs" title="Telefonla Ara">
+                                                                            <Phone className="h-2.5 w-2.5 text-slate-700" />
                                                                             {sale.customers.phone}
                                                                         </a>
                                                                         <Button 
                                                                             variant="ghost" 
                                                                             size="sm" 
-                                                                            className="h-5 px-1 py-0 text-[10px] font-semibold text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded border border-purple-200 gap-0.5 flex-shrink-0"
+                                                                            className="h-5 px-1.5 py-0 text-[10px] font-bold text-purple-950 bg-purple-100/90 hover:text-purple-950 hover:bg-purple-200 rounded border border-purple-300 gap-1 flex-shrink-0 shadow-2xs transition-all"
                                                                             onClick={(e) => { e.stopPropagation(); setActiveAiCallSaleId(sale.id); }}
                                                                         >
-                                                                            <Sparkles className="h-2.5 w-2.5 animate-pulse" />
+                                                                            <Sparkles className="h-2.5 w-2.5 text-purple-700 animate-pulse" />
                                                                             AI Ara
                                                                         </Button>
                                                                         <Button 
                                                                             variant="ghost" 
                                                                             size="sm" 
-                                                                            className="h-5 px-1.5 py-0 text-[10px] font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded border border-emerald-200 gap-1 flex-shrink-0 active:scale-95 transition-all shadow-xs"
+                                                                            className="h-5 px-2 py-0 text-[10px] font-bold text-emerald-950 bg-emerald-100/90 hover:text-emerald-950 hover:bg-emerald-200 rounded border border-emerald-300 gap-1 flex-shrink-0 active:scale-95 transition-all shadow-2xs"
                                                                             onClick={(e) => { 
                                                                                 e.stopPropagation(); 
                                                                                 setWhatsAppDrawerState({ 
@@ -1077,7 +1077,7 @@ export default function PipelineList({
                                                                             }}
                                                                             title="WhatsApp ile Canlı Yazış (Kurumsal Hat: +90 533 602 42 81)"
                                                                         >
-                                                                            <MessageCircle className="h-2.5 w-2.5 fill-emerald-100" />
+                                                                            <MessageCircle className="h-2.5 w-2.5 text-emerald-700" />
                                                                             WP Yazış
                                                                         </Button>
 
@@ -1212,15 +1212,15 @@ export default function PipelineList({
                                                 }
                                                 if (colId === 'first_contact') {
                                                     const fcValue = sale.first_contact || null
-                                                    const fcColor = fcValue === 'Aradım, Olumlu' ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                                                        : fcValue === 'Aradım, Olumsuz' ? 'bg-red-100 text-red-700 border-red-200'
-                                                        : fcValue === 'Tekrar Aranacak' ? 'bg-blue-100 text-blue-700 border-blue-200'
-                                                        : fcValue === 'Değerlendiriyor' ? 'bg-purple-100 text-purple-700 border-purple-200'
-                                                        : (fcValue?.includes('Hatalı') || fcValue?.includes('Kullanılmıyor')) ? 'bg-rose-100 text-rose-800 border-rose-300'
-                                                        : fcValue?.includes('Yanlış Kişi') ? 'bg-slate-200 text-slate-800 border-slate-300'
-                                                        : (fcValue?.includes('WhatsApp') || fcValue?.includes('SMS')) ? 'bg-teal-100 text-teal-800 border-teal-300'
-                                                        : fcValue?.startsWith('Ulaşamadım') ? 'bg-amber-100 text-amber-700 border-amber-200'
-                                                        : 'bg-slate-50 text-slate-400 border-slate-200'
+                                                    const fcColor = fcValue === 'Aradım, Olumlu' ? 'bg-emerald-100 text-emerald-950 border-emerald-300 font-bold'
+                                                        : fcValue === 'Aradım, Olumsuz' ? 'bg-rose-100 text-rose-950 border-rose-300 font-bold'
+                                                        : fcValue === 'Tekrar Aranacak' ? 'bg-blue-100 text-blue-950 border-blue-300 font-bold'
+                                                        : fcValue === 'Değerlendiriyor' ? 'bg-purple-100 text-purple-950 border-purple-300 font-bold'
+                                                        : (fcValue?.includes('Hatalı') || fcValue?.includes('Kullanılmıyor')) ? 'bg-rose-200 text-rose-950 border-rose-400 font-bold'
+                                                        : fcValue?.includes('Yanlış Kişi') ? 'bg-slate-200 text-slate-900 border-slate-400 font-bold'
+                                                        : (fcValue?.includes('WhatsApp') || fcValue?.includes('SMS')) ? 'bg-teal-100 text-teal-950 border-teal-300 font-bold'
+                                                        : fcValue?.startsWith('Ulaşamadım') ? 'bg-amber-100 text-amber-950 border-amber-300 font-bold'
+                                                        : 'bg-slate-100 text-slate-700 border-slate-300 font-semibold'
                                                     const fcLabel = fcValue === 'Aradım, Olumlu' ? '🟢 Olumlu'
                                                         : fcValue === 'Aradım, Olumsuz' ? '🔴 Olumsuz'
                                                         : fcValue === 'Tekrar Aranacak' ? '🔄 Tekrar Aranacak'
@@ -1248,7 +1248,7 @@ export default function PipelineList({
                                                                     }
                                                                 }}
                                                             >
-                                                                <SelectTrigger className={cn("h-7 text-[11px] font-semibold border rounded-md px-2 gap-1 w-full", fcColor)}>
+                                                                <SelectTrigger className={cn("h-7 text-[11px] font-bold border rounded-md px-2 gap-1 w-full shadow-2xs", fcColor)}>
                                                                     <SelectValue>{fcLabel}</SelectValue>
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -1276,18 +1276,18 @@ export default function PipelineList({
                                                                 <PopoverTrigger asChild>
                                                                     <button
                                                                         className={cn(
-                                                                            "w-full text-left text-[11px] px-1.5 py-1 rounded border transition-colors min-h-[28px] max-h-[42px] overflow-hidden",
+                                                                            "w-full text-left text-[11px] px-2 py-1 rounded border transition-colors min-h-[28px] max-h-[42px] overflow-hidden shadow-2xs",
                                                                             sale.process_note
-                                                                                ? "border-slate-200 bg-slate-50 text-slate-700 hover:bg-blue-50 hover:border-blue-200"
-                                                                                : "border-dashed border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-500"
+                                                                                ? "border-slate-300 bg-slate-100/90 text-slate-900 font-semibold hover:bg-blue-50 hover:border-blue-300"
+                                                                                : "border-dashed border-slate-300 bg-slate-50/80 text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-400 font-semibold"
                                                                         )}
                                                                         title={sale.process_note || 'Not ekle'}
                                                                     >
                                                                         {sale.process_note ? (
                                                                             <span className="line-clamp-2 whitespace-pre-wrap break-words">{sale.process_note}</span>
                                                                         ) : (
-                                                                            <span className="flex items-center gap-1">
-                                                                                <StickyNote className="w-3 h-3" /> Not ekle
+                                                                            <span className="flex items-center gap-1 text-slate-600 font-semibold">
+                                                                                <StickyNote className="w-3 h-3 text-slate-500" /> Not ekle
                                                                             </span>
                                                                         )}
                                                                     </button>
@@ -1635,17 +1635,17 @@ export default function PipelineList({
 
                         const getStatusColor = (status: string) => {
                             switch (status) {
-                                case 'Lead': return 'bg-slate-100 text-slate-700'
-                                case 'Prospect': return 'bg-blue-100 text-blue-700'
-                                case 'Reservation': return 'bg-purple-100 text-purple-700'
-                                case 'Opsiyon - Kapora Bekleniyor': return 'bg-amber-100 text-amber-700'
-                                case 'Proposal': return 'bg-cyan-100 text-cyan-700'
-                                case 'Teklif - Kapora Bekleniyor': return 'bg-indigo-100 text-indigo-700'
-                                case 'Negotiation': return 'bg-pink-100 text-pink-700'
-                                case 'Sold': return 'bg-emerald-100 text-emerald-700'
-                                case 'Completed': return 'bg-green-100 text-green-700'
-                                case 'Lost': return 'bg-red-100 text-red-700'
-                                default: return 'bg-slate-50 text-slate-600'
+                                case 'Lead': return 'bg-slate-200 text-slate-950 font-bold border-slate-300'
+                                case 'Prospect': return 'bg-blue-100 text-blue-950 font-bold border-blue-300'
+                                case 'Reservation': return 'bg-purple-100 text-purple-950 font-bold border-purple-300'
+                                case 'Opsiyon - Kapora Bekleniyor': return 'bg-amber-100 text-amber-950 font-bold border-amber-300'
+                                case 'Proposal': return 'bg-cyan-100 text-cyan-950 font-bold border-cyan-300'
+                                case 'Teklif - Kapora Bekleniyor': return 'bg-indigo-100 text-indigo-950 font-bold border-indigo-300'
+                                case 'Negotiation': return 'bg-pink-100 text-pink-950 font-bold border-pink-300'
+                                case 'Sold': return 'bg-emerald-100 text-emerald-950 font-bold border-emerald-300'
+                                case 'Completed': return 'bg-green-100 text-green-950 font-bold border-green-300'
+                                case 'Lost': return 'bg-rose-100 text-rose-950 font-bold border-rose-300'
+                                default: return 'bg-slate-100 text-slate-900 font-bold border-slate-300'
                             }
                         }
 

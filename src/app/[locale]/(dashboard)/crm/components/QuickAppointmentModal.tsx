@@ -16,14 +16,30 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createQuickAppointment } from '../actions'
+import { createQuickAppointment, getTenantSalesOfficesAction } from '../actions'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { CalendarPlus, Calendar, Clock, MapPin, FileText, Plus, Loader2, UserCheck } from 'lucide-react'
+import {
+    CalendarPlus,
+    Calendar,
+    Clock,
+    MapPin,
+    FileText,
+    Plus,
+    Loader2,
+    UserCheck,
+    Building2,
+    MessageCircle,
+    Navigation,
+    ExternalLink,
+    CheckCircle2
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 interface QuickAppointmentModalProps {
     customerId: string
     customerName: string
+    customerPhone?: string | null
     saleId?: string
     disabled?: boolean
     disabledTooltip?: string
@@ -32,8 +48,8 @@ interface QuickAppointmentModalProps {
     initialRepresentativeId?: string
 }
 
-const DEFAULT_LOCATIONS = [
-    { value: 'Satış Ofisi', label: '🏢 Satış Ofisi' },
+const STATIC_LOCATIONS = [
+    { value: 'Satış Ofisi', label: '🏢 Satış Ofisi (Genel)' },
     { value: 'Saha / Proje Alanı', label: '🏗️ Saha / Proje Alanı' },
     { value: 'Müşteri Adresi', label: '🏠 Müşteri Adresi' },
     { value: 'Online (Zoom / Google Meet)', label: '💻 Online (Zoom / Google Meet)' },
@@ -43,6 +59,7 @@ const DEFAULT_LOCATIONS = [
 export default function QuickAppointmentModal({
     customerId,
     customerName,
+    customerPhone,
     saleId,
     disabled = false,
     disabledTooltip = 'Önce bir satış temsilcisi atamalısınız!',
@@ -59,23 +76,27 @@ export default function QuickAppointmentModal({
         const tomorrow = new Date()
         tomorrow.setDate(tomorrow.getDate() + 1)
         tomorrow.setHours(10, 0, 0, 0)
-        // Format to YYYY-MM-DDTHH:mm for datetime-local input
         const pad = (n: number) => n.toString().padStart(2, '0')
         return `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`
     }
 
-    // ALL hooks must be called before any conditional returns (React Rules of Hooks)
     const [dateTime, setDateTime] = useState(getDefaultDateTime())
     const [location, setLocation] = useState('Satış Ofisi')
     const [summary, setSummary] = useState('Proje Sunumu ve Görüşme')
     const [notes, setNotes] = useState('')
     const [customLocations, setCustomLocations] = useState<{ value: string; label: string }[]>([])
+    const [salesOffices, setSalesOffices] = useState<any[]>([])
     const [isAddingLocation, setIsAddingLocation] = useState(false)
     const [newLocationInput, setNewLocationInput] = useState('')
     const [reps, setReps] = useState<{ id: string; full_name: string; phone?: string }[]>([])
     const [selectedRepId, setSelectedRepId] = useState<string>(initialRepresentativeId || '')
+    const [activeCustomerPhone, setActiveCustomerPhone] = useState<string>(customerPhone || '')
 
-    // Load representatives and customer's assigned rep (exclude external brokers)
+    // WhatsApp notification toggles
+    const [sendCustomerWa, setSendCustomerWa] = useState(true)
+    const [sendRepWa, setSendRepWa] = useState(true)
+
+    // Load representatives, customer data & configured corporate sales offices
     useEffect(() => {
         if (open) {
             const supabase = createClient()
@@ -92,18 +113,32 @@ export default function QuickAppointmentModal({
                     }
                 })
 
-            if (customerId && !selectedRepId) {
+            if (customerId) {
                 supabase
                     .from('customers')
-                    .select('assigned_to')
+                    .select('assigned_to, phone')
                     .eq('id', customerId)
                     .single()
                     .then(({ data }) => {
-                        if (data?.assigned_to) {
+                        if (data?.assigned_to && !selectedRepId) {
                             setSelectedRepId(data.assigned_to)
+                        }
+                        if (data?.phone) {
+                            setActiveCustomerPhone(data.phone)
                         }
                     })
             }
+
+            // Load registered tenant sales offices
+            getTenantSalesOfficesAction().then(res => {
+                if (res?.offices && res.offices.length > 0) {
+                    setSalesOffices(res.offices)
+                    // Auto-select first registered office if user is on default
+                    if (location === 'Satış Ofisi') {
+                        setLocation(res.offices[0].name)
+                    }
+                }
+            }).catch(console.error)
         }
     }, [open, customerId])
 
@@ -124,14 +159,30 @@ export default function QuickAppointmentModal({
         }
     }, [])
 
-    const allLocations = [...DEFAULT_LOCATIONS, ...customLocations]
+    // Build all available locations: Registered Offices + Static + Custom
+    const officeLocations = salesOffices.map((off: any) => ({
+        value: off.name,
+        label: `🏢 ${off.name}${off.projectName ? ` (${off.projectName})` : ''}`,
+        isOffice: true,
+        officeData: off
+    }))
+
+    const allLocations = [
+        ...officeLocations,
+        ...STATIC_LOCATIONS,
+        ...customLocations
+    ]
+
+    // Find currently selected sales office details
+    const currentOffice = salesOffices.find(
+        (o: any) => o.name === location || location.includes(o.name)
+    )
 
     const handleAddLocation = (e?: React.FormEvent) => {
         if (e) e.preventDefault()
         const trimmed = newLocationInput.trim()
         if (!trimmed) return
 
-        // Check if already exists
         const exists = allLocations.some(l => l.value.toLowerCase() === trimmed.toLowerCase())
         if (exists) {
             setLocation(trimmed)
@@ -164,9 +215,9 @@ export default function QuickAppointmentModal({
                     variant="outline"
                     size="sm"
                     disabled
-                    className="h-5 px-1.5 py-0 text-[10px] font-semibold text-slate-400 border-slate-200 opacity-60 gap-0.5 pointer-events-none"
+                    className="h-5 px-2 py-0 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-300 opacity-70 gap-0.5 pointer-events-none"
                 >
-                    <CalendarPlus className="h-2.5 w-2.5" />
+                    <CalendarPlus className="h-2.5 w-2.5 text-slate-500" />
                     Randevu
                 </Button>
             </span>
@@ -189,13 +240,21 @@ export default function QuickAppointmentModal({
                     location,
                     summary: summary.trim() || 'Müşteri Randevusu',
                     notes: notes.trim(),
-                    representativeId: selectedRepId || undefined
+                    representativeId: selectedRepId || undefined,
+                    sendCustomerWa,
+                    sendRepWa
                 })
 
                 if (res?.error) {
                     toast.error(res.error)
                 } else {
-                    toast.success(`${customerName} için randevu oluşturuldu!`)
+                    toast.success(
+                        `${customerName} için randevu oluşturuldu! ${
+                            sendCustomerWa && activeCustomerPhone
+                                ? 'Müşteriye ve danışmana WhatsApp bildirimi gönderildi.'
+                                : ''
+                        }`
+                    )
                     setOpen(false)
                     if (onCreated && res?.activity) {
                         onCreated(res.activity)
@@ -216,44 +275,48 @@ export default function QuickAppointmentModal({
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="h-5 px-1 py-0 text-[10px] font-semibold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 bg-emerald-50/60 rounded border border-emerald-200 gap-0.5 flex-shrink-0"
+                        className="h-5 px-1.5 py-0 text-[10px] font-bold text-emerald-800 hover:text-emerald-950 hover:bg-emerald-100/90 bg-emerald-100/70 rounded border border-emerald-300 gap-0.5 flex-shrink-0 shadow-2xs"
                         title="Hızlı Randevu Oluştur"
                     >
-                        <CalendarPlus className="h-3 w-3 text-emerald-600" />
+                        <CalendarPlus className="h-3 w-3 text-emerald-700" />
                         <span>Randevu</span>
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-w-md p-6 rounded-2xl">
-                <DialogHeader className="border-b pb-3">
-                    <DialogTitle className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                        <Calendar className="w-5 h-5 text-emerald-600" />
+            <DialogContent className="max-w-lg p-6 rounded-2xl bg-white border border-slate-200 shadow-2xl max-h-[92vh] overflow-y-auto">
+                <DialogHeader className="border-b border-slate-200 pb-3.5">
+                    <DialogTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
+                        <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-emerald-700" />
+                        </div>
                         Hızlı Randevu Oluştur
                     </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-500">
-                        <strong className="text-slate-700 font-semibold">{customerName}</strong> müşterisi ile randevu planlayın.
+                    <DialogDescription className="text-xs text-slate-600 font-medium">
+                        <strong className="text-slate-900 font-bold">{customerName}</strong> müşterisi ile randevu planlayın.
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4 pt-3">
-                    <div className="space-y-1">
-                        <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-blue-500" />
+                <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+                    {/* Date & Time */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-blue-600" />
                             Randevu Tarihi ve Saati *
                         </Label>
                         <Input
                             type="datetime-local"
                             value={dateTime}
                             onChange={e => setDateTime(e.target.value)}
-                            className="text-xs font-medium"
+                            className="text-sm font-semibold text-slate-900 border-slate-300 bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                             required
                         />
                     </div>
 
+                    {/* Location Selection & Real Sales Office Details */}
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                            <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                                <MapPin className="w-3.5 h-3.5 text-red-500" />
+                            <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                <MapPin className="w-4 h-4 text-rose-600" />
                                 Randevu Yeri / Konumu
                             </Label>
                             <Button
@@ -264,22 +327,22 @@ export default function QuickAppointmentModal({
                                     setIsAddingLocation(!isAddingLocation)
                                     setNewLocationInput('')
                                 }}
-                                className="h-5 px-1.5 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 gap-0.5"
+                                className="h-6 px-2 text-xs font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 gap-1"
                                 title="Yeni Randevu Yeri Ekle"
                             >
-                                <Plus className="w-3 h-3" />
+                                <Plus className="w-3.5 h-3.5" />
                                 <span>Yeni Konum Ekle</span>
                             </Button>
                         </div>
 
                         {isAddingLocation && (
-                            <div className="p-2 bg-emerald-50/60 border border-emerald-200 rounded-lg space-y-1.5 animate-in fade-in slide-in-from-top-1">
-                                <Label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                            <div className="p-3 bg-emerald-50/80 border border-emerald-300 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-1">
+                                <Label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
                                     Yeni Konum Adı
                                 </Label>
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-2">
                                     <Input
-                                        placeholder="Örn: Merkez Ofis, Starbucks vb."
+                                        placeholder="Örn: Bornova Şube, Starbucks vb."
                                         value={newLocationInput}
                                         onChange={e => setNewLocationInput(e.target.value)}
                                         onKeyDown={e => {
@@ -289,13 +352,13 @@ export default function QuickAppointmentModal({
                                             }
                                         }}
                                         autoFocus
-                                        className="h-8 text-xs bg-white border-emerald-300 focus-visible:ring-emerald-500"
+                                        className="h-9 text-xs font-medium text-slate-900 bg-white border-emerald-300 focus-visible:ring-emerald-600"
                                     />
                                     <Button
                                         type="button"
                                         size="sm"
                                         onClick={handleAddLocation}
-                                        className="h-8 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shrink-0"
+                                        className="h-9 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0"
                                     >
                                         Ekle
                                     </Button>
@@ -307,7 +370,7 @@ export default function QuickAppointmentModal({
                                             setIsAddingLocation(false)
                                             setNewLocationInput('')
                                         }}
-                                        className="h-8 px-2 text-xs text-slate-500 shrink-0"
+                                        className="h-9 px-2.5 text-xs text-slate-600 font-semibold border-slate-300 shrink-0"
                                     >
                                         İptal
                                     </Button>
@@ -316,16 +379,21 @@ export default function QuickAppointmentModal({
                         )}
 
                         <Select value={location} onValueChange={setLocation}>
-                            <SelectTrigger className="text-xs font-medium bg-white">
+                            <SelectTrigger className="text-sm font-semibold text-slate-900 bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600">
                                 <SelectValue placeholder="Konum Seçiniz" />
                             </SelectTrigger>
-                            <SelectContent className="max-h-60">
-                                {allLocations.map((loc) => (
-                                    <SelectItem key={loc.value} value={loc.value} className="text-xs">
+                            <SelectContent className="max-h-64">
+                                {salesOffices.length > 0 && (
+                                    <div className="px-2 py-1 text-[10px] font-bold text-emerald-800 uppercase tracking-wider bg-emerald-50/80">
+                                        🏢 Kurumsal Satış Ofisleri
+                                    </div>
+                                )}
+                                {allLocations.map((loc, idx) => (
+                                    <SelectItem key={`${loc.value}-${idx}`} value={loc.value} className="text-xs font-medium text-slate-900">
                                         {loc.label}
                                     </SelectItem>
                                 ))}
-                                <div className="p-1 border-t mt-1">
+                                <div className="p-1.5 border-t border-slate-200 mt-1">
                                     <button
                                         type="button"
                                         onClick={(e) => {
@@ -333,7 +401,7 @@ export default function QuickAppointmentModal({
                                             e.stopPropagation()
                                             setIsAddingLocation(true)
                                         }}
-                                        className="flex items-center gap-1.5 w-full text-left text-xs text-emerald-600 font-semibold px-2 py-1.5 rounded hover:bg-emerald-50 transition-colors"
+                                        className="flex items-center gap-1.5 w-full text-left text-xs text-emerald-700 font-bold px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors"
                                     >
                                         <Plus className="w-3.5 h-3.5" />
                                         <span>+ Yeni Konum Ekle...</span>
@@ -341,20 +409,56 @@ export default function QuickAppointmentModal({
                                 </div>
                             </SelectContent>
                         </Select>
+
+                        {/* Registered Office Rich Location Card */}
+                        {currentOffice && (
+                            <div className="p-3 bg-slate-50 border border-slate-300 rounded-xl space-y-1.5 text-xs text-slate-800 animate-in fade-in">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                                        <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                        <span>{currentOffice.name}</span>
+                                        {currentOffice.projectName && (
+                                            <Badge variant="outline" className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border-emerald-300 py-0">
+                                                {currentOffice.projectName}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    {currentOffice.mapsUrl && (
+                                        <a
+                                            href={currentOffice.mapsUrl.startsWith('http') ? currentOffice.mapsUrl : `https://${currentOffice.mapsUrl}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                                            title="Google Maps'te Görüntüle"
+                                        >
+                                            <Navigation className="w-3 h-3" />
+                                            <span>Haritada Aç</span>
+                                            <ExternalLink className="w-2.5 h-2.5" />
+                                        </a>
+                                    )}
+                                </div>
+                                {currentOffice.address && (
+                                    <p className="text-slate-600 font-medium leading-relaxed pl-5">
+                                        📍 {currentOffice.address} {currentOffice.district ? `· ${currentOffice.district}` : ''} {currentOffice.city ? `(${currentOffice.city})` : ''}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    <div className="space-y-1">
-                        <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                            <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
-                            Temsilci Ekle
+                    {/* Sales Representative */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <UserCheck className="w-4 h-4 text-indigo-600" />
+                            Satış Temsilcisi
                         </Label>
                         <Select value={selectedRepId} onValueChange={setSelectedRepId}>
-                            <SelectTrigger className="text-xs font-medium bg-white">
+                            <SelectTrigger className="text-sm font-semibold text-slate-900 bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600">
                                 <SelectValue placeholder="Temsilci Seçiniz (Atanmış Temsilci)" />
                             </SelectTrigger>
                             <SelectContent className="max-h-60">
                                 {reps.map((rep) => (
-                                    <SelectItem key={rep.id} value={rep.id} className="text-xs">
+                                    <SelectItem key={rep.id} value={rep.id} className="text-xs font-medium text-slate-900">
                                         👤 {rep.full_name} {rep.phone ? `(${rep.phone})` : ''}
                                     </SelectItem>
                                 ))}
@@ -362,54 +466,123 @@ export default function QuickAppointmentModal({
                         </Select>
                     </div>
 
-                    <div className="space-y-1">
-                        <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                            <FileText className="w-3.5 h-3.5 text-amber-500" />
+                    {/* Summary / Topic */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <FileText className="w-4 h-4 text-amber-600" />
                             Randevu Konusu / Özet
                         </Label>
                         <Input
                             placeholder="Örn: Proje Sunumu ve Fiyat Teklifi"
                             value={summary}
                             onChange={e => setSummary(e.target.value)}
-                            className="text-xs font-medium"
+                            className="text-sm font-semibold text-slate-900 border-slate-300 bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                         />
                     </div>
 
+                    {/* WhatsApp Notification Box (Meta Official Templates) */}
+                    <div className="p-3.5 bg-emerald-50/70 border border-emerald-300 rounded-xl space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-emerald-200/80 pb-2">
+                            <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                </div>
+                                <span className="text-xs font-bold text-emerald-950">
+                                    WhatsApp Bildirimleri
+                                </span>
+                            </div>
+                            <span className="text-[10px] font-extrabold bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full border border-emerald-300">
+                                Meta Cloud API
+                            </span>
+                        </div>
+
+                        {/* Customer WhatsApp Notification */}
+                        <div className="flex items-start gap-2.5 pt-1">
+                            <input
+                                id="sendCustomerWaCheckbox"
+                                type="checkbox"
+                                checked={sendCustomerWa && Boolean(activeCustomerPhone)}
+                                disabled={!activeCustomerPhone}
+                                onChange={(e) => setSendCustomerWa(e.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 mt-0.5 cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <label htmlFor="sendCustomerWaCheckbox" className="flex-1 cursor-pointer">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-bold text-slate-900">
+                                        Müşteriye Randevu Daveti Gönder
+                                    </span>
+                                    {activeCustomerPhone ? (
+                                        <Badge variant="outline" className="text-[10px] font-bold bg-white text-emerald-800 border-emerald-300 py-0">
+                                            {activeCustomerPhone}
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="outline" className="text-[10px] font-bold bg-rose-50 text-rose-700 border-rose-200 py-0">
+                                            Telefon Eksik
+                                        </Badge>
+                                    )}
+                                </div>
+                                <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5">
+                                    Onaylı <strong>randevu_musteri</strong> şablonu ile tarih, ofis adresi ve Google Maps linki iletilir.
+                                </p>
+                            </label>
+                        </div>
+
+                        {/* Representative WhatsApp Notification */}
+                        <div className="flex items-start gap-2.5 pt-1 border-t border-emerald-200/60">
+                            <input
+                                id="sendRepWaCheckbox"
+                                type="checkbox"
+                                checked={sendRepWa}
+                                onChange={(e) => setSendRepWa(e.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 mt-0.5 cursor-pointer"
+                            />
+                            <label htmlFor="sendRepWaCheckbox" className="flex-1 cursor-pointer">
+                                <span className="text-xs font-bold text-slate-900">
+                                    Satış Danışmanına WhatsApp Hatırlatması Gönder
+                                </span>
+                                <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5">
+                                    Onaylı <strong>randevu_hatrlatma</strong> şablonu ile danışmana randevu detayları ve Tamamlandı/İptal/Ertelendi hızlı yanıt butonları gider.
+                                </p>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Notes (Optional) */}
                     <div className="space-y-1">
-                        <Label className="text-xs font-bold text-slate-700">Notlar (Opsiyonel)</Label>
+                        <Label className="text-xs font-bold text-slate-900">Notlar (Opsiyonel)</Label>
                         <Textarea
                             placeholder="Ek ayrıntılar, katılanlar veya hatırlatmalar..."
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
-                            className="text-xs resize-none"
+                            className="text-xs font-medium text-slate-900 border-slate-300 resize-none"
                             rows={2}
                         />
                     </div>
 
-                    <DialogFooter className="pt-3 border-t gap-2">
+                    <DialogFooter className="pt-3 border-t border-slate-200 gap-2">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => setOpen(false)}
                             disabled={isPending}
-                            className="text-xs"
+                            className="text-xs font-semibold text-slate-700 border-slate-300"
                         >
                             İptal
                         </Button>
                         <Button
                             type="submit"
                             disabled={isPending}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1.5"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1.5 shadow-md px-4"
                         >
                             {isPending ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    Kaydediliyor...
+                                    Randevu Oluşturuluyor...
                                 </>
                             ) : (
                                 <>
                                     <Plus className="w-4 h-4" />
-                                    Randevu Oluştur
+                                    Randevu Oluştur &amp; Gönder
                                 </>
                             )}
                         </Button>

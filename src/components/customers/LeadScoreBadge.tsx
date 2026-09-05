@@ -46,17 +46,17 @@ export function LeadScoreBadge({
     const getScoreDetails = (s: string | null | undefined) => {
         switch (s) {
             case 'hot':
-                return { label: '🔥 Hot', cls: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' }
+                return { label: '🔥 Hot', cls: 'bg-red-100 text-red-950 border-red-300 font-bold hover:bg-red-200' }
             case 'warm':
-                return { label: '🌡️ Warm', cls: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' }
+                return { label: '🌡️ Warm', cls: 'bg-amber-100 text-amber-950 border-amber-300 font-bold hover:bg-amber-200' }
             case 'cold':
-                return { label: '❄️ Cold', cls: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' }
+                return { label: '❄️ Cold', cls: 'bg-blue-100 text-blue-950 border-blue-300 font-bold hover:bg-blue-200' }
             case 'call_requested':
-                return { label: '📞 Arama', cls: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' }
+                return { label: '📞 Arama', cls: 'bg-purple-100 text-purple-950 border-purple-300 font-bold hover:bg-purple-200' }
             case 'disqualified':
-                return { label: '⛔ DQ', cls: 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100' }
+                return { label: '⛔ DQ', cls: 'bg-slate-200 text-slate-800 border-slate-300 font-bold hover:bg-slate-300' }
             default:
-                return { label: 'Bilinmiyor', cls: 'bg-slate-50 text-slate-400 border-slate-200' }
+                return { label: 'Bilinmiyor', cls: 'bg-slate-100 text-slate-800 border-slate-300 font-semibold' }
         }
     }
 

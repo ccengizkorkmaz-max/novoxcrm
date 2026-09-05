@@ -4144,6 +4144,27 @@ export async function fetchTrackingSales() {
     return { sales: allSales, activities: allActivities, error: null }
 }
 
+export async function getTenantSalesOfficesAction() {
+    const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { offices: [] }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { offices: [] }
+
+    const { data: tenant } = await adminSupabase
+        .from('tenants')
+        .select('brand_config')
+        .eq('id', profile.tenant_id)
+        .single()
+
+    const offices = (tenant?.brand_config as any)?.sales_offices || []
+    return { offices: Array.isArray(offices) ? offices : [] }
+}
+
 export async function createQuickAppointment(params: {
     customerId: string
     saleId?: string
@@ -4152,6 +4173,8 @@ export async function createQuickAppointment(params: {
     summary?: string
     notes?: string
     representativeId?: string
+    sendCustomerWa?: boolean
+    sendRepWa?: boolean
 }) {
     const supabase = await createClient()
     const { createAdminClient } = await import('@/lib/supabase/admin')
@@ -4185,7 +4208,11 @@ export async function createQuickAppointment(params: {
         if (matchedOffice) {
             locationName = matchedOffice.name
             locationAddress = [matchedOffice.address, matchedOffice.district, matchedOffice.city].filter(Boolean).join(', ')
-            mapsLink = matchedOffice.mapsUrl || (matchedOffice.latitude && matchedOffice.longitude
+            let rawMaps = (matchedOffice.mapsUrl || '').trim()
+            if (rawMaps && !rawMaps.startsWith('http://') && !rawMaps.startsWith('https://')) {
+                rawMaps = `https://${rawMaps}`
+            }
+            mapsLink = rawMaps || (matchedOffice.latitude && matchedOffice.longitude
                 ? `https://maps.google.com/?q=${matchedOffice.latitude},${matchedOffice.longitude}`
                 : (locationAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${matchedOffice.name} ${locationAddress}`)}` : ''))
         }
@@ -4250,15 +4277,18 @@ export async function createQuickAppointment(params: {
         return { error: error.message }
     }
 
-    // Send WhatsApp notification using approved Meta template 'randevu_hatrlatma'
+    // Send WhatsApp notification using approved Meta template 'randevu_hatrlatma' & 'randevu_musteri'
     try {
+        const shouldSendRep = params.sendRepWa !== false
+        const shouldSendCustomer = params.sendCustomerWa !== false
+
         const { data: repProfile } = await adminSupabase
             .from('profiles')
             .select('id, full_name, phone')
             .eq('id', assignedOwnerId)
             .single()
 
-        if (repProfile?.phone && profile?.tenant_id) {
+        if (profile?.tenant_id && (shouldSendRep || shouldSendCustomer)) {
             const { data: tenantWa } = await adminSupabase
                 .from('tenants')
                 .select('wa_phone_number_id, wa_access_token')
@@ -4283,33 +4313,18 @@ export async function createQuickAppointment(params: {
             const customerName = customer?.full_name || 'Müşteri'
             const customerPhone = customer?.phone || '-'
 
-            const { sendWhatsAppTemplate, sendWhatsAppInteractiveButtons } = await import('@/lib/whatsapp')
+            const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
 
             const waPhoneId = tenantWa?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
             const waToken = tenantWa?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
 
-            // Randevu detay metni (Satış temsilcisine gidecek metin - konum + maps linki dahil)
-            const appointmentDetailText = `👤 Müşteri: ${customerName} (${customerPhone})\n📅 Tarih: ${formattedDate}\n📍 Yer: ${locationWithLink}\n📝 Konu: ${fullSummary}${params.notes ? `\n📌 Not: ${params.notes}` : ''}`
+            // 1. Satış Temsilcisine Meta Template Bildirimi (randevu_hatrlatma)
+            if (shouldSendRep && repProfile?.phone) {
+                const appointmentDetailText = `👤 Müşteri: ${customerName} (${customerPhone})\n📅 Tarih: ${formattedDate}\n📍 Yer: ${locationWithLink}\n📝 Konu: ${fullSummary}${params.notes ? `\n📌 Not: ${params.notes}` : ''}`
 
-            // 1. Satış Temsilcisine Meta Template Bildirimi (randevu_hatirlatma)
-            let randevuTemplateResult = await sendWhatsAppTemplate(
-                repProfile.phone,
-                'randevu_hatirlatma',
-                [
-                    repProfile.full_name || 'Satış Temsilcisi',
-                    appointmentDetailText
-                ],
-                'tr',
-                waPhoneId,
-                waToken
-            )
-
-            // Fallback: Eğer Türkçe karakterli isimle kayıtlıysa (randevu_hatırlatma)
-            if (!randevuTemplateResult?.success) {
-                console.log(`⚠️ randevu_hatirlatma bulunamadı, randevu_hatırlatma deneniyor...`)
-                const fallbackRes = await sendWhatsAppTemplate(
+                let randevuTemplateResult = await sendWhatsAppTemplate(
                     repProfile.phone,
-                    'randevu_hatırlatma',
+                    'randevu_hatrlatma', // Meta üzerinde resmi onaylı şablon adı
                     [
                         repProfile.full_name || 'Satış Temsilcisi',
                         appointmentDetailText
@@ -4318,31 +4333,45 @@ export async function createQuickAppointment(params: {
                     waPhoneId,
                     waToken
                 )
-                if (fallbackRes?.success) {
-                    randevuTemplateResult = fallbackRes
+
+                if (!randevuTemplateResult?.success) {
+                    console.log(`⚠️ randevu_hatrlatma deneniyor randevu_hatirlatma ile fallback...`)
+                    const fallbackRes = await sendWhatsAppTemplate(
+                        repProfile.phone,
+                        'randevu_hatirlatma',
+                        [
+                            repProfile.full_name || 'Satış Temsilcisi',
+                            appointmentDetailText
+                        ],
+                        'tr',
+                        waPhoneId,
+                        waToken
+                    )
+                    if (fallbackRes?.success) {
+                        randevuTemplateResult = fallbackRes
+                    }
                 }
+
+                if (!randevuTemplateResult?.success) {
+                    // 2. Yedek bildirim: lead_assignment_alert
+                    await sendWhatsAppTemplate(
+                        repProfile.phone,
+                        'lead_assignment_alert',
+                        [
+                            customerName,
+                            customerPhone,
+                            `📅 RANDEVU: ${formattedDate} | Yer: ${locationDisplay} | ${fullSummary}`
+                        ],
+                        'tr',
+                        waPhoneId,
+                        waToken
+                    ).catch(console.error)
+                }
+                console.log(`📅 Temsilciye (${repProfile.full_name} - ${repProfile.phone}) randevu bildirimi yapıldı.`)
             }
 
-            console.log(`📅 Temsilciye (${repProfile.full_name} - ${repProfile.phone}) randevu_hatirlatma sonucu:`, randevuTemplateResult)
-
-            // 2. Yedek bildirim: lead_assignment_alert (Meta onaylı genel şablon)
-            if (!randevuTemplateResult?.success) {
-                await sendWhatsAppTemplate(
-                    repProfile.phone,
-                    'lead_assignment_alert',
-                    [
-                        customerName,
-                        customerPhone,
-                        `📅 RANDEVU: ${formattedDate} | Yer: ${locationDisplay} | ${fullSummary}`
-                    ],
-                    'tr',
-                    waPhoneId,
-                    waToken
-                ).catch(console.error)
-            }
-
-            // 3. Müşteriye Randevu WhatsApp Mesajı Gönder (Meta Template: randevu_musteri)
-            if (customer?.phone) {
+            // 2. Müşteriye Randevu WhatsApp Mesajı Gönder (Meta Onaylı: randevu_musteri)
+            if (shouldSendCustomer && customer?.phone) {
                 const repInfo = repProfile?.full_name 
                     ? `${repProfile.full_name}${repProfile.phone ? ` (${repProfile.phone})` : ''}` 
                     : 'Satış Danışmanınız'

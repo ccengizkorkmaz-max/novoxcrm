@@ -140,14 +140,14 @@ function DebouncedTextInput({
                 className={cn(
                     "w-full h-7 text-[11px] rounded-lg border px-2 pr-6 bg-white outline-none transition-all",
                     localVal
-                        ? "border-blue-400 bg-blue-50 text-blue-700 font-bold ring-1 ring-blue-200"
-                        : "border-slate-200 text-slate-600 placeholder:text-slate-300 hover:border-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                        ? "border-blue-500 bg-blue-50 text-blue-950 font-bold ring-1 ring-blue-300"
+                        : "border-slate-300 text-slate-900 placeholder:text-slate-500 font-medium hover:border-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-400"
                 )}
             />
             {localVal && (
                 <button
                     onClick={() => { setLocalVal(''); onChange('') }}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-400 hover:text-red-500 transition-colors"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-500 hover:text-red-600 transition-colors"
                 >
                     <X className="w-3 h-3" />
                 </button>
@@ -167,7 +167,7 @@ export default function ColumnFilterRow({
     const activeFilterCount = Object.values(filters).filter(v => v.length > 0).length
 
     return (
-        <tr className="bg-slate-50/50 border-b border-slate-200">
+        <tr className="bg-slate-100/70 border-b border-slate-300">
             {columns
                 .filter(col => visibleColumns.includes(col.id))
                 .map(col => (
@@ -188,15 +188,15 @@ export default function ColumnFilterRow({
                                 value={filters[col.id] || ''}
                                 onChange={(e) => onFilterChange(col.id, e.target.value)}
                                 className={cn(
-                                    "w-full h-7 text-[11px] rounded-lg border px-2 bg-white outline-none transition-all appearance-none cursor-pointer",
+                                    "w-full h-7 text-[11px] font-semibold rounded-lg border px-2 bg-white outline-none transition-all appearance-none cursor-pointer shadow-2xs",
                                     filters[col.id]
-                                        ? "border-blue-400 bg-blue-50 text-blue-700 font-bold ring-1 ring-blue-200"
-                                        : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                        ? "border-blue-500 bg-blue-50 text-blue-950 font-bold ring-1 ring-blue-300"
+                                        : "border-slate-300 text-slate-800 hover:border-slate-400"
                                 )}
                             >
-                                <option value="">Tümü</option>
+                                <option value="" className="text-slate-600 font-normal">Tümü</option>
                                 {col.options?.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
+                                    <option key={opt} value={opt} className="text-slate-900 font-medium">{opt}</option>
                                 ))}
                             </select>
                         ) : col.type === 'date' ? (
@@ -206,16 +206,16 @@ export default function ColumnFilterRow({
                                     value={filters[col.id] || ''}
                                     onChange={(e) => onFilterChange(col.id, e.target.value)}
                                     className={cn(
-                                        "w-full h-7 text-[11px] rounded-lg border px-2 bg-white outline-none transition-all",
+                                        "w-full h-7 text-[11px] rounded-lg border px-2 bg-white outline-none transition-all font-medium",
                                         filters[col.id]
-                                            ? "border-blue-400 bg-blue-50 text-blue-700 font-bold ring-1 ring-blue-200"
-                                            : "border-slate-200 text-slate-600 hover:border-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                                            ? "border-blue-500 bg-blue-50 text-blue-950 font-bold ring-1 ring-blue-300"
+                                            : "border-slate-300 text-slate-900 hover:border-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-400"
                                     )}
                                 />
                                 {filters[col.id] && (
                                     <button
                                         onClick={() => onFilterChange(col.id, '')}
-                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-400 hover:text-red-500 transition-colors"
+                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-500 hover:text-red-600 transition-colors"
                                     >
                                         <X className="w-3 h-3" />
                                     </button>
@@ -223,9 +223,9 @@ export default function ColumnFilterRow({
                             </div>
                         ) : (
                             <DebouncedTextInput
+                                placeholder="Filtre..."
                                 value={filters[col.id] || ''}
                                 onChange={(val) => onFilterChange(col.id, val)}
-                                placeholder="Filtre..."
                             />
                         )}
                     </td>
