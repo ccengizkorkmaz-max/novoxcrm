@@ -3,14 +3,14 @@
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-    DialogFooter
-} from '@/components/ui/dialog'
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+    SheetFooter
+} from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -271,8 +271,8 @@ export default function QuickAppointmentModal({
     }
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
+        <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
                 {trigger || (
                     <Button
                         variant="ghost"
@@ -284,44 +284,49 @@ export default function QuickAppointmentModal({
                         <span>Randevu</span>
                     </Button>
                 )}
-            </DialogTrigger>
-            <DialogContent className="max-w-lg p-6 rounded-2xl bg-white border border-slate-200 shadow-2xl max-h-[92vh] overflow-y-auto">
-                <DialogHeader className="border-b border-slate-200 pb-3.5">
-                    <div className="flex items-center justify-between pr-6">
-                        <div className="flex items-center gap-2.5">
-                            <div className="h-9 w-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-xs">
-                                <Calendar className="w-5 h-5 text-emerald-700" />
+            </SheetTrigger>
+            <SheetContent 
+                side="right" 
+                className="w-full sm:!max-w-[580px] p-0 flex flex-col h-full bg-white border-l border-slate-200 shadow-2xl z-[100]"
+            >
+                <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
+                    <SheetHeader className="p-5 border-b border-slate-200 bg-slate-50/70 shrink-0">
+                        <div className="flex items-center justify-between pr-8">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-xs shrink-0">
+                                    <Calendar className="w-5 h-5 text-emerald-700" />
+                                </div>
+                                <div>
+                                    <SheetTitle className="text-lg font-bold text-slate-900 leading-tight">
+                                        Hızlı Randevu Oluştur
+                                    </SheetTitle>
+                                    <SheetDescription className="text-xs text-slate-600 font-medium mt-0.5">
+                                        <strong className="text-slate-900 font-bold">{customerName}</strong> müşterisi ile randevu planlayın.
+                                    </SheetDescription>
+                                </div>
                             </div>
-                            <div>
-                                <DialogTitle className="text-lg font-bold text-slate-900 leading-tight">
-                                    Hızlı Randevu Oluştur
-                                </DialogTitle>
-                                <DialogDescription className="text-xs text-slate-600 font-medium mt-0.5">
-                                    <strong className="text-slate-900 font-bold">{customerName}</strong> müşterisi ile randevu planlayın.
-                                </DialogDescription>
-                            </div>
+
+                            {onOpenAdvancedActivity && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setOpen(false)
+                                        onOpenAdvancedActivity()
+                                    }}
+                                    className="h-8 px-2.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-900 border border-indigo-200 rounded-lg gap-1.5 shadow-2xs shrink-0 transition-all active:scale-95"
+                                    title="Tüm aktivite tipleri, ses kaydı ve detaylı alanlar için gelişmiş formu aç"
+                                >
+                                    <span>Gelişmiş Form</span>
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                </Button>
+                            )}
                         </div>
+                    </SheetHeader>
 
-                        {onOpenAdvancedActivity && (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    setOpen(false)
-                                    onOpenAdvancedActivity()
-                                }}
-                                className="h-8 px-2.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-900 border border-indigo-200 rounded-lg gap-1.5 shadow-2xs shrink-0 transition-all active:scale-95"
-                                title="Tüm aktivite tipleri, ses kaydı ve detaylı alanlar için gelişmiş formu aç"
-                            >
-                                <span>Gelişmiş Form</span>
-                                <ExternalLink className="w-3.5 h-3.5" />
-                            </Button>
-                        )}
-                    </div>
-                </DialogHeader>
-
-                <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+                    {/* Scrollable Form Body */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-5">
                     {/* Date & Time */}
                     <div className="space-y-1.5">
                         <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
@@ -584,7 +589,10 @@ export default function QuickAppointmentModal({
                         />
                     </div>
 
-                    <DialogFooter className="pt-3 border-t border-slate-200 gap-2 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    </div>
+
+                    {/* Pinned Bottom Footer */}
+                    <SheetFooter className="p-4 border-t border-slate-200 bg-slate-50/90 shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         {onOpenAdvancedActivity ? (
                             <Button
                                 type="button"
@@ -594,7 +602,7 @@ export default function QuickAppointmentModal({
                                     setOpen(false)
                                     onOpenAdvancedActivity()
                                 }}
-                                className="h-8 px-3 text-xs font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 hover:text-indigo-900 border border-dashed border-indigo-300 rounded-lg gap-1.5 justify-start sm:justify-center transition-all"
+                                className="h-9 px-3 text-xs font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 hover:text-indigo-900 border border-dashed border-indigo-300 rounded-lg gap-1.5 justify-start sm:justify-center transition-all"
                                 title="Gelişmiş Aktivite Formu ile Arama, Ziyaret, Ses Kaydı veya Detaylı Not ekleyin"
                             >
                                 <ExternalLink className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
@@ -610,14 +618,14 @@ export default function QuickAppointmentModal({
                                 variant="outline"
                                 onClick={() => setOpen(false)}
                                 disabled={isPending}
-                                className="text-xs font-semibold text-slate-700 border-slate-300"
+                                className="h-9 text-xs font-semibold text-slate-700 border-slate-300 hover:bg-slate-100"
                             >
                                 İptal
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={isPending}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1.5 shadow-md px-4"
+                                className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1.5 shadow-md px-4"
                             >
                                 {isPending ? (
                                     <>
@@ -632,9 +640,9 @@ export default function QuickAppointmentModal({
                                 )}
                             </Button>
                         </div>
-                    </DialogFooter>
+                    </SheetFooter>
                 </form>
-            </DialogContent>
-        </Dialog>
+            </SheetContent>
+        </Sheet>
     )
 }
