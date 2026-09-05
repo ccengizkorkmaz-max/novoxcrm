@@ -4857,3 +4857,88 @@ export async function toggleCustomerWhatsAppAi(conversationId: string, aiEnabled
     }
 }
 
+/**
+ * 24 saat kuralı dışındaki müşterilere onaylı Türkçe Meta şablonu (new_lead_bilgilendirme) gönderir
+ */
+export async function sendCustomerWhatsAppTemplateAction({
+    conversationId,
+    phone,
+    customerName,
+    projectName
+}: {
+    conversationId: string;
+    phone: string;
+    customerName: string;
+    projectName?: string;
+}) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Unauthorized' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
+
+        const adminSupabase = createAdminClient()
+        const { data: tenant } = await adminSupabase
+            .from('tenants')
+            .select('wa_phone_number_id, wa_access_token, wa_auto_template_name')
+            .eq('id', profile.tenant_id)
+            .single()
+
+        if (!tenant?.wa_phone_number_id || !tenant?.wa_access_token) {
+            return { error: 'Kurumsal WhatsApp bilgileri eksik' }
+        }
+
+        const templateName = tenant.wa_auto_template_name || 'new_lead_bilgilendirme'
+        const cName = customerName?.trim() || 'Değerli Müşterimiz'
+        const pName = projectName?.trim() || 'Projemiz'
+
+        const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+        const result = await sendWhatsAppTemplate(
+            phone,
+            templateName,
+            [cName, pName],
+            'tr',
+            tenant.wa_phone_number_id,
+            tenant.wa_access_token
+        )
+
+        if (!result.success) {
+            return { error: result.error || 'Şablon gönderilemedi' }
+        }
+
+        const content = `[Şablon: ${templateName}] ${cName} müşterisine ${pName} hakkında bilgilendirme şablonu gönderildi.`
+
+        // whatsapp_messages tablosuna kaydet
+        await adminSupabase.from('whatsapp_messages').insert({
+            conversation_id: conversationId,
+            tenant_id: profile.tenant_id,
+            direction: 'outbound',
+            status: 'delivered',
+            role: 'assistant',
+            sender_type: 'agent',
+            content
+        })
+
+        // whatsapp_conversations tablosunu güncelle
+        await adminSupabase.from('whatsapp_conversations').update({
+            last_message_at: new Date().toISOString(),
+            last_message_preview: content.substring(0, 50),
+            updated_at: new Date().toISOString(),
+            ai_enabled: false
+        }).eq('id', conversationId)
+
+        return { success: true, message: content }
+    } catch (err: any) {
+        console.error('[CRM WA Template Action Error]:', err)
+        return { error: err.message || 'Beklenmedik bir hata oluştu' }
+    }
+}
+
+

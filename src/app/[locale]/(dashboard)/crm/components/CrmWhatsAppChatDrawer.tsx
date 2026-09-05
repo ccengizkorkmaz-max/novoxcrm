@@ -31,7 +31,8 @@ import Link from 'next/link'
 import {
     getOrCreateCustomerWhatsAppConversation,
     fetchCustomerWhatsAppMessages,
-    toggleCustomerWhatsAppAi
+    toggleCustomerWhatsAppAi,
+    sendCustomerWhatsAppTemplateAction
 } from '../actions'
 
 interface CrmWhatsAppChatDrawerProps {
@@ -196,6 +197,42 @@ export function CrmWhatsAppChatDrawer({
         }
     }
 
+    const [sendingTemplate, setSendingTemplate] = useState(false)
+
+    // Send official pre-approved Turkish Meta Template (new_lead_bilgilendirme)
+    const handleSendApprovedTemplate = async () => {
+        if (!conversation?.id || !customer.phone || sendingTemplate) return
+        setSendingTemplate(true)
+        try {
+            const res = await sendCustomerWhatsAppTemplateAction({
+                conversationId: conversation.id,
+                phone: customer.phone,
+                customerName: customer.full_name,
+                projectName: projectName || undefined
+            })
+            if (res.error) {
+                toast.error(res.error)
+            } else {
+                toast.success('Resmi Türkçe tanıtım şablonu müşteriye iletildi')
+                const newMsg: Message = {
+                    id: 'temp-' + Date.now(),
+                    content: res.message || 'Bilgilendirme şablonu gönderildi',
+                    direction: 'outbound',
+                    role: 'assistant',
+                    sender_type: 'agent',
+                    status: 'delivered',
+                    created_at: new Date().toISOString()
+                }
+                setMessages(prev => [...prev, newMsg])
+                setTimeout(() => scrollToBottom(true), 150)
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Şablon gönderilirken hata oluştu')
+        } finally {
+            setSendingTemplate(false)
+        }
+    }
+
     // Toggle AI
     const handleToggleAi = async () => {
         if (!conversation?.id) return
@@ -295,9 +332,28 @@ export function CrmWhatsAppChatDrawer({
                             <p className="text-xs text-slate-500 max-w-xs mb-4">
                                 <strong>{customer.full_name}</strong> ile kurumsal WhatsApp hattınız üzerinden doğrudan yazışabilirsiniz.
                             </p>
+                            <Button
+                                size="sm"
+                                disabled={sendingTemplate}
+                                onClick={handleSendApprovedTemplate}
+                                className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md gap-2 mb-4 active:scale-98 transition-all"
+                            >
+                                {sendingTemplate ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Şablon Gönderiliyor...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send className="h-4 w-4" />
+                                        📩 Resmi Türkçe Tanıtım Şablonu Gönder (Hattı Aç)
+                                    </>
+                                )}
+                            </Button>
+
                             <div className="w-full space-y-1.5 text-left">
                                 <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
-                                    💡 Hızlı Başlangıç Şablonları:
+                                    💡 Alternatif Serbest Metin Şablonları:
                                 </p>
                                 {quickTemplates.map((tmpl, idx) => (
                                     <button
@@ -321,14 +377,37 @@ export function CrmWhatsAppChatDrawer({
 
                                 if (is24hExpired) {
                                     return (
-                                        <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl text-xs text-amber-900 shadow-xs mb-3 space-y-1">
-                                            <div className="flex items-center gap-1.5 font-bold text-amber-800 text-[11px]">
-                                                <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                                                <span>WhatsApp 24 Saat İletişim Penceresi</span>
+                                        <div className="p-3.5 bg-amber-50/95 border border-amber-200/80 rounded-2xl text-xs text-amber-900 shadow-xs mb-3 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-1.5 font-bold text-amber-900 text-[11px]">
+                                                    <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                                                    <span>WhatsApp 24 Saat İletişim Penceresi Kapalı</span>
+                                                </div>
+                                                <Badge variant="outline" className="text-[9px] bg-amber-100/80 text-amber-800 border-amber-300 py-0 h-4">
+                                                    Şablon Gerekli
+                                                </Badge>
                                             </div>
-                                            <p className="text-[11px] text-amber-700 leading-relaxed">
-                                                Meta politikası gereği son müşteri mesajının üzerinden 24 saat geçtiğinde serbest metinler Meta tarafından bekletilir. Müşterinin kurumsal hatta bir mesaj yanıtı vermesiyle serbest yazışma penceresi açılır.
+                                            <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                                                Müşteri son 24 saat içinde yazmadığı için serbest metinler Meta tarafından bekletilir. Aşağıdaki butona tıklayarak müşteriye resmi Türkçe bilgilendirme şablonu gönderebilirsiniz:
                                             </p>
+                                            <Button
+                                                size="sm"
+                                                disabled={sendingTemplate}
+                                                onClick={handleSendApprovedTemplate}
+                                                className="w-full h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs gap-1.5 active:scale-98 transition-all"
+                                            >
+                                                {sendingTemplate ? (
+                                                    <>
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        Şablon İletiliyor...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Send className="h-3.5 w-3.5" />
+                                                        Resmi Türkçe Tanıtım Şablonu Gönder (Canlı Hattı Aç)
+                                                    </>
+                                                )}
+                                            </Button>
                                         </div>
                                     )
                                 }
