@@ -23,6 +23,15 @@ interface RepData {
     idleDays: number
     completionRate: number
     lastActivityDate: string | null
+    appointments?: {
+        total: number
+        attended: number
+        noShow: number
+        rescheduled: number
+        cancelled: number
+        planned: number
+        showUpRate: number
+    }
     activities: ActivityItem[]
 }
 
@@ -53,6 +62,13 @@ interface TrackingData {
         totalPlanned: number
         totalOverdue: number
         completionRate: number
+        appointmentSummary?: {
+            total: number
+            attended: number
+            noShow: number
+            rescheduled: number
+            showUpRate: number
+        }
     }
 }
 

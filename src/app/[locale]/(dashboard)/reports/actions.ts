@@ -2125,75 +2125,82 @@ export async function getActivityTrackingReport() {
     if (!['manager', 'admin', 'owner', 'crm_manager'].includes(profile.role)) return { error: 'Yetkisiz' }
 
     const now = new Date()
+    const ninetyDaysAgo = new Date(now)
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
-    // 1. Get all profiles in tenant for name lookup
-    const { data: allProfiles } = await adminSupabase
-        .from('profiles')
-        .select('id, full_name, role, is_active')
-        .eq('tenant_id', profile.tenant_id)
-        .or('is_external.is.null,is_external.eq.false')
+    // 1. Fetch profiles and activity count in parallel
+    const [allProfilesResult, actCountResult, salesCountResult] = await Promise.all([
+        adminSupabase
+            .from('profiles')
+            .select('id, full_name, role, is_active')
+            .eq('tenant_id', profile.tenant_id)
+            .or('is_external.is.null,is_external.eq.false'),
+        adminSupabase
+            .from('activities')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', profile.tenant_id)
+            .gte('created_at', ninetyDaysAgo.toISOString()),
+        adminSupabase
+            .from('sales')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', profile.tenant_id)
+            .not('status', 'in', '("Lost","Cancelled","Transferred")')
+    ])
 
     const profileNameMap = new Map<string, string>()
-    if (allProfiles) {
-        allProfiles.forEach(p => {
+    if (allProfilesResult.data) {
+        allProfilesResult.data.forEach(p => {
             if (p.full_name) profileNameMap.set(p.id, p.full_name)
         })
     }
 
-    // 2. Get all activities for this tenant (last 90 days for context) with pagination to bypass Supabase 1000 limit
-    const ninetyDaysAgo = new Date(now)
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-
-    const activities: any[] = []
-    let actPage = 0
     const pageSize = 1000
+    const totalActPages = Math.ceil((actCountResult.count || 0) / pageSize)
+    const totalSalesPages = Math.ceil((salesCountResult.count || 0) / pageSize)
 
-    while (true) {
-        const { data: chunk, error: actError } = await adminSupabase
-            .from('activities')
-            .select(`
-                id, type, status, outcome, summary, notes, priority,
-                due_date, created_at, completed_at,
-                owner_id, user_id,
-                customer_id,
-                customers:customer_id(full_name, phone)
-            `)
-            .eq('tenant_id', profile.tenant_id)
-            .gte('created_at', ninetyDaysAgo.toISOString())
-            .order('due_date', { ascending: true })
-            .range(actPage * pageSize, (actPage + 1) * pageSize - 1)
+    // 2. Parallel chunk fetching for activities (in batches of 15 for optimal throughput)
+    const activities: any[] = []
+    const actPageIndices = Array.from({ length: totalActPages }, (_, i) => i)
+    const ACT_BATCH_SIZE = 15
 
-        if (actError) {
-            console.error('[getActivityTrackingReport] Error fetching activities chunk:', actError)
-            break
-        }
-        if (!chunk || chunk.length === 0) break
-        activities.push(...chunk)
-        if (chunk.length < pageSize) break
-        actPage++
+    for (let i = 0; i < totalActPages; i += ACT_BATCH_SIZE) {
+        const batchPages = actPageIndices.slice(i, i + ACT_BATCH_SIZE)
+        const batchResults = await Promise.all(
+            batchPages.map(page =>
+                adminSupabase
+                    .from('activities')
+                    .select(`
+                        id, type, status, outcome, summary, priority,
+                        due_date, created_at, completed_at,
+                        owner_id, user_id,
+                        customer_id,
+                        customers:customer_id(full_name, phone)
+                    `)
+                    .eq('tenant_id', profile.tenant_id)
+                    .gte('created_at', ninetyDaysAgo.toISOString())
+                    .order('due_date', { ascending: true })
+                    .range(page * pageSize, (page + 1) * pageSize - 1)
+                    .then(r => r.data || [])
+            )
+        )
+        batchResults.forEach(chunk => activities.push(...chunk))
     }
 
-    // 3. Get sales data for pipeline stage context with pagination
+    // 3. Parallel chunk fetching for sales
     const sales: any[] = []
-    let salesPage = 0
-
-    while (true) {
-        const { data: chunk, error: salesError } = await adminSupabase
-            .from('sales')
-            .select('id, customer_id, status, project_id, projects(name), assigned_to')
-            .eq('tenant_id', profile.tenant_id)
-            .not('status', 'in', '("Lost","Cancelled","Transferred")')
-            .range(salesPage * pageSize, (salesPage + 1) * pageSize - 1)
-
-        if (salesError) {
-            console.error('[getActivityTrackingReport] Error fetching sales chunk:', salesError)
-            break
-        }
-        if (!chunk || chunk.length === 0) break
-        sales.push(...chunk)
-        if (chunk.length < pageSize) break
-        salesPage++
-    }
+    const salesPageIndices = Array.from({ length: totalSalesPages }, (_, i) => i)
+    const salesResults = await Promise.all(
+        salesPageIndices.map(page =>
+            adminSupabase
+                .from('sales')
+                .select('id, customer_id, status, project_id, projects(name), assigned_to')
+                .eq('tenant_id', profile.tenant_id)
+                .not('status', 'in', '("Lost","Cancelled","Transferred")')
+                .range(page * pageSize, (page + 1) * pageSize - 1)
+                .then(r => r.data || [])
+        )
+    )
+    salesResults.forEach(chunk => sales.push(...chunk))
 
     const salesByCustomer: Record<string, any> = {}
     sales.forEach(s => {
@@ -2213,13 +2220,23 @@ export async function getActivityTrackingReport() {
         overdue: number
         avgIdleDays: number
         lastActivityDate: string | null
+        appointments: {
+            total: number
+            attended: number
+            noShow: number
+            rescheduled: number
+            cancelled: number
+            planned: number
+            showUpRate: number
+        }
         activities: any[]
     }> = {}
 
     const typeLabels: Record<string, string> = {
         'Call': 'Telefon', 'Phone': 'Telefon', 'Meeting': 'Toplantı',
+        'OfficeMeeting': 'Ofis Randevusu', 'OnlineMeeting': 'Online Görüşme',
         'Site Visit': 'Saha Gezisi', 'Visit': 'Saha Gezisi',
-        'Email': 'E-posta', 'Whatsapp': 'WhatsApp', 'Other': 'Diğer'
+        'Email': 'E-posta', 'Whatsapp': 'WhatsApp', 'Task': 'Görev', 'Other': 'Diğer'
     }
 
     const priorityLabels: Record<string, string> = {
@@ -2235,6 +2252,15 @@ export async function getActivityTrackingReport() {
                 name: repName,
                 total: 0, completed: 0, planned: 0, overdue: 0,
                 avgIdleDays: 0, lastActivityDate: null,
+                appointments: {
+                    total: 0,
+                    attended: 0,
+                    noShow: 0,
+                    rescheduled: 0,
+                    cancelled: 0,
+                    planned: 0,
+                    showUpRate: 0
+                },
                 activities: []
             }
         }
@@ -2250,6 +2276,23 @@ export async function getActivityTrackingReport() {
         if (isCompleted) rep.completed++
         if (isPlanned) rep.planned++
         if (isOverdue) rep.overdue++
+
+        // Track Appointment / Meeting specific statuses (Geldi - Gelmedi - Revize vb.)
+        const isAppointment = ['Meeting', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Showroom'].includes(act.type)
+        if (isAppointment) {
+            rep.appointments.total++
+            if (act.status === 'No-Show' || act.outcome === 'No-Show') {
+                rep.appointments.noShow++
+            } else if (act.status === 'Rescheduled' || act.outcome === 'Rescheduled') {
+                rep.appointments.rescheduled++
+            } else if (act.status === 'Cancelled') {
+                rep.appointments.cancelled++
+            } else if (isCompleted || ['Success', 'Offer Presented', 'Reached Interested', 'Considering'].includes(act.outcome)) {
+                rep.appointments.attended++
+            } else if (isPlanned) {
+                rep.appointments.planned++
+            }
+        }
 
         // Track last activity
         if (!rep.lastActivityDate || new Date(act.created_at) > new Date(rep.lastActivityDate)) {
@@ -2280,11 +2323,15 @@ export async function getActivityTrackingReport() {
         })
     }
 
-    // Calculate idle days for each rep
+    // Calculate idle days and appointment show-up rate for each rep
     const repData = Object.values(repMap).map(rep => {
         const idleDays = rep.lastActivityDate
             ? Math.floor((now.getTime() - new Date(rep.lastActivityDate).getTime()) / (1000 * 60 * 60 * 24))
             : 999
+
+        const evaluatedAppointments = rep.appointments.attended + rep.appointments.noShow
+        const showUpRate = evaluatedAppointments > 0 ? Math.round((rep.appointments.attended / evaluatedAppointments) * 100) : (rep.appointments.attended > 0 ? 100 : 0)
+        rep.appointments.showUpRate = showUpRate
 
         // Sort: overdue first, then by due_date ascending
         rep.activities.sort((a, b) => {
@@ -2306,6 +2353,11 @@ export async function getActivityTrackingReport() {
     const totalCompleted = repData.reduce((sum, r) => sum + r.completed, 0)
     const totalActivities = repData.reduce((sum, r) => sum + r.total, 0)
 
+    const totalAppointments = repData.reduce((sum, r) => sum + r.appointments.total, 0)
+    const totalAttended = repData.reduce((sum, r) => sum + r.appointments.attended, 0)
+    const totalNoShow = repData.reduce((sum, r) => sum + r.appointments.noShow, 0)
+    const totalRescheduled = repData.reduce((sum, r) => sum + r.appointments.rescheduled, 0)
+
     return {
         repData,
         summary: {
@@ -2314,7 +2366,14 @@ export async function getActivityTrackingReport() {
             totalCompleted,
             totalPlanned,
             totalOverdue,
-            completionRate: totalActivities > 0 ? Math.round((totalCompleted / totalActivities) * 100) : 0
+            completionRate: totalActivities > 0 ? Math.round((totalCompleted / totalActivities) * 100) : 0,
+            appointmentSummary: {
+                total: totalAppointments,
+                attended: totalAttended,
+                noShow: totalNoShow,
+                rescheduled: totalRescheduled,
+                showUpRate: (totalAttended + totalNoShow) > 0 ? Math.round((totalAttended / (totalAttended + totalNoShow)) * 100) : 100
+            }
         }
     }
 }

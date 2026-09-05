@@ -141,6 +141,99 @@ export async function createActivity(formData: FormData) {
         }).catch(console.error)
     }
 
+    // 5. Automatic WhatsApp Location & Appointment Confirmation for OfficeMeeting / Site Visit
+    const sendLocationWa = formData.get('send_location_whatsapp') === 'true' || formData.get('send_location_whatsapp') === 'on' || formData.get('send_location_whatsapp') === '1'
+    if (sendLocationWa && customer_id && profile?.tenant_id) {
+        try {
+            const { data: customerData } = await adminSupabase
+                .from('customers')
+                .select('full_name, phone')
+                .eq('id', customer_id)
+                .single()
+
+            if (customerData?.phone) {
+                let projName = 'Satış Ofisi'
+                let projAddress = ''
+                let mapsLink = ''
+
+                if (project_id) {
+                    const { data: projData } = await adminSupabase
+                        .from('projects')
+                        .select('name, address, city, district, latitude, longitude')
+                        .eq('id', project_id)
+                        .single()
+
+                    if (projData) {
+                        projName = projData.name
+                        projAddress = projData.address || `${projData.district || ''} ${projData.city || ''}`.trim()
+                        if (projData.latitude && projData.longitude) {
+                            mapsLink = `https://maps.google.com/?q=${projData.latitude},${projData.longitude}`
+                        } else if (projAddress) {
+                            mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${projName} ${projAddress}`)}`
+                        }
+                    }
+                }
+
+                // If explicit location was typed
+                const locationTyped = formData.get('location') as string
+                if (locationTyped) {
+                    if (!projAddress) projAddress = locationTyped
+                    if (!mapsLink) mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationTyped)}`
+                }
+
+                // Format appointment date for Turkish readable display
+                let formattedDate = ''
+                if (due_date) {
+                    try {
+                        const d = new Date(due_date)
+                        formattedDate = d.toLocaleDateString('tr-TR', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })
+                    } catch {}
+                }
+
+                const { data: repData } = await adminSupabase
+                    .from('profiles')
+                    .select('full_name, phone')
+                    .eq('id', owner_id)
+                    .single()
+
+                const repName = repData?.full_name || profile.full_name || 'Satış Danışmanınız'
+                const repPhone = repData?.phone || ''
+
+                const waMessageText = `Sn. *${customerData.full_name || 'Müşterimiz'}*,\n\n*${projName}* projemiz için planlanan randevunuz başarıyla oluşturulmuştur.\n\n📅 *Randevu Zamanı:* ${formattedDate || 'Planlanan Saatte'}\n🏢 *Lokasyon:* ${projAddress || projName + ' Satış Ofisi'}${mapsLink ? `\n📍 *Harita Konumu:* ${mapsLink}` : ''}\n👤 *Sorumlu Danışman:* ${repName}${repPhone ? ` (${repPhone})` : ''}\n\nSizi ağırlamaktan memnuniyet duyarız.`
+
+                const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
+                await sendWhatsAppMessage(customerData.phone, waMessageText)
+
+                // Log into activities table
+                await adminSupabase.from('activities').insert({
+                    tenant_id: profile.tenant_id,
+                    customer_id: customer_id,
+                    user_id: user.id,
+                    owner_id: owner_id,
+                    type: 'Whatsapp',
+                    topic: 'Sales',
+                    summary: `📍 Randevu Konumu İletildi (${projName})`,
+                    description: waMessageText,
+                    status: 'Completed',
+                    completed_at: new Date().toISOString(),
+                    done_at: new Date().toISOString(),
+                    outcome: 'Success',
+                    project_id: project_id || null,
+                    notes: `Müşteriye otomatik randevu teyit ve satış ofisi harita konumu iletildi.`
+                })
+            }
+        } catch (waErr: any) {
+            console.error('[WhatsApp Appointment Location Error]:', waErr?.message)
+        }
+    }
+
     revalidatePath('/activities')
     revalidatePath('/crm')
     return { success: true }

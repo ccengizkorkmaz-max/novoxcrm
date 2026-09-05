@@ -507,21 +507,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label>{t('form.priority') || 'Öncelik'}</Label>
-                                        <select
-                                            name="priority"
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                            defaultValue={activity?.priority || 'Medium'}
-                                            disabled={isReadOnly}
-                                        >
-                                            <option value="Low">{t('form.priorityLow') || 'Düşük'}</option>
-                                            <option value="Medium">{t('form.priorityMedium') || 'Orta'}</option>
-                                            <option value="High">{t('form.priorityHigh') || 'Yüksek'}</option>
-                                            <option value="Urgent">{t('form.priorityUrgent') || 'Acil'}</option>
-                                        </select>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>{t('form.reminder') || 'Hatırlatıcı'}</Label>
+                                        <Label>{t('form.reminder') || 'Hatırlatıcı Zamanı'}</Label>
                                         <Input
                                             name="reminder_at"
                                             type="datetime-local"
@@ -531,6 +517,18 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                             }
                                             disabled={isReadOnly}
                                         />
+                                    </div>
+                                    <div className="flex items-center space-x-2 pt-6">
+                                        <input
+                                            type="checkbox"
+                                            id="send_location_whatsapp"
+                                            name="send_location_whatsapp"
+                                            defaultChecked={true}
+                                            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                        />
+                                        <Label htmlFor="send_location_whatsapp" className="text-xs font-bold text-emerald-800 dark:text-emerald-300 cursor-pointer flex items-center gap-1">
+                                            <span>📍 Müşteriye Konum WhatsApp'ı İlet</span>
+                                        </Label>
                                     </div>
                                 </div>
 
