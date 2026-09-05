@@ -47,46 +47,46 @@ import {
 
 const META_APPROVED_TEMPLATES = [
     {
+        id: 'novo_talep_alindi',
+        title: '⚡ Kurumsal Talep Onayı (Önerilen)',
+        desc: 'Merhaba [Müşteri], [Proje] hakkındaki talebiniz alınmıştır. En kısa sürede size dönüş yapılacaktır. Sorularınızı bize buradan da sorabilirsiniz.',
+        badge: '⚡ Anında İletim (Utility)',
+        badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-400 font-bold ring-1 ring-emerald-400'
+    },
+    {
         id: 'crm_temsilci_tanitim',
         title: '💬 Tanıtım & İletişim İzni',
         desc: 'Sayın [Müşteri], ilgilendiğiniz [Proje] hakkında bilgilendirmeler için sizinle buradan iletişime geçebilir miyiz?',
-        badge: 'İlk Temas İçin İdeal',
-        badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+        badge: 'Tanıtım (Marketing)',
+        badgeColor: 'bg-blue-100 text-blue-800 border-blue-300'
     },
     {
         id: 'new_lead_bilgilendirme',
         title: '📋 Talep Bilgilendirmesi',
         desc: 'Merhaba [Müşteri], [Proje] hakkındaki talebiniz alınmıştır. Uzmanlarımız tarafından en kısa sürede dönüş yapılacaktır.',
-        badge: 'Lead Hoş Geldin',
-        badgeColor: 'bg-blue-100 text-blue-800 border-blue-300'
+        badge: 'Lead (Marketing)',
+        badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300'
     },
     {
         id: 'novo_kampanya_kocaeli_v2',
         title: '🏢 Kocaeli (Novo Park 4) Kampanyası',
         desc: 'Novo Park 4 Kocaeli projemiz hakkında bilgi almıştınız. Güncel peşin fiyatlar ve fırsatlarımızı paylaşalım mı?',
-        badge: 'Kocaeli',
+        badge: 'Kocaeli (Marketing)',
         badgeColor: 'bg-amber-100 text-amber-800 border-amber-300'
     },
     {
         id: 'novo_kampanya_izmir_v2',
         title: '🌊 İzmir (Novo City) Kampanyası',
         desc: 'Novo City İzmir projemiz hakkında bilgi almıştınız. 60 ay vade farksız taksit fırsatlarımızı paylaşalım mı?',
-        badge: 'İzmir',
+        badge: 'İzmir (Marketing)',
         badgeColor: 'bg-teal-100 text-teal-800 border-teal-300'
     },
     {
         id: 'novo_kampanya_genel_v2',
         title: '🌍 Tüm Projeler Genel Kampanyası',
         desc: 'Novo Şirketler Grubu gayrimenkul projelerimize göstermiş olduğunuz ilgiye istinaden sizinle iletişime geçtik...',
-        badge: 'Genel',
+        badge: 'Genel (Marketing)',
         badgeColor: 'bg-purple-100 text-purple-800 border-purple-300'
-    },
-    {
-        id: 'novo_talep_alindi',
-        title: '✨ Kurumsal Talep Onayı',
-        desc: 'Merhaba [Müşteri], [Proje] hakkındaki talebiniz alınmıştır. Sorularınızı buradan bize sorabilirsiniz.',
-        badge: 'Kurumsal',
-        badgeColor: 'bg-slate-100 text-slate-800 border-slate-300'
     }
 ]
 
@@ -546,20 +546,37 @@ export function CrmWhatsAppChatDrawer({
 
                 {/* 24 Saat Kuralı Sabit Uyarı & Şablonla Başlat Barı */}
                 {is24hExpired && (
-                    <div className="px-3.5 py-2 bg-amber-50/95 border-t border-amber-200 flex items-center justify-between gap-2 shrink-0">
+                    <div className="px-3.5 py-2 bg-amber-50/95 border-t border-amber-200 flex items-center justify-between gap-2 shrink-0 flex-wrap">
                         <div className="flex items-center gap-1.5 text-xs text-amber-900 font-medium min-w-0">
                             <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
                             <span className="truncate">24 Saat penceresi kapalı (serbest metin iletilemez)</span>
                         </div>
-                        <Button
-                            size="sm"
-                            type="button"
-                            onClick={() => setIsTemplateModalOpen(true)}
-                            className="h-7 px-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs gap-1 shrink-0 active:scale-95 transition-all"
-                        >
-                            <Sparkles className="h-3 w-3" />
-                            Şablonla Başlat
-                        </Button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            <Button
+                                size="sm"
+                                type="button"
+                                disabled={sendingTemplate}
+                                onClick={() => handleSendApprovedTemplate('novo_talep_alindi')}
+                                className="h-7 px-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs gap-1 shrink-0 active:scale-95 transition-all"
+                                title="Anında iletilen resmi Hizmet (Utility) şablonuyla konuşmayı başlat"
+                            >
+                                {sendingTemplate && selectedTemplateId === 'novo_talep_alindi' ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                    <Sparkles className="h-3 w-3" />
+                                )}
+                                ⚡ Şablonla Başlat
+                            </Button>
+                            <Button
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsTemplateModalOpen(true)}
+                                className="h-7 px-2 text-xs font-semibold bg-white border-amber-300 text-amber-900 hover:bg-amber-100 rounded-lg shrink-0 transition-all"
+                            >
+                                Seçenekler
+                            </Button>
+                        </div>
                     </div>
                 )}
 
@@ -568,12 +585,27 @@ export function CrmWhatsAppChatDrawer({
                     <Button
                         type="button"
                         size="sm"
-                        onClick={() => setIsTemplateModalOpen(true)}
+                        disabled={sendingTemplate}
+                        onClick={() => handleSendApprovedTemplate('novo_talep_alindi')}
                         className="h-7 px-2.5 text-xs font-bold whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shrink-0 shadow-2xs gap-1.5 active:scale-95 transition-all"
-                        title="Meta onaylı resmi şablon seçerek gönder"
+                        title="Meta onaylı Hizmet (Utility) şablonuyla anında konuşmayı başlat"
                     >
-                        <Sparkles className="h-3 w-3" />
-                        ✨ Onaylı Şablon Gönder
+                        {sendingTemplate && selectedTemplateId === 'novo_talep_alindi' ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                            <Sparkles className="h-3 w-3" />
+                        )}
+                        ⚡ Hızlı Başlat (Talep Onayı)
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setIsTemplateModalOpen(true)}
+                        className="h-7 px-2.5 text-xs font-bold whitespace-nowrap border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-lg shrink-0 shadow-2xs gap-1 active:scale-95 transition-all"
+                        title="Diğer Meta onaylı resmi şablonları incele ve seç"
+                    >
+                        Tüm Şablonlar
                     </Button>
                     <span className="text-[11px] font-bold text-slate-400 uppercase shrink-0">| Hızlı Metin:</span>
                     <button

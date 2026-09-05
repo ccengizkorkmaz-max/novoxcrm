@@ -5008,7 +5008,7 @@ export async function toggleCustomerWhatsAppAi(conversationId: string, aiEnabled
 }
 
 /**
- * 24 saat kuralı dışındaki müşterilere onaylı Türkçe Meta şablonu (new_lead_bilgilendirme) gönderir
+ * 24 saat kuralı dışındaki müşterilere onaylı Türkçe Meta şablonu (novo_talep_alindi) gönderir
  */
 export async function sendCustomerWhatsAppTemplateAction({
     conversationId,
@@ -5049,7 +5049,7 @@ export async function sendCustomerWhatsAppTemplateAction({
 
         const cName = customerName?.trim() || 'Değerli Müşterimiz'
         const pName = projectName?.trim() || 'Novo Projelerimiz'
-        let templateName = requestedTemplate || tenant.wa_auto_template_name || 'crm_temsilci_tanitim'
+        let templateName = requestedTemplate || tenant.wa_auto_template_name || 'novo_talep_alindi'
 
         // Şablonun Meta'daki parametre yapısına göre değişkenleri belirle
         let params: string[] = [cName]
@@ -5071,12 +5071,12 @@ export async function sendCustomerWhatsAppTemplateAction({
             tenant.wa_access_token
         )
 
-        // Eğer istenen şablon başarısız olursa new_lead_bilgilendirme fallback dene
-        if (!result.success && templateName !== 'new_lead_bilgilendirme') {
-            console.warn(`[CRM WA] ${templateName} başarısız oldu, fallback new_lead_bilgilendirme deneniyor...`, result.error)
+        // Eğer istenen şablon başarısız olursa novo_talep_alindi fallback dene
+        if (!result.success && templateName !== 'novo_talep_alindi') {
+            console.warn(`[CRM WA] ${templateName} başarısız oldu, fallback novo_talep_alindi (Utility) deneniyor...`, result.error)
             const fallbackRes = await sendWhatsAppTemplate(
                 phone,
-                'new_lead_bilgilendirme',
+                'novo_talep_alindi',
                 [cName, pName],
                 'tr',
                 tenant.wa_phone_number_id,
