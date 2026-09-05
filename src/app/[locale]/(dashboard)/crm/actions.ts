@@ -5014,12 +5014,14 @@ export async function sendCustomerWhatsAppTemplateAction({
     conversationId,
     phone,
     customerName,
-    projectName
+    projectName,
+    templateName: requestedTemplate
 }: {
     conversationId: string;
     phone: string;
     customerName: string;
     projectName?: string;
+    templateName?: string;
 }) {
     try {
         const supabase = await createClient()
@@ -5045,23 +5047,33 @@ export async function sendCustomerWhatsAppTemplateAction({
             return { error: 'Kurumsal WhatsApp bilgileri eksik' }
         }
 
-        let templateName = tenant.wa_auto_template_name || 'crm_temsilci_tanitim'
         const cName = customerName?.trim() || 'Değerli Müşterimiz'
-        const pName = projectName?.trim() || 'Projemiz'
+        const pName = projectName?.trim() || 'Novo Projelerimiz'
+        let templateName = requestedTemplate || tenant.wa_auto_template_name || 'crm_temsilci_tanitim'
+
+        // Şablonun Meta'daki parametre yapısına göre değişkenleri belirle
+        let params: string[] = [cName]
+        if (templateName === 'crm_temsilci_tanitim' || templateName.startsWith('novo_kampanya_')) {
+            params = [cName]
+        } else if (templateName === 'new_lead_bilgilendirme' || templateName === 'novo_talep_alindi') {
+            params = [cName, pName]
+        } else {
+            params = [cName, pName]
+        }
 
         const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
         let result = await sendWhatsAppTemplate(
             phone,
             templateName,
-            [cName, pName],
+            params,
             'tr',
             tenant.wa_phone_number_id,
             tenant.wa_access_token
         )
 
-        // Yeni şablon Meta onay sürecindeyse geçici fallback yap
+        // Eğer istenen şablon başarısız olursa new_lead_bilgilendirme fallback dene
         if (!result.success && templateName !== 'new_lead_bilgilendirme') {
-            console.warn(`[CRM WA] ${templateName} henüz onaylanmamış olabilir, fallback şablon deneniyor...`)
+            console.warn(`[CRM WA] ${templateName} başarısız oldu, fallback new_lead_bilgilendirme deneniyor...`, result.error)
             const fallbackRes = await sendWhatsAppTemplate(
                 phone,
                 'new_lead_bilgilendirme',
@@ -5077,10 +5089,17 @@ export async function sendCustomerWhatsAppTemplateAction({
         }
 
         if (!result.success) {
-            return { error: result.error || 'Şablon gönderilemedi' }
+            return { error: result.error || 'Şablon Meta tarafından iletilemedi' }
         }
 
-        const content = `[Şablon: ${templateName}] ${cName} müşterisine ${pName} hakkında bilgilendirme şablonu gönderildi.`
+        let content = `[Şablon: ${templateName}] ${cName} müşterisine ${pName} hakkında bilgilendirme şablonu gönderildi.`
+        if (templateName === 'crm_temsilci_tanitim') {
+            content = `[Şablon: Tanıtım & İletişim İzni]\nSayın ${cName}, ilgilendiğiniz ${pName} hakkında bilgilendirmeler için sizinle buradan iletişime geçebilir miyiz?`
+        } else if (templateName === 'new_lead_bilgilendirme') {
+            content = `[Şablon: Talep Bilgilendirme]\nMerhaba ${cName}, ${pName} hakkındaki talebiniz alınmıştır. Uzmanlarımız tarafından en kısa sürede size dönüş yapılacaktır.`
+        }
+
+        const waMessageId = result.data?.messages?.[0]?.id || null
 
         // whatsapp_messages tablosuna kaydet
         await adminSupabase.from('whatsapp_messages').insert({
@@ -5090,6 +5109,7 @@ export async function sendCustomerWhatsAppTemplateAction({
             status: 'delivered',
             role: 'assistant',
             sender_type: 'agent',
+            wa_message_id: waMessageId,
             content
         })
 

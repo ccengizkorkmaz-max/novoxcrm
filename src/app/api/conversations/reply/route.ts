@@ -95,8 +95,16 @@ export async function POST(req: NextRequest) {
         }
 
         if (!sendResult.success) {
+            const rawErr = sendResult.error || ''
+            if (rawErr.includes('131047') || rawErr.toLowerCase().includes('24 hours') || rawErr.toLowerCase().includes('re-engagement')) {
+                return NextResponse.json({ 
+                    error: 'WhatsApp 24 Saat Kuralı: Müşteri son 24 saatte mesaj atmadığı için serbest metin iletilemedi. Lütfen Onaylı Şablon ile konuşmayı başlatın.' 
+                }, { status: 400 });
+            }
             return NextResponse.json({ error: sendResult.error }, { status: 500 });
         }
+
+        const waMessageId = (sendResult as any)?.data?.messages?.[0]?.id || null;
 
         // 4. Store in DB
         const { error: msgError } = await supabase.from('whatsapp_messages').insert({
@@ -105,6 +113,7 @@ export async function POST(req: NextRequest) {
             direction: 'outbound',
             status: 'sent',
             role: 'assistant', // Manual replies show on the right side
+            wa_message_id: waMessageId,
             content: message
         });
 

@@ -7,6 +7,13 @@ import {
     SheetHeader,
     SheetTitle
 } from '@/components/ui/sheet'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -24,16 +31,64 @@ import {
     PhoneCall,
     FileText,
     Calendar,
-    Clock
+    Clock,
+    ShieldAlert,
+    ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import {
     getOrCreateCustomerWhatsAppConversation,
     fetchCustomerWhatsAppMessages,
     toggleCustomerWhatsAppAi,
     sendCustomerWhatsAppTemplateAction
 } from '../actions'
+
+const META_APPROVED_TEMPLATES = [
+    {
+        id: 'crm_temsilci_tanitim',
+        title: '💬 Tanıtım & İletişim İzni',
+        desc: 'Sayın [Müşteri], ilgilendiğiniz [Proje] hakkında bilgilendirmeler için sizinle buradan iletişime geçebilir miyiz?',
+        badge: 'İlk Temas İçin İdeal',
+        badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+    },
+    {
+        id: 'new_lead_bilgilendirme',
+        title: '📋 Talep Bilgilendirmesi',
+        desc: 'Merhaba [Müşteri], [Proje] hakkındaki talebiniz alınmıştır. Uzmanlarımız tarafından en kısa sürede dönüş yapılacaktır.',
+        badge: 'Lead Hoş Geldin',
+        badgeColor: 'bg-blue-100 text-blue-800 border-blue-300'
+    },
+    {
+        id: 'novo_kampanya_kocaeli_v2',
+        title: '🏢 Kocaeli (Novo Park 4) Kampanyası',
+        desc: 'Novo Park 4 Kocaeli projemiz hakkında bilgi almıştınız. Güncel peşin fiyatlar ve fırsatlarımızı paylaşalım mı?',
+        badge: 'Kocaeli',
+        badgeColor: 'bg-amber-100 text-amber-800 border-amber-300'
+    },
+    {
+        id: 'novo_kampanya_izmir_v2',
+        title: '🌊 İzmir (Novo City) Kampanyası',
+        desc: 'Novo City İzmir projemiz hakkında bilgi almıştınız. 60 ay vade farksız taksit fırsatlarımızı paylaşalım mı?',
+        badge: 'İzmir',
+        badgeColor: 'bg-teal-100 text-teal-800 border-teal-300'
+    },
+    {
+        id: 'novo_kampanya_genel_v2',
+        title: '🌍 Tüm Projeler Genel Kampanyası',
+        desc: 'Novo Şirketler Grubu gayrimenkul projelerimize göstermiş olduğunuz ilgiye istinaden sizinle iletişime geçtik...',
+        badge: 'Genel',
+        badgeColor: 'bg-purple-100 text-purple-800 border-purple-300'
+    },
+    {
+        id: 'novo_talep_alindi',
+        title: '✨ Kurumsal Talep Onayı',
+        desc: 'Merhaba [Müşteri], [Proje] hakkındaki talebiniz alınmıştır. Sorularınızı buradan bize sorabilirsiniz.',
+        badge: 'Kurumsal',
+        badgeColor: 'bg-slate-100 text-slate-800 border-slate-300'
+    }
+]
 
 interface CrmWhatsAppChatDrawerProps {
     isOpen: boolean
@@ -71,6 +126,8 @@ export function CrmWhatsAppChatDrawer({
     const [inputMessage, setInputMessage] = useState('')
     const [aiEnabled, setAiEnabled] = useState(false)
     const [isPolling, setIsPolling] = useState(false)
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -150,10 +207,26 @@ export function CrmWhatsAppChatDrawer({
         return () => clearInterval(interval)
     }, [isOpen, conversation?.id, scrollToBottom])
 
+    const lastInboundMsg = [...messages].reverse().find(m => m.direction === 'inbound')
+    const lastInboundTime = lastInboundMsg?.created_at ? new Date(lastInboundMsg.created_at).getTime() : 0
+    const is24hExpired = !lastInboundTime || (Date.now() - lastInboundTime > 24 * 60 * 60 * 1000)
+
     // Send message via /api/conversations/reply
     const handleSendMessage = async (textToSend?: string) => {
         const text = (textToSend || inputMessage).trim()
         if (!text || sending || !conversation?.id) return
+
+        if (is24hExpired) {
+            toast.warning('Müşteri son 24 saatte mesaj atmadığı için serbest metin iletilemez. Lütfen onaylı şablon ile sohbeti başlatın.', {
+                duration: 6000,
+                action: {
+                    label: 'Şablon Seç',
+                    onClick: () => setIsTemplateModalOpen(true)
+                }
+            })
+            setIsTemplateModalOpen(true)
+            return
+        }
 
         setSending(true)
         try {
@@ -168,6 +241,9 @@ export function CrmWhatsAppChatDrawer({
 
             const data = await res.json()
             if (!res.ok) {
+                if (data.error && (data.error.includes('24 Saat') || data.error.includes('131047'))) {
+                    setIsTemplateModalOpen(true)
+                }
                 throw new Error(data.error || 'Mesaj gönderilemedi')
             }
 
@@ -199,24 +275,26 @@ export function CrmWhatsAppChatDrawer({
 
     const [sendingTemplate, setSendingTemplate] = useState(false)
 
-    // Send official pre-approved Turkish Meta Template (new_lead_bilgilendirme)
-    const handleSendApprovedTemplate = async () => {
+    // Send official pre-approved Turkish Meta Template
+    const handleSendApprovedTemplate = async (templateId?: string) => {
         if (!conversation?.id || !customer.phone || sendingTemplate) return
         setSendingTemplate(true)
+        setSelectedTemplateId(templateId || null)
         try {
             const res = await sendCustomerWhatsAppTemplateAction({
                 conversationId: conversation.id,
                 phone: customer.phone,
                 customerName: customer.full_name,
-                projectName: projectName || undefined
+                projectName: projectName || undefined,
+                templateName: templateId
             })
             if (res.error) {
                 toast.error(res.error)
             } else {
-                toast.success('Resmi Türkçe tanıtım şablonu müşteriye iletildi')
+                toast.success('Resmi Meta şablonu müşteriye başarıyla iletildi')
                 const newMsg: Message = {
                     id: 'temp-' + Date.now(),
-                    content: res.message || 'Bilgilendirme şablonu gönderildi',
+                    content: res.message || 'Onaylı şablon gönderildi',
                     direction: 'outbound',
                     role: 'assistant',
                     sender_type: 'agent',
@@ -224,12 +302,14 @@ export function CrmWhatsAppChatDrawer({
                     created_at: new Date().toISOString()
                 }
                 setMessages(prev => [...prev, newMsg])
+                setIsTemplateModalOpen(false)
                 setTimeout(() => scrollToBottom(true), 150)
             }
         } catch (err: any) {
             toast.error(err.message || 'Şablon gönderilirken hata oluştu')
         } finally {
             setSendingTemplate(false)
+            setSelectedTemplateId(null)
         }
     }
 
@@ -338,7 +418,7 @@ export function CrmWhatsAppChatDrawer({
                             <Button
                                 size="lg"
                                 disabled={sendingTemplate}
-                                onClick={handleSendApprovedTemplate}
+                                onClick={() => handleSendApprovedTemplate()}
                                 className="w-full max-w-md h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md gap-2 mb-5 active:scale-98 transition-all"
                             >
                                 {sendingTemplate ? (
@@ -396,7 +476,7 @@ export function CrmWhatsAppChatDrawer({
                                             <Button
                                                 size="sm"
                                                 disabled={sendingTemplate}
-                                                onClick={handleSendApprovedTemplate}
+                                                onClick={() => handleSendApprovedTemplate()}
                                                 className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs gap-2 active:scale-98 transition-all"
                                             >
                                                 {sendingTemplate ? (
@@ -464,33 +544,87 @@ export function CrmWhatsAppChatDrawer({
                     )}
                 </div>
 
-                {/* Quick Templates Bar */}
-                {messages.length > 0 && (
-                    <div className="px-3.5 py-2.5 border-t border-slate-200 bg-white flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
-                        <span className="text-xs font-bold text-slate-600 uppercase shrink-0">Hızlı Şablon:</span>
-                        <button
+                {/* 24 Saat Kuralı Sabit Uyarı & Şablonla Başlat Barı */}
+                {is24hExpired && (
+                    <div className="px-3.5 py-2 bg-amber-50/95 border-t border-amber-200 flex items-center justify-between gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 text-xs text-amber-900 font-medium min-w-0">
+                            <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                            <span className="truncate">24 Saat penceresi kapalı (serbest metin iletilemez)</span>
+                        </div>
+                        <Button
+                            size="sm"
                             type="button"
-                            onClick={() => setInputMessage(`Merhaba ${customer.full_name}, projemizle ilgili detaylı bilgi ve güncel fiyat listesini iletiyorum.`)}
-                            className="text-xs font-semibold whitespace-nowrap bg-slate-50 border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 text-slate-800 px-3.5 py-1.5 rounded-lg shrink-0 shadow-2xs transition-all active:scale-95"
+                            onClick={() => setIsTemplateModalOpen(true)}
+                            className="h-7 px-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs gap-1 shrink-0 active:scale-95 transition-all"
                         >
-                            📑 Fiyat & Detay
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setInputMessage(`Sayın ${customer.full_name}, detayları telefonda görüşmek için bugün saat kaçta müsait olursunuz?`)}
-                            className="text-xs font-semibold whitespace-nowrap bg-slate-50 border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 text-slate-800 px-3.5 py-1.5 rounded-lg shrink-0 shadow-2xs transition-all active:scale-95"
-                        >
-                            📞 Arama Randevusu
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setInputMessage(`Satış ofisimizde örnek dairemizi yerinde görmek üzere bir kahve eşliğinde randevu organize edebiliriz.`)}
-                            className="text-xs font-semibold whitespace-nowrap bg-slate-50 border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 text-slate-800 px-3.5 py-1.5 rounded-lg shrink-0 shadow-2xs transition-all active:scale-95"
-                        >
-                            📍 Ofis Randevusu
-                        </button>
+                            <Sparkles className="h-3 w-3" />
+                            Şablonla Başlat
+                        </Button>
                     </div>
                 )}
+
+                {/* Quick Templates Bar */}
+                <div className="px-3.5 py-2 border-t border-slate-200 bg-white flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+                    <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => setIsTemplateModalOpen(true)}
+                        className="h-7 px-2.5 text-xs font-bold whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shrink-0 shadow-2xs gap-1.5 active:scale-95 transition-all"
+                        title="Meta onaylı resmi şablon seçerek gönder"
+                    >
+                        <Sparkles className="h-3 w-3" />
+                        ✨ Onaylı Şablon Gönder
+                    </Button>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase shrink-0">| Hızlı Metin:</span>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (is24hExpired) {
+                                toast.warning('24 saat penceresi kapalı olduğu için serbest metin iletilemez. Lütfen onaylı şablon kullanın.', {
+                                    action: { label: 'Şablon Seç', onClick: () => setIsTemplateModalOpen(true) }
+                                })
+                                setIsTemplateModalOpen(true)
+                                return
+                            }
+                            setInputMessage(`Merhaba ${customer.full_name}, projemizle ilgili detaylı bilgi ve güncel fiyat listesini iletiyorum.`)
+                        }}
+                        className="text-xs font-semibold whitespace-nowrap bg-slate-50 border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 text-slate-800 px-3 py-1 rounded-lg shrink-0 shadow-2xs transition-all active:scale-95"
+                    >
+                        📑 Fiyat & Detay
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (is24hExpired) {
+                                toast.warning('24 saat penceresi kapalı olduğu için serbest metin iletilemez. Lütfen onaylı şablon kullanın.', {
+                                    action: { label: 'Şablon Seç', onClick: () => setIsTemplateModalOpen(true) }
+                                })
+                                setIsTemplateModalOpen(true)
+                                return
+                            }
+                            setInputMessage(`Sayın ${customer.full_name}, detayları telefonda görüşmek için bugün saat kaçta müsait olursunuz?`)
+                        }}
+                        className="text-xs font-semibold whitespace-nowrap bg-slate-50 border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 text-slate-800 px-3 py-1 rounded-lg shrink-0 shadow-2xs transition-all active:scale-95"
+                    >
+                        📞 Arama Randevusu
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (is24hExpired) {
+                                toast.warning('24 saat penceresi kapalı olduğu için serbest metin iletilemez. Lütfen onaylı şablon kullanın.', {
+                                    action: { label: 'Şablon Seç', onClick: () => setIsTemplateModalOpen(true) }
+                                })
+                                setIsTemplateModalOpen(true)
+                                return
+                            }
+                            setInputMessage(`Satış ofisimizde örnek dairemizi yerinde görmek üzere bir kahve eşliğinde randevu organize edebiliriz.`)
+                        }}
+                        className="text-xs font-semibold whitespace-nowrap bg-slate-50 border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 text-slate-800 px-3 py-1 rounded-lg shrink-0 shadow-2xs transition-all active:scale-95"
+                    >
+                        📍 Ofis Randevusu
+                    </button>
+                </div>
 
                 {/* Footer / Input Form */}
                 <div className="p-4 bg-white border-t border-slate-200 shrink-0">
@@ -511,7 +645,7 @@ export function CrmWhatsAppChatDrawer({
                                     handleSendMessage()
                                 }
                             }}
-                            placeholder={customer.phone ? "WhatsApp mesajı yazın... (Gönder için Enter)" : "Müşteri telefonu eksik"}
+                            placeholder={customer.phone ? (is24hExpired ? "24 saat penceresi kapalı. Onaylı Şablon Gönder butonunu kullanın..." : "WhatsApp mesajı yazın... (Gönder için Enter)") : "Müşteri telefonu eksik"}
                             disabled={!customer.phone || sending || loading}
                             rows={2}
                             className="min-h-[56px] max-h-[140px] resize-none text-[14.5px] rounded-xl border-slate-300 focus:border-[#008069] focus:ring-1 focus:ring-[#008069] text-[#111b21] placeholder:text-slate-400 p-3.5 leading-relaxed shadow-xs"
@@ -534,6 +668,61 @@ export function CrmWhatsAppChatDrawer({
                     </p>
                 </div>
             </SheetContent>
+
+            {/* Meta Onaylı Şablon Seçim Modalı */}
+            <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
+                <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden rounded-2xl">
+                    <DialogHeader className="p-5 pb-3 border-b bg-slate-50/80">
+                        <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-900">
+                            <Sparkles className="h-4 w-4 text-emerald-600" />
+                            Meta Onaylı WhatsApp Şablonları
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-slate-600">
+                            Müşteri henüz yanıt vermemiş veya 24 saat geçmiş olsa bile bu resmi şablonlar WhatsApp Business Cloud API ile doğrudan iletilir. Müşteri yanıt verdiğinde hat serbest mesajlaşmaya açılır.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="p-4 space-y-2.5 max-h-[440px] overflow-y-auto">
+                        {META_APPROVED_TEMPLATES.map((tmpl) => (
+                            <div
+                                key={tmpl.id}
+                                className="p-3.5 rounded-xl border border-slate-200 bg-white hover:border-emerald-500 hover:bg-emerald-50/20 transition-all shadow-xs flex flex-col gap-2"
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-sm text-slate-900">{tmpl.title}</span>
+                                        <Badge variant="outline" className={cn("text-[10px] font-bold px-2 py-0 border", tmpl.badgeColor)}>
+                                            {tmpl.badge}
+                                        </Badge>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        disabled={sendingTemplate}
+                                        onClick={() => handleSendApprovedTemplate(tmpl.id)}
+                                        className="h-8 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs gap-1.5 shrink-0 active:scale-95 transition-all"
+                                    >
+                                        {sendingTemplate && selectedTemplateId === tmpl.id ? (
+                                            <>
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                İletiliyor...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send className="h-3 w-3" />
+                                                Gönder
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100 font-normal">
+                                    {tmpl.desc
+                                        .replace('[Müşteri]', customer.full_name || 'Müşteri')
+                                        .replace('[Proje]', projectName || 'Novo Projelerimiz')}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Sheet>
     )
 }
