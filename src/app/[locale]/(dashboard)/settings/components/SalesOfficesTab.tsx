@@ -68,6 +68,42 @@ export function SalesOfficesTab({ initialOffices, projects }: SalesOfficesTabPro
     const [formNotes, setFormNotes] = useState('')
     const [formIsActive, setFormIsActive] = useState(true)
 
+    // Smart parser for Google Maps URL, share link, or pasted coordinates
+    const handleMapsInput = (inputVal: string) => {
+        setFormMapsUrl(inputVal)
+        const trimmed = inputVal.trim()
+        if (!trimmed) {
+            setFormLat('')
+            setFormLng('')
+            return
+        }
+
+        // 1. Pure coordinates: "41.1068, 28.9892" or "41.1068 28.9892"
+        const coordMatch = trimmed.match(/^([-+]?\d{1,2}(?:\.\d+)?)[,\s]+([-+]?\d{1,3}(?:\.\d+)?)$/)
+        if (coordMatch) {
+            setFormLat(coordMatch[1])
+            setFormLng(coordMatch[2])
+            setFormMapsUrl(`https://maps.google.com/?q=${coordMatch[1]},${coordMatch[2]}`)
+            return
+        }
+
+        // 2. Google Maps URL with @lat,lng
+        const atCoordMatch = trimmed.match(/@([-+]?\d{1,2}\.\d+),([-+]?\d{1,3}\.\d+)/)
+        if (atCoordMatch) {
+            setFormLat(atCoordMatch[1])
+            setFormLng(atCoordMatch[2])
+            return
+        }
+
+        // 3. Google Maps URL with ?q=lat,lng
+        const queryCoordMatch = trimmed.match(/[?&](?:q|ll|query)=([-+]?\d{1,2}\.\d+),([-+]?\d{1,3}\.\d+)/)
+        if (queryCoordMatch) {
+            setFormLat(queryCoordMatch[1])
+            setFormLng(queryCoordMatch[2])
+            return
+        }
+    }
+
     const openCreateModal = () => {
         setEditingOffice(null)
         setFormName('')
@@ -112,6 +148,19 @@ export function SalesOfficesTab({ initialOffices, projects }: SalesOfficesTabPro
         setIsSaving(true)
         const selectedProject = projects?.find(p => p.id === formProjectId)
 
+        // Final effective mapsUrl
+        let effectiveMapsUrl = formMapsUrl.trim()
+        if (!effectiveMapsUrl) {
+            if (formLat && formLng) {
+                effectiveMapsUrl = `https://maps.google.com/?q=${formLat},${formLng}`
+            } else {
+                const searchQ = [formName, formAddress, formDistrict, formCity].filter(Boolean).join(' ')
+                if (searchQ) {
+                    effectiveMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQ)}`
+                }
+            }
+        }
+
         const payload: Partial<SalesOfficeLocation> & { name: string } = {
             id: editingOffice?.id,
             name: formName.trim(),
@@ -123,7 +172,7 @@ export function SalesOfficesTab({ initialOffices, projects }: SalesOfficesTabPro
             city: formCity.trim(),
             latitude: formLat ? parseFloat(formLat) : null,
             longitude: formLng ? parseFloat(formLng) : null,
-            mapsUrl: formMapsUrl.trim() || undefined,
+            mapsUrl: effectiveMapsUrl || undefined,
             phone: formPhone.trim(),
             notes: formNotes.trim(),
             isActive: formIsActive
@@ -522,63 +571,62 @@ export function SalesOfficesTab({ initialOffices, projects }: SalesOfficesTabPro
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-1.5">
-                                <Label htmlFor="formLat">Enlem (Latitude)</Label>
-                                <Input
-                                    id="formLat"
-                                    placeholder="Örn: 41.1068"
-                                    value={formLat}
-                                    onChange={e => setFormLat(e.target.value)}
-                                />
+                        {/* Google Maps Link / Location Pasting Area */}
+                        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="formMapsUrl" className="font-bold flex items-center gap-1.5 text-xs text-slate-800 dark:text-slate-200">
+                                    <MapPin className="h-4 w-4 text-emerald-600" />
+                                    Google Maps Konum / Harita Bağlantısı
+                                </Label>
+                                {(formAddress || formName) && (
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([formName, formAddress, formDistrict, formCity].filter(Boolean).join(' '))}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold hover:underline inline-flex items-center gap-1"
+                                    >
+                                        🔍 Maps&apos;te Ara ↗
+                                    </a>
+                                )}
                             </div>
-                            <div className="grid gap-1.5">
-                                <Label htmlFor="formLng">Boylam (Longitude)</Label>
-                                <Input
-                                    id="formLng"
-                                    placeholder="Örn: 28.9892"
-                                    value={formLng}
-                                    onChange={e => setFormLng(e.target.value)}
-                                />
-                            </div>
+                            <Input
+                                id="formMapsUrl"
+                                placeholder="Google Maps'ten kopyaladığınız linki yapıştırın (Örn: https://maps.app.goo.gl/...)"
+                                value={formMapsUrl}
+                                onChange={e => handleMapsInput(e.target.value)}
+                                className="bg-white dark:bg-slate-950 text-xs"
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                💡 Google Maps üzerinden <strong>Paylaş &gt; Bağlantıyı Kopyala</strong> yaparak linki buraya yapıştırabilirsiniz ya da boş bırakırsanız adres üzerinden otomatik harita linki üretilir.
+                            </p>
+
+                            {previewMapsUrl && (
+                                <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800 flex items-center justify-between text-xs">
+                                    <span className="text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                        {formMapsUrl ? 'Özel Harita Linki Tanımlı' : 'Adresten Otomatik Konum Üretildi'}
+                                    </span>
+                                    <a
+                                        href={previewMapsUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1 hover:underline"
+                                    >
+                                        📍 Konumu Haritada Test Et ↗
+                                    </a>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="grid gap-1.5">
-                                <Label htmlFor="formPhone">İletişim / Danışma Telefonu</Label>
-                                <Input
-                                    id="formPhone"
-                                    placeholder="Örn: 0212 999 88 77"
-                                    value={formPhone}
-                                    onChange={e => setFormPhone(e.target.value)}
-                                />
-                            </div>
-                            <div className="grid gap-1.5">
-                                <Label htmlFor="formMapsUrl">Özel Harita Linki (Opsiyonel)</Label>
-                                <Input
-                                    id="formMapsUrl"
-                                    placeholder="https://maps.app.goo.gl/..."
-                                    value={formMapsUrl}
-                                    onChange={e => setFormMapsUrl(e.target.value)}
-                                />
-                            </div>
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="formPhone">İletişim / Danışma Telefonu</Label>
+                            <Input
+                                id="formPhone"
+                                placeholder="Örn: 0212 999 88 77"
+                                value={formPhone}
+                                onChange={e => setFormPhone(e.target.value)}
+                            />
                         </div>
-
-                        {previewMapsUrl && (
-                            <div className="p-2.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 text-xs flex items-center justify-between">
-                                <span className="text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-1.5">
-                                    <Navigation className="h-3.5 w-3.5" /> Harita Navigasyon Bağlantısı Hazır
-                                </span>
-                                <a
-                                    href={previewMapsUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-blue-600 hover:underline font-bold inline-flex items-center gap-1"
-                                >
-                                    Konumu Test Et ↗
-                                </a>
-                            </div>
-                        )}
 
                         <div className="grid gap-1.5">
                             <Label htmlFor="formNotes" className="font-bold">Karşılama / Danışma Yönlendirme Notu</Label>
