@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { createNotification } from '@/lib/notifications/create'
 
@@ -11,7 +12,8 @@ export async function createActivity(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    const { data: profile } = await supabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
+    const adminSupabase = createAdminClient()
+    const { data: profile } = await adminSupabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
 
     const customer_id_raw = (formData.get('customer_id') as string) || (formData.get('customer_id_select') as string)
     const customer_id = customer_id_raw && customer_id_raw.trim() !== '' ? customer_id_raw : null
@@ -50,7 +52,7 @@ export async function createActivity(formData: FormData) {
     const next_action_type = formData.get('next_action_type') as string
     const next_action_date = formData.get('next_action_date') as string
 
-    const { data: newAct, error } = await supabase
+    const { data: newAct, error } = await adminSupabase
         .from('activities')
         .insert({
             tenant_id: profile?.tenant_id,
@@ -152,13 +154,17 @@ function safeDateISO(val: unknown): string | null {
 
 export async function updateActivity(formData: FormData) {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const adminSupabase = createAdminClient()
     const id = formData.get('id') as string
 
     if (!id) {
         return { error: 'Aktivite ID bulunamadı.' }
     }
 
-    const { data: existingAct } = await supabase
+    const { data: existingAct } = await adminSupabase
         .from('activities')
         .select('id, status, completed_at, done_at')
         .eq('id', id)
@@ -196,7 +202,7 @@ export async function updateActivity(formData: FormData) {
         updatePayload.done_at = null
     }
 
-    const { error } = await supabase
+    const { error } = await adminSupabase
         .from('activities')
         .update(updatePayload)
         .eq('id', id)
@@ -206,13 +212,12 @@ export async function updateActivity(formData: FormData) {
         return { error: `Güncelleme başarısız: ${error.message}` }
     }
 
-    // Bildirim gönderme (hata fırlatırsa işlemi bozmamalı)
+    // Bildirim gönderme
     try {
-        const { data: currentAct } = await supabase.from('activities').select('owner_id, summary, tenant_id').eq('id', id).single()
-        const { data: currentUser } = await supabase.auth.getUser()
+        const { data: currentAct } = await adminSupabase.from('activities').select('owner_id, summary, tenant_id').eq('id', id).single()
 
-        if (currentAct && currentUser.user && currentAct.owner_id) {
-            const isSelf = currentAct.owner_id === currentUser.user.id
+        if (currentAct && currentAct.owner_id) {
+            const isSelf = currentAct.owner_id === user.id
             createNotification({
                 tenant_id: currentAct.tenant_id,
                 user_id: currentAct.owner_id,
@@ -239,7 +244,10 @@ export async function updateActivity(formData: FormData) {
 export async function outcomeActivity(formData: FormData) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
+    if (!user) return { error: 'Unauthorized' }
+
+    const adminSupabase = createAdminClient()
+    const { data: profile } = await adminSupabase.from('profiles').select('tenant_id').eq('id', user.id).single()
 
     const id = formData.get('id') as string
 
@@ -287,7 +295,7 @@ export async function outcomeActivity(formData: FormData) {
     }
 
     // Complete / Update the current activity
-    const { error: updateError } = await supabase
+    const { error: updateError } = await adminSupabase
         .from('activities')
         .update(updatePayload)
         .eq('id', id)
@@ -302,16 +310,16 @@ export async function outcomeActivity(formData: FormData) {
 
     if (next_action_type && next_action_date) {
         // Fetch context from original activity
-        const { data: original } = await supabase.from('activities').select('customer_id, lead_id, project_id, unit_id, owner_id').eq('id', id).single()
+        const { data: original } = await adminSupabase.from('activities').select('customer_id, lead_id, project_id, unit_id, owner_id').eq('id', id).single()
 
         if (original) {
-            await supabase.from('activities').insert({
+            await adminSupabase.from('activities').insert({
                 tenant_id: profile?.tenant_id,
                 customer_id: original.customer_id,
                 lead_id: original.lead_id,
-                user_id: user?.id,
+                user_id: user.id,
                 owner_id: original.owner_id, // Keep same owner
-                assigned_by_id: user?.id,
+                assigned_by_id: user.id,
                 type: next_action_type,
                 summary: next_action_summary || `Follow up: ${next_action_type}`,
                 due_date: safeDateISO(next_action_date),

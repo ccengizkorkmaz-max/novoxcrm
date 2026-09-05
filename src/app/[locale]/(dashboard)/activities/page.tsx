@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ActivitiesView } from './activities-view'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
@@ -13,19 +14,25 @@ export default async function ActivitiesPage(props: {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    // Get current user profile first (needed for role-based logic)
-    const { data: currentUserProfile } = await supabase
+    const adminSupabase = createAdminClient()
+
+    // Get current user profile first (needed for role-based logic & tenant)
+    const { data: currentUserProfile } = await adminSupabase
         .from('profiles')
-        .select('role, full_name, tenant_id')
+        .select('id, role, full_name, tenant_id')
         .eq('id', user.id)
         .single()
 
-    const isAdmin = currentUserProfile?.role === 'admin' || currentUserProfile?.role === 'owner'
+    if (!currentUserProfile?.tenant_id) redirect('/login')
 
-    // Build profiles query based on role
-    let profilesQuery = supabase
+    const tenantId = currentUserProfile.tenant_id
+    const isAdmin = currentUserProfile?.role === 'admin' || currentUserProfile?.role === 'owner' || currentUserProfile?.role === 'manager' || currentUserProfile?.role === 'crm_manager'
+
+    // Build profiles query based on tenant
+    let profilesQuery = adminSupabase
         .from('profiles')
-        .select('id, full_name, role')
+        .select('id, full_name, role, phone')
+        .eq('tenant_id', tenantId)
         .neq('role', 'broker')
         .eq('is_active', true)
         .or('is_external.is.null,is_external.eq.false')
@@ -37,30 +44,43 @@ export default async function ActivitiesPage(props: {
         profilesQuery = profilesQuery.eq('id', user.id)
     }
 
-    // Build queries for activities
-    // Only fetch activities from the last 90 days to avoid loading thousands of stale overdue records
+    // Date range for activity filtering
     const ninetyDaysAgo = new Date()
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
     const ninetyDaysAgoISO = ninetyDaysAgo.toISOString()
 
-    let incompleteQuery = supabase
+    // 1. Incomplete / Planned activities (include any planned, pending, or due activities)
+    let incompleteQuery = adminSupabase
         .from('activities')
-        .select('*, customers(id, full_name, phone, email, customer_type, company_name, company:companies(name)), leads(id, full_name, phone, email), owner:profiles!activities_owner_id_fkey(id, full_name, phone)')
-        .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
+        .select(`
+            *,
+            customers(id, full_name, phone, email, customer_type, company_name, company:companies(name)),
+            leads(id, full_name, phone, email),
+            owner:profiles!activities_owner_id_fkey(id, full_name, phone),
+            projects:project_id(id, name)
+        `)
+        .eq('tenant_id', tenantId)
         .not('status', 'in', '("Completed","Cancelled")')
-        .gte('due_date', ninetyDaysAgoISO)
-        .order('due_date', { ascending: false })
+        .order('due_date', { ascending: true, nullsFirst: false })
         .limit(3000)
 
-    let completedQuery = supabase
+    // 2. Completed & Cancelled activities (last 1500)
+    let completedQuery = adminSupabase
         .from('activities')
-        .select('*, customers(id, full_name, phone, email, customer_type, company_name, company:companies(name)), leads(id, full_name, phone, email), owner:profiles!activities_owner_id_fkey(id, full_name, phone)')
-        .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
+        .select(`
+            *,
+            customers(id, full_name, phone, email, customer_type, company_name, company:companies(name)),
+            leads(id, full_name, phone, email),
+            owner:profiles!activities_owner_id_fkey(id, full_name, phone),
+            projects:project_id(id, name)
+        `)
+        .eq('tenant_id', tenantId)
         .in('status', ['Completed', 'Cancelled'])
+        .gte('created_at', ninetyDaysAgoISO)
         .order('created_at', { ascending: false })
-        .limit(500)
+        .limit(1500)
 
-    // Satış temsilcileri (admin veya owner olmayanlar) yalnızca kendilerine atanan ya da kendilerinin yarattığı aktiviteleri görür
+    // Role-based activity restrictions
     if (!isAdmin) {
         incompleteQuery = incompleteQuery.or(`owner_id.eq.${user.id},user_id.eq.${user.id}`)
         completedQuery = completedQuery.or(`owner_id.eq.${user.id},user_id.eq.${user.id}`)
@@ -68,10 +88,11 @@ export default async function ActivitiesPage(props: {
 
     // Run all queries in parallel
     const [customers, activities, profilesResult, t, projects, meetingsResult] = await Promise.all([
-        // Customers — include customer_type and company info for proper combobox display
-        supabase
+        // Customers
+        adminSupabase
             .from('customers')
             .select('id, full_name, phone, email, customer_type, company_name, company:companies(name)')
+            .eq('tenant_id', tenantId)
             .order('full_name', { ascending: true })
             .limit(3000)
             .then(r => r.data || []),
@@ -89,22 +110,24 @@ export default async function ActivitiesPage(props: {
         getTranslations('Activities'),
 
         // Projects
-        supabase
+        adminSupabase
             .from('projects')
             .select('id, name')
+            .eq('tenant_id', tenantId)
             .order('name')
             .then(r => r.data || []),
 
         // Meetings for live links & room matching
-        supabase
+        adminSupabase
             .from('meetings')
             .select('id, title, status, scheduled_at, daily_room_name, customer_id, project_id, host_user_id')
+            .eq('tenant_id', tenantId)
             .order('scheduled_at', { ascending: false })
             .limit(500)
             .then(r => r.data || [], () => [])
     ])
 
-    // Filter out suspicious profile names (like "1")
+    // Filter out suspicious profile names
     let profiles = profilesResult.filter((p: any) => {
         if (!p.full_name) return false
         if (/^\d+$/.test(p.full_name.trim())) return false
@@ -116,7 +139,8 @@ export default async function ActivitiesPage(props: {
         profiles = [{
             id: user.id,
             full_name: currentUserProfile?.full_name || user.email?.split('@')[0] || 'Mevcut Kullanıcı',
-            role: currentUserProfile?.role || 'user'
+            role: currentUserProfile?.role || 'user',
+            phone: ''
         }]
     }
 

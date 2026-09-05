@@ -211,32 +211,38 @@ export function ActivitiesView({
             }
 
             // 7. Time Bucket Pill Filter (Screenshot Style: Yaklaşan, Bugün, Bu Hafta, Bu Ay, Gecikenler, Geçmiş, Tümü)
-            if (timeBucket !== 'all' && a.due_date) {
-                const d = parseISO(a.due_date)
+            if (timeBucket !== 'all') {
                 const isDone = a.status === 'Completed'
                 const isCanc = a.status === 'Cancelled'
-                const isPastDue = isPast(d) && !isDone && !isCanc && !isToday(d)
 
-                switch (timeBucket) {
-                    case 'upcoming':
-                        // Yaklaşan: Bugün ve ileri tarihteki planlı/bekleyen işler
-                        if (isDone || isCanc || (isPast(d) && !isToday(d))) return false
-                        break
-                    case 'today':
-                        if (!isToday(d)) return false
-                        break
-                    case 'week':
-                        if (!isThisWeek(d, { weekStartsOn: 1 })) return false
-                        break
-                    case 'month':
-                        if (!isThisMonth(d)) return false
-                        break
-                    case 'overdue':
-                        if (!isPastDue && a.status !== 'Overdue') return false
-                        break
-                    case 'past':
-                        if (!isDone && !isCanc && !isPast(d)) return false
-                        break
+                if (!a.due_date) {
+                    if (timeBucket === 'past' && !isDone && !isCanc) return false
+                    if (timeBucket !== 'past' && (isDone || isCanc)) return false
+                } else {
+                    const d = parseISO(a.due_date)
+                    const isPastDue = isPast(d) && !isDone && !isCanc && !isToday(d)
+
+                    switch (timeBucket) {
+                        case 'upcoming':
+                            // Yaklaşan: Bugün ve ileri tarihteki planlı/bekleyen işler
+                            if (isDone || isCanc || (isPast(d) && !isToday(d))) return false
+                            break
+                        case 'today':
+                            if (!isToday(d)) return false
+                            break
+                        case 'week':
+                            if (!isThisWeek(d, { weekStartsOn: 1 })) return false
+                            break
+                        case 'month':
+                            if (!isThisMonth(d)) return false
+                            break
+                        case 'overdue':
+                            if (!isPastDue && a.status !== 'Overdue') return false
+                            break
+                        case 'past':
+                            if (!isDone && !isCanc && !isPast(d)) return false
+                            break
+                    }
                 }
             }
 
@@ -778,6 +784,83 @@ export function ActivitiesView({
                             <span>Sıfırla</span>
                         </Button>
                     )}
+                </div>
+
+                {/* Row 3: Quick Type Category Filter (All, Randevular, Online Görüşme, Aramalar, WhatsApp, Görevler) */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-1 scrollbar-none text-xs border-t border-slate-100">
+                    <span className="text-[11px] font-bold text-slate-400 shrink-0 uppercase tracking-wider mr-1">Tür:</span>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedTypes([])}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors",
+                            selectedTypes.length === 0
+                                ? "bg-slate-900 text-white"
+                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        )}
+                    >
+                        Tümü
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedTypes(['OfficeMeeting', 'Meeting', 'Site Visit'])}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1",
+                            selectedTypes.includes('OfficeMeeting') && selectedTypes.includes('Meeting')
+                                ? "bg-amber-600 text-white"
+                                : "bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200/60"
+                        )}
+                    >
+                        <span>🏢 Randevular (Ofis & Saha)</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedTypes(['OnlineMeeting'])}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1",
+                            selectedTypes.length === 1 && selectedTypes[0] === 'OnlineMeeting'
+                                ? "bg-emerald-600 text-white"
+                                : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/60"
+                        )}
+                    >
+                        <span>📹 Online Görüşmeler</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedTypes(['Call'])}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1",
+                            selectedTypes.length === 1 && selectedTypes[0] === 'Call'
+                                ? "bg-blue-600 text-white"
+                                : "bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200/60"
+                        )}
+                    >
+                        <span>📞 Telefon Görüşmeleri</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedTypes(['Whatsapp'])}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1",
+                            selectedTypes.length === 1 && selectedTypes[0] === 'Whatsapp'
+                                ? "bg-emerald-700 text-white"
+                                : "bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200/60"
+                        )}
+                    >
+                        <span>💬 WhatsApp</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedTypes(['Task'])}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1",
+                            selectedTypes.length === 1 && selectedTypes[0] === 'Task'
+                                ? "bg-slate-700 text-white"
+                                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        )}
+                    >
+                        <span>✅ Görevler</span>
+                    </button>
                 </div>
 
                 {/* Collapsible Advanced Filters Drawer */}

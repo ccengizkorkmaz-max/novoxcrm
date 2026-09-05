@@ -2114,7 +2114,8 @@ export async function getActivityTrackingReport() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    const { data: profile } = await supabase
+    const adminSupabase = createAdminClient()
+    const { data: profile } = await adminSupabase
         .from('profiles')
         .select('tenant_id, role')
         .eq('id', user.id)
@@ -2125,7 +2126,21 @@ export async function getActivityTrackingReport() {
 
     const now = new Date()
 
-    // 1. Get all activities for this tenant (last 90 days for context) with pagination to bypass Supabase 1000 limit
+    // 1. Get all profiles in tenant for name lookup
+    const { data: allProfiles } = await adminSupabase
+        .from('profiles')
+        .select('id, full_name, role, is_active')
+        .eq('tenant_id', profile.tenant_id)
+        .or('is_external.is.null,is_external.eq.false')
+
+    const profileNameMap = new Map<string, string>()
+    if (allProfiles) {
+        allProfiles.forEach(p => {
+            if (p.full_name) profileNameMap.set(p.id, p.full_name)
+        })
+    }
+
+    // 2. Get all activities for this tenant (last 90 days for context) with pagination to bypass Supabase 1000 limit
     const ninetyDaysAgo = new Date(now)
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
@@ -2134,14 +2149,13 @@ export async function getActivityTrackingReport() {
     const pageSize = 1000
 
     while (true) {
-        const { data: chunk, error: actError } = await supabase
+        const { data: chunk, error: actError } = await adminSupabase
             .from('activities')
             .select(`
                 id, type, status, outcome, summary, notes, priority,
                 due_date, created_at, completed_at,
-                owner_id,
+                owner_id, user_id,
                 customer_id,
-                profiles:owner_id(full_name),
                 customers:customer_id(full_name, phone)
             `)
             .eq('tenant_id', profile.tenant_id)
@@ -2159,14 +2173,14 @@ export async function getActivityTrackingReport() {
         actPage++
     }
 
-    // 2. Get sales data for pipeline stage context with pagination
+    // 3. Get sales data for pipeline stage context with pagination
     const sales: any[] = []
     let salesPage = 0
 
     while (true) {
-        const { data: chunk, error: salesError } = await supabase
+        const { data: chunk, error: salesError } = await adminSupabase
             .from('sales')
-            .select('id, customer_id, status, project_id, projects(name), assigned_to, profiles!sales_assigned_to_fkey(full_name)')
+            .select('id, customer_id, status, project_id, projects(name), assigned_to')
             .eq('tenant_id', profile.tenant_id)
             .not('status', 'in', '("Lost","Cancelled","Transferred")')
             .range(salesPage * pageSize, (salesPage + 1) * pageSize - 1)
@@ -2186,7 +2200,7 @@ export async function getActivityTrackingReport() {
         salesByCustomer[s.customer_id] = {
             status: s.status,
             project: (s.projects as any)?.name || '-',
-            assignedTo: (s.profiles as any)?.full_name || '-'
+            assignedTo: s.assigned_to ? (profileNameMap.get(s.assigned_to) || '-') : '-'
         }
     })
 
@@ -2213,8 +2227,8 @@ export async function getActivityTrackingReport() {
     }
 
     for (const act of activities) {
-        const repName = (act.profiles as any)?.full_name || 'Atanmamış'
-        const repId = act.owner_id || 'unknown'
+        const repId = act.owner_id || act.user_id || 'unknown'
+        const repName = (repId !== 'unknown' ? profileNameMap.get(repId) : null) || 'Atanmamış'
 
         if (!repMap[repId]) {
             repMap[repId] = {

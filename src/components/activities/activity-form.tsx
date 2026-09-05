@@ -409,56 +409,73 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                     </select>
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label>{t('table.status')}</Label>
-                                    <select
-                                        name="status"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold"
-                                        value={status}
-                                        onChange={(e) => setStatus(e.target.value)}
-                                        disabled={isReadOnly}
-                                    >
-                                        <option value="Planned">{t('status.Planned')}</option>
-                                        <option value="In Progress">{t('status.In Progress')}</option>
-                                        <option value="Completed">{t('status.Completed')}</option>
-                                        <option value="Cancelled">{t('status.Cancelled')}</option>
-                                    </select>
-                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>{t('table.status')}</Label>
+                                        <select
+                                            name="status"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold"
+                                            value={status}
+                                            onChange={(e) => setStatus(e.target.value)}
+                                            disabled={isReadOnly}
+                                        >
+                                            <option value="Planned">{t('status.Planned') || 'Planlandı'}</option>
+                                            <option value="In Progress">{t('status.In Progress') || 'Devam Ediyor / Başladı'}</option>
+                                            <option value="Completed">{t('status.Completed') || 'Tamamlandı'}</option>
+                                            <option value="No-Show">Gelmedi (No-Show)</option>
+                                            <option value="Rescheduled">Ertelendi</option>
+                                            <option value="Cancelled">{t('status.Cancelled') || 'İptal'}</option>
+                                        </select>
+                                    </div>
 
-                                <div className="grid gap-2">
-                                    <Label>{t('form.owner')}</Label>
-                                    <select
-                                        name="owner_id"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        defaultValue={activity?.owner_id || ''}
-                                        disabled={isReadOnly}
-                                    >
-                                        <option value="">{t('form.selectOwner') || 'Ata...'}</option>
-                                        {profiles?.filter((p: any) => !p.is_external && p.role !== 'broker').map((p: any) => (
-                                            <option key={p.id} value={p.id}>{p.full_name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.owner')}</Label>
+                                        <select
+                                            name="owner_id"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            defaultValue={activity?.owner_id || ''}
+                                            disabled={isReadOnly}
+                                        >
+                                            <option value="">{t('form.selectOwner') || 'Sorumlu Danışman Ata...'}</option>
+                                            {profiles?.filter((p: any) => !p.is_external && p.role !== 'broker').map((p: any) => (
+                                                <option key={p.id} value={p.id}>{p.full_name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label>{t('form.type')}</Label>
+                                        <Label>Randevu / Aktivite Türü</Label>
                                         <select
                                             name="type"
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                            defaultValue={activity?.type || 'Call'}
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-medium"
+                                            defaultValue={activity?.type || 'OfficeMeeting'}
                                             required
                                             disabled={isReadOnly}
                                         >
-                                            <option value="Call">{t('type.Call')}</option>
-                                            <option value="Meeting">{t('type.Meeting')}</option>
-                                            <option value="OfficeMeeting">{t('type.OfficeMeeting')}</option>
-                                            <option value="OnlineMeeting">{t('type.OnlineMeeting')}</option>
-                                            <option value="Site Visit">{t('type.Site Visit')}</option>
-                                            <option value="Email">{t('type.Email')}</option>
-                                            <option value="Whatsapp">{t('type.Whatsapp')}</option>
+                                            <option value="OfficeMeeting">🏢 Satış Ofisi Randevusu</option>
+                                            <option value="Site Visit">🏗️ Saha / Şantiye Gezisi</option>
+                                            <option value="OnlineMeeting">📹 Online Görüşme</option>
+                                            <option value="Meeting">👥 Yüz Yüze Toplantı</option>
+                                            <option value="Call">📞 Telefon Görüşmesi</option>
+                                            <option value="Whatsapp">💬 WhatsApp</option>
+                                            <option value="Email">✉️ E-posta</option>
+                                            <option value="Task">✅ Görev / Takip</option>
                                         </select>
                                     </div>
+                                    <div className="grid gap-2">
+                                        <Label>Satış Ofisi / Lokasyon</Label>
+                                        <Input
+                                            name="location"
+                                            defaultValue={activity?.location || activity?.unit_id || ''}
+                                            placeholder="Örn: Proje Satış Ofisi, Merkez Ofis"
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
                                         <Label>{t('form.date')}</Label>
                                         <Input
@@ -471,6 +488,20 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                             required
                                             disabled={isReadOnly}
                                         />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.priority') || 'Öncelik'}</Label>
+                                        <select
+                                            name="priority"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            defaultValue={activity?.priority || 'Medium'}
+                                            disabled={isReadOnly}
+                                        >
+                                            <option value="Low">{t('form.priorityLow') || 'Düşük'}</option>
+                                            <option value="Medium">{t('form.priorityMedium') || 'Orta'}</option>
+                                            <option value="High">{t('form.priorityHigh') || 'Yüksek'}</option>
+                                            <option value="Urgent">{t('form.priorityUrgent') || 'Acil'}</option>
+                                        </select>
                                     </div>
                                 </div>
 
@@ -543,18 +574,24 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                     <Label className="font-bold text-primary">{t('form.outcome')}</Label>
                                     <select
                                         name="outcome"
-                                        className="flex h-10 w-full rounded-md border-2 border-primary/20 bg-background px-3 py-2 text-sm focus:border-primary"
+                                        className="flex h-10 w-full rounded-md border-2 border-primary/20 bg-background px-3 py-2 text-sm focus:border-primary font-medium"
                                         defaultValue={activity?.outcome || ''}
                                         required
                                         disabled={isReadOnly}
                                     >
-                                        <option value="">{t('form.select')}</option>
-                                        <option value="Success">{t('form.outcomes.Success')}</option>
-                                        <option value="Reached Interested">{t('form.outcomes.Reached Interested')}</option>
-                                        <option value="Reached Not Interested">{t('form.outcomes.Reached Not Interested')}</option>
-                                        <option value="No Answer">{t('form.outcomes.No Answer')}</option>
-                                        <option value="Busy">{t('form.outcomes.Busy')}</option>
-                                        <option value="Follow Up Required">{t('form.outcomes.Follow Up Required')}</option>
+                                        <option value="">Sonuç Seçiniz...</option>
+                                        <option value="Success">🎉 Kapora Alındı / Satış Yapıldı</option>
+                                        <option value="Offer Presented">📄 Teklif / Ödeme Planı Sunuldu (Takipte)</option>
+                                        <option value="Reached Interested">👍 İlgileniyor / Süreç Olumlu</option>
+                                        <option value="Considering">🤔 Düşünme / Karar Aşamasında</option>
+                                        <option value="Follow Up Required">🔄 Tekrar Görüşülecek / Takip Gerekiyor</option>
+                                        <option value="Lost - Budget">📉 Olumsuz - Bütçe Yetersiz</option>
+                                        <option value="Lost - Location">📍 Olumsuz - Lokasyon / Proje Uygun Değil</option>
+                                        <option value="Reached Not Interested">❌ İlgilenmiyor / Vazgeçti</option>
+                                        <option value="No-Show">🚫 Müşteri Gelmedi (No-Show)</option>
+                                        <option value="Rescheduled">📅 Ertelendi / Yeniden Planlandı</option>
+                                        <option value="No Answer">📵 Ulaşılamadı</option>
+                                        <option value="Busy">⏳ Meşgul / Sonra Aranacak</option>
                                     </select>
                                 </div>
                                 <div className="grid gap-2">
