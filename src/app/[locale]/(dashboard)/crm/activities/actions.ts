@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { createNotification } from '@/lib/notifications/create'
+import { formatTurkeyDateTime, fromTurkeyDateTimeLocal } from '@/lib/utils'
 
 export async function createActivity(formData: FormData) {
     const supabase = await createClient()
@@ -65,18 +66,18 @@ export async function createActivity(formData: FormData) {
             type,
             summary,
             description,
-            due_date: due_date ? new Date(due_date).toISOString() : null,
+            due_date: fromTurkeyDateTimeLocal(due_date),
             notes,
             project_id: project_id || null,
             unit_id: unit_id || null,
             priority,
-            reminder_at: reminder_at ? new Date(reminder_at).toISOString() : null,
+            reminder_at: fromTurkeyDateTimeLocal(reminder_at),
             status,
             completed_at: status === 'Completed' ? new Date().toISOString() : null,
             done_at: status === 'Completed' ? new Date().toISOString() : null,
             outcome,
             next_action_type: next_action_type || null,
-            next_action_date: next_action_date ? new Date(next_action_date).toISOString() : null
+            next_action_date: fromTurkeyDateTimeLocal(next_action_date)
         })
         .select('id')
         .single()
@@ -152,11 +153,40 @@ export async function createActivity(formData: FormData) {
                 .single()
 
             if (customerData?.phone) {
-                let projName = 'Satış Ofisi'
-                let projAddress = ''
+                let locationName = 'Satış Ofisi'
+                let locationAddress = ''
                 let mapsLink = ''
+                let welcomeNotes = ''
+                let projName = ''
 
-                if (project_id) {
+                // 1. Check if a predefined Sales Office was selected
+                const salesOfficeId = formData.get('sales_office_id') as string
+                const { data: tenantInfo } = await adminSupabase
+                    .from('tenants')
+                    .select('brand_config')
+                    .eq('id', profile.tenant_id)
+                    .single()
+
+                const officesList = tenantInfo?.brand_config?.sales_offices || []
+                let matchedOffice = salesOfficeId ? officesList.find((o: any) => o.id === salesOfficeId) : null
+
+                if (!matchedOffice && formData.get('location')) {
+                    const locVal = (formData.get('location') as string).trim()
+                    matchedOffice = officesList.find((o: any) => locVal.includes(o.name) || o.name.includes(locVal))
+                }
+
+                if (matchedOffice) {
+                    locationName = matchedOffice.name
+                    locationAddress = [matchedOffice.address, matchedOffice.district, matchedOffice.city].filter(Boolean).join(', ')
+                    mapsLink = matchedOffice.mapsUrl || (matchedOffice.latitude && matchedOffice.longitude 
+                        ? `https://maps.google.com/?q=${matchedOffice.latitude},${matchedOffice.longitude}` 
+                        : (locationAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${matchedOffice.name} ${locationAddress}`)}` : ''))
+                    welcomeNotes = matchedOffice.notes || ''
+                    if (matchedOffice.projectName) projName = matchedOffice.projectName
+                }
+
+                // 2. If no sales office match, check project data
+                if (!matchedOffice && project_id) {
                     const { data: projData } = await adminSupabase
                         .from('projects')
                         .select('name, address, city, district, latitude, longitude')
@@ -165,37 +195,25 @@ export async function createActivity(formData: FormData) {
 
                     if (projData) {
                         projName = projData.name
-                        projAddress = projData.address || `${projData.district || ''} ${projData.city || ''}`.trim()
+                        locationName = `${projData.name} Satış Ofisi`
+                        locationAddress = projData.address || `${projData.district || ''} ${projData.city || ''}`.trim()
                         if (projData.latitude && projData.longitude) {
                             mapsLink = `https://maps.google.com/?q=${projData.latitude},${projData.longitude}`
-                        } else if (projAddress) {
-                            mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${projName} ${projAddress}`)}`
+                        } else if (locationAddress) {
+                            mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${projName} ${locationAddress}`)}`
                         }
                     }
                 }
 
-                // If explicit location was typed
-                const locationTyped = formData.get('location') as string
-                if (locationTyped) {
-                    if (!projAddress) projAddress = locationTyped
+                // 3. Fallback to typed custom location
+                const locationTyped = (formData.get('location') as string || '').trim()
+                if (locationTyped && !locationAddress) {
+                    locationAddress = locationTyped
                     if (!mapsLink) mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationTyped)}`
                 }
 
-                // Format appointment date for Turkish readable display
-                let formattedDate = ''
-                if (due_date) {
-                    try {
-                        const d = new Date(due_date)
-                        formattedDate = d.toLocaleDateString('tr-TR', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })
-                    } catch {}
-                }
+                // Format appointment date for Turkish readable display (Europe/Istanbul timezone)
+                const formattedDate = due_date ? formatTurkeyDateTime(due_date, 'long') : ''
 
                 const { data: repData } = await adminSupabase
                     .from('profiles')
@@ -206,7 +224,8 @@ export async function createActivity(formData: FormData) {
                 const repName = repData?.full_name || profile.full_name || 'Satış Danışmanınız'
                 const repPhone = repData?.phone || ''
 
-                const waMessageText = `Sn. *${customerData.full_name || 'Müşterimiz'}*,\n\n*${projName}* projemiz için planlanan randevunuz başarıyla oluşturulmuştur.\n\n📅 *Randevu Zamanı:* ${formattedDate || 'Planlanan Saatte'}\n🏢 *Lokasyon:* ${projAddress || projName + ' Satış Ofisi'}${mapsLink ? `\n📍 *Harita Konumu:* ${mapsLink}` : ''}\n👤 *Sorumlu Danışman:* ${repName}${repPhone ? ` (${repPhone})` : ''}\n\nSizi ağırlamaktan memnuniyet duyarız.`
+                const headerTopic = projName ? `*${projName}* projemiz için planlanan` : 'Planlanan'
+                const waMessageText = `Sn. *${customerData.full_name || 'Müşterimiz'}*,\n\n${headerTopic} randevunuz başarıyla oluşturulmuştur.\n\n📅 *Randevu Zamanı:* ${formattedDate || 'Planlanan Saatte'}\n🏢 *Görüşme Noktası:* ${locationName}\n📍 *Açık Adres:* ${locationAddress || locationName}${mapsLink ? `\n🗺️ *Harita Konumu:* ${mapsLink}` : ''}${welcomeNotes ? `\nℹ️ *Not:* ${welcomeNotes}` : ''}\n👤 *Sorumlu Danışman:* ${repName}${repPhone ? ` (${repPhone})` : ''}\n\nSizi ağırlamaktan memnuniyet duyarız.`
 
                 const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
                 await sendWhatsAppMessage(customerData.phone, waMessageText)
@@ -219,14 +238,14 @@ export async function createActivity(formData: FormData) {
                     owner_id: owner_id,
                     type: 'Whatsapp',
                     topic: 'Sales',
-                    summary: `📍 Randevu Konumu İletildi (${projName})`,
+                    summary: `📍 Randevu Konumu İletildi (${locationName})`,
                     description: waMessageText,
                     status: 'Completed',
                     completed_at: new Date().toISOString(),
                     done_at: new Date().toISOString(),
                     outcome: 'Success',
                     project_id: project_id || null,
-                    notes: `Müşteriye otomatik randevu teyit ve satış ofisi harita konumu iletildi.`
+                    notes: `Müşteriye otomatik randevu teyit, satış ofisi/lokasyon bilgisi ve harita konumu iletildi.`
                 })
             }
         } catch (waErr: any) {
@@ -241,8 +260,7 @@ export async function createActivity(formData: FormData) {
 
 function safeDateISO(val: unknown): string | null {
     if (!val || typeof val !== 'string' || val.trim() === '') return null
-    const d = new Date(val)
-    return isNaN(d.getTime()) ? null : d.toISOString()
+    return fromTurkeyDateTimeLocal(val)
 }
 
 export async function updateActivity(formData: FormData) {

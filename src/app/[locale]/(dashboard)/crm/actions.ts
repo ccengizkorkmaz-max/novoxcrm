@@ -3727,19 +3727,61 @@ export async function updateFirstContact(saleId: string, value: string | null) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
-    const updatePayload: Record<string, any> = { first_contact: value }
+    const adminSupabase = createAdminClient()
+    const { data: profile } = await adminSupabase
+        .from('profiles')
+        .select('tenant_id, full_name')
+        .eq('id', user.id)
+        .single()
+
+    const updatePayload: Record<string, any> = { 
+        first_contact: value,
+        updated_at: new Date().toISOString()
+    }
 
     // Olumsuz → Lost
     if (value === 'Aradım, Olumsuz') {
         updatePayload.status = 'Lost'
     }
 
-    const { error } = await supabase
+    const { data: saleData, error } = await supabase
         .from('sales')
         .update(updatePayload)
         .eq('id', saleId)
+        .select('customer_id, assigned_to, project_id, process_note')
+        .single()
 
     if (error) return { error: error.message }
+
+    // If it's a contact or unreachable attempt, auto-log activity
+    if (value && saleData?.customer_id && profile?.tenant_id) {
+        try {
+            let outcome = 'Success'
+            if (value.includes('Hatalı') || value.includes('Kullanılmıyor')) outcome = 'Invalid Number'
+            else if (value.includes('Olumsuz')) outcome = 'Lost'
+            else if (value.includes('Meşgul')) outcome = 'Busy'
+            else if (value.includes('Cevap') || value.includes('Ulaş')) outcome = 'No Answer'
+            else if (value.includes('Tekrar') || value.includes('Değerlendiriyor')) outcome = 'Follow Up Required'
+
+            await adminSupabase.from('activities').insert({
+                tenant_id: profile.tenant_id,
+                customer_id: saleData.customer_id,
+                user_id: user.id,
+                owner_id: saleData.assigned_to || user.id,
+                type: 'Call',
+                topic: 'Sales',
+                summary: `📞 İlk Temas: ${value}`,
+                description: `İlk Temas durumu güncellendi: ${value}.${saleData.process_note ? ` (Not: ${saleData.process_note})` : ''}`,
+                status: 'Completed',
+                completed_at: new Date().toISOString(),
+                done_at: new Date().toISOString(),
+                outcome,
+                project_id: saleData.project_id || null
+            })
+        } catch (actErr) {
+            console.error('[updateFirstContact activity log error]:', actErr)
+        }
+    }
 
     revalidatePath('/[locale]/(dashboard)/crm', 'page')
     return { error: null }

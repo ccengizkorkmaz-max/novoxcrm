@@ -36,7 +36,8 @@ import NotificationCatalogTab from './components/NotificationCatalogTab'
 import CrmModeTab from './components/CrmModeTab'
 import PipelineEditor from './components/PipelineEditor'
 import IysSettingsTab from './components/IysSettingsTab'
-import { FileWarning, Palette, Link2, ListChecks, Rocket } from 'lucide-react'
+import { SalesOfficesTab } from './components/SalesOfficesTab'
+import { FileWarning, Palette, Link2, ListChecks, Rocket, MapPin } from 'lucide-react'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -175,6 +176,10 @@ export default async function SettingsPage() {
                     <TabsTrigger value="templates" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
                         <FileText className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">{t('tabs.templates')}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="sales-offices" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <MapPin className="w-4 h-4 mr-2 shrink-0 text-emerald-500" />
+                        <span className="hidden md:inline truncate">Satış Ofisleri</span>
                     </TabsTrigger>
                     <TabsTrigger value="definitions" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
                         <Database className="w-4 h-4 mr-2 shrink-0" />
@@ -317,6 +322,14 @@ export default async function SettingsPage() {
                 {/* Templates Tab */}
                 <TabsContent value="templates" className="space-y-4">
                     <PaymentTemplatesTab templates={templates || []} projects={projects || []} />
+                </TabsContent>
+
+                {/* Sales Offices & Meeting Locations Tab */}
+                <TabsContent value="sales-offices" className="space-y-4">
+                    <SalesOfficesTab
+                        initialOffices={((tenant as any)?.brand_config?.sales_offices || [])}
+                        projects={projects || []}
+                    />
                 </TabsContent>
 
                 {/* Definitions Tab */}

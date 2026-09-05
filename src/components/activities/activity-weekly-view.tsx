@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { ActivityItem } from './activity-stream-card'
 import { ActivityForm } from './activity-form'
 import { useLocale } from 'next-intl'
-import { cn } from '@/lib/utils'
+import { cn, formatTurkeyDateTime } from '@/lib/utils'
 
 interface ActivityWeeklyViewProps {
     activities: ActivityItem[]
@@ -223,7 +223,7 @@ export function ActivityWeeklyView({
                                                 <div className="flex items-center justify-between gap-1">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-[10px] font-bold text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
-                                                            {format(new Date(activity.due_date), 'HH:mm')}
+                                                            {formatTurkeyDateTime(activity.due_date, 'time')}
                                                         </span>
                                                         {isOnline && (
                                                             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100">

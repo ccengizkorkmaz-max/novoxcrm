@@ -9,9 +9,9 @@ import { Button } from '@/components/ui/button'
 import { BackButton } from "@/components/back-button"
 import { MessageSquare, RefreshCw, Download, Bot, Users, BarChart3, Flame, Thermometer, Phone } from 'lucide-react'
 import { format } from 'date-fns'
-import { tr } from 'date-fns/locale'
 import { exportToExcel } from '@/lib/report-export'
 import { toast } from 'sonner'
+import { formatTurkeyDateTime } from '@/lib/utils'
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, CartesianGrid, Legend
@@ -56,7 +56,7 @@ export default function WhatsAppAnalyticsPage() {
                     <Button variant="outline" onClick={() => loadData(true)} className="rounded-xl gap-2"><RefreshCw className="h-4 w-4" /> Yenile</Button>
                     <Button onClick={() => {
                         if (!recentConvs?.length) return
-                        exportToExcel(recentConvs.map((c: any) => ({ 'Müşteri': c.customerName, 'Telefon': c.phone, 'Lead Skor': c.leadScore, 'Mesaj': c.messageCount, 'Tarih': format(new Date(c.updatedAt), 'dd.MM.yyyy HH:mm', { locale: tr }) })), `whatsapp_analiz_${new Date().toISOString().slice(0, 10)}`)
+                        exportToExcel(recentConvs.map((c: any) => ({ 'Müşteri': c.customerName, 'Telefon': c.phone, 'Lead Skor': c.leadScore, 'Mesaj': c.messageCount, 'Tarih': formatTurkeyDateTime(c.updatedAt, 'dateTime') })), `whatsapp_analiz_${new Date().toISOString().slice(0, 10)}`)
                         toast.success('Excel indirildi!')
                     }} className="rounded-xl gap-2 bg-green-600 hover:bg-green-700"><Download className="h-4 w-4" /> Excel</Button>
                 </div>
@@ -136,7 +136,7 @@ export default function WhatsAppAnalyticsPage() {
                                 {(!c.leadScore || c.leadScore === 'unknown') && <Badge className="bg-slate-50 text-slate-400 border text-xs">Belirsiz</Badge>}
                             </TableCell>
                             <TableCell className="text-center font-bold text-sm">{c.messageCount}</TableCell>
-                            <TableCell className="text-center text-xs text-slate-500 font-bold">{format(new Date(c.updatedAt), 'd MMM HH:mm', { locale: tr })}</TableCell>
+                            <TableCell className="text-center text-xs text-slate-500 font-bold">{formatTurkeyDateTime(c.updatedAt, 'short')}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody></Table></div></CardContent>

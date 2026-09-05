@@ -18,6 +18,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { getCallCenterPerformanceData, RepPerformanceItem, CallLogItem } from './actions'
 import { format, parseISO } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import { formatTurkeyDateTime } from '@/lib/utils'
 
 interface CallCenterClientProps {
     initialData: any
@@ -104,7 +105,7 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
     const exportCSV = () => {
         const headers = ['Tarih', 'Tür', 'Temsilci', 'Müşteri', 'Telefon', 'Süre (sn)', 'Sonuç', 'Notlar']
         const rows = recentCalls.map(c => [
-            c.date ? format(parseISO(c.date), 'dd.MM.yyyy HH:mm') : '-',
+            c.date ? formatTurkeyDateTime(c.date, 'dateTime') : '-',
             c.type === 'inbound' ? 'Gelen' : 'Giden',
             `"${c.repName}"`,
             `"${c.customerName}"`,
@@ -458,7 +459,7 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                                     )}
                                                 </td>
                                                 <td className="py-3.5 px-4 text-right text-xs font-bold text-slate-700 whitespace-nowrap">
-                                                    {rep.lastCallDate ? format(parseISO(rep.lastCallDate), 'd MMM HH:mm', { locale: tr }) : '-'}
+                                                    {rep.lastCallDate ? formatTurkeyDateTime(rep.lastCallDate, 'short') : '-'}
                                                 </td>
                                             </tr>
                                         )
@@ -596,7 +597,7 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                     filteredLogs.slice(0, 50).map(call => (
                                         <tr key={call.id} className="hover:bg-slate-100/70 transition-colors">
                                             <td className="py-3.5 px-4 text-slate-800 whitespace-nowrap font-bold">
-                                                {call.date ? format(parseISO(call.date), 'dd.MM.yy HH:mm') : '-'}
+                                                {call.date ? formatTurkeyDateTime(call.date, 'dateTime') : '-'}
                                             </td>
                                             <td className="py-3.5 px-4">
                                                 <Badge

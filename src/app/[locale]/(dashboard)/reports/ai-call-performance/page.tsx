@@ -12,11 +12,9 @@ import {
     RefreshCw, Download, BarChart3, Play, Flame, Thermometer,
     ArrowUpRight, Timer
 } from 'lucide-react'
-import { format } from 'date-fns'
-import { tr } from 'date-fns/locale'
 import { exportToExcel } from '@/lib/report-export'
 import { toast } from 'sonner'
-import { getVapiRecordingUrl } from '@/lib/utils'
+import { getVapiRecordingUrl, formatTurkeyDateTime } from '@/lib/utils'
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, AreaChart, Area, CartesianGrid, Legend
@@ -61,7 +59,7 @@ export default function AICallPerformancePage() {
             'Süre (sn)': c.duration || '-',
             'Lead Skor': c.leadScore || '-',
             'Özet': c.summary || '-',
-            'Tarih': format(new Date(c.executedAt), 'dd.MM.yyyy HH:mm', { locale: tr })
+            'Tarih': formatTurkeyDateTime(c.executedAt, 'dateTime')
         }))
         exportToExcel(exportData, `ai_arama_performans_${new Date().toISOString().slice(0, 10)}`)
         toast.success('Excel indirildi!')
@@ -266,7 +264,7 @@ export default function AICallPerformancePage() {
                                             <p className="text-xs text-slate-600 line-clamp-2">{call.summary || '-'}</p>
                                         </TableCell>
                                         <TableCell className="text-center text-xs text-slate-500 font-bold">
-                                            {format(new Date(call.executedAt), 'd MMM HH:mm', { locale: tr })}
+                                            {formatTurkeyDateTime(call.executedAt, 'short')}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {call.recordingUrl ? (

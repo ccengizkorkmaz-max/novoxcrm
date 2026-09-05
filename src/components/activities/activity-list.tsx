@@ -9,7 +9,7 @@ import { Check as CheckClassName, Pencil, ChevronLeft, ChevronRight, X, Plus } f
 import { useState } from "react"
 import { ActivityForm } from "./activity-form"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { cn, formatTurkeyDateTime } from "@/lib/utils"
 import { useTranslations, useLocale } from "next-intl"
 import { useRouter } from 'next/navigation'
 import { cancelActivity } from "@/app/[locale]/(dashboard)/crm/activities/actions"
@@ -124,10 +124,10 @@ function ActivityRow({ activity, customers, profiles, projects }: { activity: Ac
             <TableCell>
                 <div className="flex flex-col">
                     <span className="text-xs font-semibold text-slate-700">
-                        {format(new Date(activity.due_date), 'd MMM yyyy', { locale: locale === 'en' ? enUS : tr })}
+                        {activity.due_date ? formatTurkeyDateTime(activity.due_date, 'date') : '-'}
                     </span>
                     <span className="text-[10px] text-slate-400 font-medium tracking-tight">
-                        {format(new Date(activity.due_date), 'HH:mm', { locale: locale === 'en' ? enUS : tr })}
+                        {activity.due_date ? formatTurkeyDateTime(activity.due_date, 'time') : ''}
                     </span>
                 </div>
             </TableCell>

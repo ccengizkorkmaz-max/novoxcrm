@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Clock, Loader2, CalendarClock } from 'lucide-react'
+import { Clock, Loader2, CalendarClock, MapPin, Building2, ExternalLink, Info, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,10 +16,11 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { createActivity, updateActivity, outcomeActivity, deleteActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
+import { getSalesOffices, type SalesOfficeLocation } from '@/app/[locale]/(dashboard)/settings/sales-offices-actions'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { cn } from '@/lib/utils'
+import { cn, formatTurkeyDateTime, toTurkeyDateTimeLocal, fromTurkeyDateTimeLocal } from '@/lib/utils'
 import { Combobox } from '@/components/ui/combobox'
 import { VoiceInput } from '@/components/ui/voice-input'
 import { Link } from '@/i18n/routing'
@@ -81,7 +82,7 @@ function UpcomingActivitiesInfo({ customerId }: { customerId: string }) {
                             </div>
                             <span className="flex items-center gap-0.5 whitespace-nowrap text-[10px] text-amber-600 dark:text-amber-300 shrink-0">
                                 <Clock className="h-2.5 w-2.5" />
-                                {new Date(act.due_date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}
+                                {formatTurkeyDateTime(act.due_date, 'dayMonth')}
                             </span>
                         </li>
                     )
@@ -163,6 +164,30 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
 
     const leadName = resolvedLeadName || 'Müşteri Adayı'
     const [location, setLocation] = useState(activity?.location || activity?.unit_id || '')
+    const [salesOffices, setSalesOffices] = useState<SalesOfficeLocation[]>([])
+    const [selectedOfficeId, setSelectedOfficeId] = useState<string>('')
+
+    // Fetch defined sales offices / meeting points
+    useEffect(() => {
+        if (open) {
+            getSalesOffices().then(res => {
+                if (res.success && res.offices) {
+                    const activeOnly = res.offices.filter(o => o.isActive)
+                    setSalesOffices(activeOnly)
+
+                    // If editing, try to match existing location with a known office
+                    if (activity?.location) {
+                        const matched = activeOnly.find(o => 
+                            o.id === activity.location || 
+                            activity.location.includes(o.name) ||
+                            o.name.includes(activity.location)
+                        )
+                        if (matched) setSelectedOfficeId(matched.id)
+                    }
+                }
+            })
+        }
+    }, [open, activity?.location])
 
     useEffect(() => {
         if (open && activity) {
@@ -195,6 +220,15 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
         const projId = e.target.value
         setSelectedProjectId(projId)
         if (projId) {
+            // Check if there is an office tied to this project
+            const linkedOffice = salesOffices.find(o => o.projectId === projId)
+            if (linkedOffice) {
+                setSelectedOfficeId(linkedOffice.id)
+                const fullAddress = [linkedOffice.address, linkedOffice.district, linkedOffice.city].filter(Boolean).join(', ')
+                setLocation(fullAddress ? `${linkedOffice.name} - ${fullAddress}` : linkedOffice.name)
+                return
+            }
+
             const found = projects?.find((p: any) => p.id === projId)
             if (found) {
                 const formattedLoc = [found.address, found.district, found.city].filter(Boolean).join(', ') || `${found.name} Satış Ofisi`
@@ -203,11 +237,39 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
         }
     }
 
+    const handleOfficeChange = (officeId: string) => {
+        setSelectedOfficeId(officeId)
+        if (!officeId || officeId === 'custom') {
+            return
+        }
+        const found = salesOffices.find(o => o.id === officeId)
+        if (found) {
+            const fullAddress = [found.address, found.district, found.city].filter(Boolean).join(', ')
+            setLocation(fullAddress ? `${found.name} (${fullAddress})` : found.name)
+            if (found.projectId && !selectedProjectId) {
+                setSelectedProjectId(found.projectId)
+            }
+        }
+    }
+
+    const selectedOffice = useMemo(() => {
+        return salesOffices.find(o => o.id === selectedOfficeId)
+    }, [salesOffices, selectedOfficeId])
+
     const selectedProject = useMemo(() => {
         return projects?.find((p: any) => p.id === selectedProjectId)
     }, [projects, selectedProjectId])
 
     const googleMapsUrl = useMemo(() => {
+        if (selectedOffice) {
+            if (selectedOffice.mapsUrl) return selectedOffice.mapsUrl
+            if (selectedOffice.latitude && selectedOffice.longitude) {
+                return `https://maps.google.com/?q=${selectedOffice.latitude},${selectedOffice.longitude}`
+            }
+            if (selectedOffice.address || selectedOffice.name) {
+                return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedOffice.name} ${selectedOffice.address}`.trim())}`
+            }
+        }
         if (!selectedProject) return null
         if (selectedProject.latitude && selectedProject.longitude) {
             return `https://maps.google.com/?q=${selectedProject.latitude},${selectedProject.longitude}`
@@ -216,7 +278,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
             return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedProject.name} ${selectedProject.address || ''}`.trim())}`
         }
         return null
-    }, [selectedProject])
+    }, [selectedOffice, selectedProject])
 
     // Ensure the current customer is in the list even if not in the top 1000
     const comboboxItems = useMemo(() => {
@@ -291,13 +353,13 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
             if (selectedCustomerId) formData.set('customer_id', selectedCustomerId)
             if (selectedProjectId) formData.set('project_id', selectedProjectId)
 
-            // Helper: convert datetime-local string to UTC ISO string
+            // Helper: convert datetime-local string to UTC ISO string using Turkey timezone
             const toUTC = (key: string) => {
                 const val = formData.get(key) as string
                 if (val && val.trim() !== '') {
-                    const d = new Date(val)
-                    if (!isNaN(d.getTime())) {
-                        formData.set(key, d.toISOString())
+                    const iso = fromTurkeyDateTimeLocal(val)
+                    if (iso) {
+                        formData.set(key, iso)
                     }
                 }
             }
@@ -418,8 +480,8 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                      <div className="flex items-center justify-between">
                                          <Label>Proje</Label>
                                          {selectedProject && (
-                                             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                                                 ✅ Lokasyon aktif
+                                             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                                 <CheckCircle2 className="h-3 w-3" /> Proje Seçildi
                                              </span>
                                          )}
                                      </div>
@@ -437,28 +499,86 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                      </select>
                                  </div>
 
-                                 {selectedProject && (
+                                 {/* Sales Offices & Meeting Points Dropdown */}
+                                 <div className="grid gap-2">
+                                     <div className="flex items-center justify-between">
+                                         <Label className="flex items-center gap-1.5">
+                                             <Building2 className="h-4 w-4 text-primary" />
+                                             Tanımlı Satış Ofisi & Görüşme Noktası
+                                         </Label>
+                                         {salesOffices.length > 0 && (
+                                             <span className="text-[11px] text-muted-foreground">
+                                                 {salesOffices.length} lokasyon kayıtlı
+                                             </span>
+                                         )}
+                                     </div>
+                                     <select
+                                         value={selectedOfficeId}
+                                         onChange={(e) => handleOfficeChange(e.target.value)}
+                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                         disabled={isReadOnly}
+                                     >
+                                         <option value="">-- Kayıtlı Görüşme Noktası Seçiniz (Opsiyonel) --</option>
+                                         {salesOffices.map((office) => {
+                                             const iconMap: Record<string, string> = {
+                                                 office: '🏢',
+                                                 hq: '🏛️',
+                                                 lounge: '☕',
+                                                 restaurant: '🍽️',
+                                                 hotel: '🏨',
+                                                 site: '🏗️',
+                                                 other: '📍'
+                                             }
+                                             return (
+                                                 <option key={office.id} value={office.id}>
+                                                     {iconMap[office.type] || '📍'} {office.name} {office.projectName ? `(${office.projectName})` : ''} - {office.district || office.city || ''}
+                                                 </option>
+                                             )
+                                         })}
+                                     </select>
+                                     <input type="hidden" name="sales_office_id" value={selectedOfficeId} />
+                                 </div>
+
+                                 {/* Rich Location & Sales Office Preview Card */}
+                                 {(selectedOffice || selectedProject) && (
                                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/40 p-3 text-xs space-y-1.5 transition-all animate-in fade-in-50">
                                          <div className="flex items-center justify-between font-semibold text-emerald-900 dark:text-emerald-200">
-                                             <span className="flex items-center gap-1.5">
-                                                 🏢 <strong>{selectedProject.name}</strong> Satış Ofisi Lokasyonu
+                                             <span className="flex items-center gap-1.5 text-[12.5px]">
+                                                 {selectedOffice ? (
+                                                     <>
+                                                         <span>{selectedOffice.type === 'hq' ? '🏛️' : selectedOffice.type === 'lounge' ? '☕' : selectedOffice.type === 'restaurant' ? '🍽️' : selectedOffice.type === 'hotel' ? '🏨' : selectedOffice.type === 'site' ? '🏗️' : '🏢'}</span>
+                                                         <strong>{selectedOffice.name}</strong>
+                                                         {selectedOffice.projectName && <span className="text-[11px] font-normal text-muted-foreground">({selectedOffice.projectName})</span>}
+                                                     </>
+                                                 ) : (
+                                                     <>
+                                                         <span>🏢</span>
+                                                         <strong>{selectedProject?.name}</strong> Satış Ofisi Lokasyonu
+                                                     </>
+                                                 )}
                                              </span>
                                              {googleMapsUrl && (
                                                  <a
                                                      href={googleMapsUrl}
                                                      target="_blank"
                                                      rel="noreferrer"
-                                                     className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 hover:underline"
+                                                     className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 hover:underline text-[11.5px]"
                                                  >
-                                                     📍 Haritada Aç ↗
+                                                     <MapPin className="h-3.5 w-3.5" /> Haritada Aç ↗
                                                  </a>
                                              )}
                                          </div>
                                          <div className="text-slate-700 dark:text-slate-300 text-[11.5px]">
-                                             <strong>Adres:</strong> {[selectedProject.address, selectedProject.district, selectedProject.city].filter(Boolean).join(', ') || `${selectedProject.name} Satış Ofisi`}
+                                             <strong>Adres:</strong> {selectedOffice ? [selectedOffice.address, selectedOffice.district, selectedOffice.city].filter(Boolean).join(', ') : [selectedProject?.address, selectedProject?.district, selectedProject?.city].filter(Boolean).join(', ')}
                                          </div>
+                                         {selectedOffice?.notes && (
+                                             <div className="text-amber-800 dark:text-amber-300 bg-amber-100/60 dark:bg-amber-900/30 px-2 py-1 rounded text-[11px] flex items-center gap-1">
+                                                 <Info className="h-3 w-3 shrink-0" />
+                                                 <span><strong>Karşılama Notu:</strong> {selectedOffice.notes}</span>
+                                             </div>
+                                         )}
                                          <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-1 pt-0.5">
-                                             <span>📲</span> Bu adres ve Google Maps linki randevu kaydedildiğinde müşteriye WhatsApp ile otomatik iletilecektir.
+                                             <span>📲</span> Bu adres ve Google Maps harita linki randevu kaydedildiğinde müşteriye WhatsApp ile otomatik iletilecektir.
                                          </div>
                                      </div>
                                  )}
@@ -538,12 +658,12 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         </select>
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label>Satış Ofisi / Lokasyon</Label>
+                                        <Label>Lokasyon / Açık Adres</Label>
                                         <Input
                                             name="location"
                                             value={location}
                                             onChange={(e) => setLocation(e.target.value)}
-                                            placeholder="Örn: Proje Satış Ofisi, Merkez Ofis"
+                                            placeholder="Örn: Vadistanbul Ofisi veya Özel Adres"
                                             disabled={isReadOnly}
                                         />
                                     </div>
@@ -555,10 +675,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         <Input
                                             name="due_date"
                                             type="datetime-local"
-                                            defaultValue={activity?.due_date
-                                                ? new Date(new Date(activity.due_date).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-                                                : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-                                            }
+                                            defaultValue={toTurkeyDateTimeLocal(activity?.due_date || new Date().toISOString())}
                                             required
                                             disabled={isReadOnly}
                                         />
@@ -585,10 +702,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         <Input
                                             name="reminder_at"
                                             type="datetime-local"
-                                            defaultValue={activity?.reminder_at
-                                                ? new Date(new Date(activity.reminder_at).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-                                                : ''
-                                            }
+                                            defaultValue={activity?.reminder_at ? toTurkeyDateTimeLocal(activity.reminder_at) : ''}
                                             disabled={isReadOnly}
                                         />
                                     </div>
@@ -708,10 +822,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                             <Input
                                                 name="next_action_date"
                                                 type="datetime-local"
-                                                defaultValue={activity?.next_action_date
-                                                    ? new Date(new Date(activity.next_action_date).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-                                                    : ''
-                                                }
+                                                defaultValue={activity?.next_action_date ? toTurkeyDateTimeLocal(activity.next_action_date) : ''}
                                                 disabled={isReadOnly}
                                             />
                                         </div>

@@ -1,6 +1,5 @@
 'use client'
-
-import { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { Users, AlertTriangle, Check, StickyNote, Phone as PhoneIcon, Loader2, Headphones } from 'lucide-react'
 import CallRecordingModal from './CallRecordingModal'
@@ -113,6 +112,10 @@ export default function RepTrackingTab({
         if (filterFc) {
             if (filterFc === 'none') {
                 if (s.first_contact) return false
+            } else if (filterFc === 'all_ulasam') {
+                if (!s.first_contact || (!s.first_contact.startsWith('Ulaş') && !s.first_contact.includes('Hatalı') && !s.first_contact.includes('Cevap'))) return false
+            } else if (filterFc === 'all_hatali') {
+                if (!s.first_contact || (!s.first_contact.includes('Hatalı') && !s.first_contact.includes('Kullanılmıyor') && !s.first_contact.includes('Yanlış'))) return false
             } else {
                 if (s.first_contact !== filterFc) return false
             }
@@ -140,29 +143,41 @@ export default function RepTrackingTab({
     }
 
     const getFcColor = (value: string | null) => {
-        if (value === 'Aradım, Olumlu') return 'bg-emerald-100 text-emerald-700 border-emerald-200'
-        if (value === 'Aradım, Olumsuz') return 'bg-red-100 text-red-700 border-red-200'
-        if (value === 'Tekrar Aranacak') return 'bg-blue-100 text-blue-700 border-blue-200'
-        if (value === 'Değerlendiriyor') return 'bg-purple-100 text-purple-700 border-purple-200'
-        if (value === 'Ulaşamadım') return 'bg-amber-100 text-amber-700 border-amber-200'
-        return 'bg-slate-50 text-slate-400 border-slate-200'
+        if (!value) return 'bg-slate-50 text-slate-400 border-slate-200'
+        if (value === 'Aradım, Olumlu') return 'bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold'
+        if (value === 'Aradım, Olumsuz') return 'bg-red-100 text-red-800 border-red-300 font-semibold'
+        if (value === 'Tekrar Aranacak') return 'bg-blue-100 text-blue-800 border-blue-300 font-semibold'
+        if (value === 'Değerlendiriyor') return 'bg-purple-100 text-purple-800 border-purple-300 font-semibold'
+        if (value.includes('Hatalı') || value.includes('Kullanılmıyor')) return 'bg-rose-100 text-rose-800 border-rose-300 font-bold'
+        if (value.includes('Yanlış Kişi')) return 'bg-slate-100 text-slate-800 border-slate-300 font-medium'
+        if (value.includes('WhatsApp') || value.includes('SMS')) return 'bg-teal-100 text-teal-800 border-teal-300 font-medium'
+        if (value.startsWith('Ulaşamadım') || value.includes('Cevap') || value.includes('Meşgul') || value.includes('Kapalı')) {
+            return 'bg-amber-100 text-amber-800 border-amber-300 font-semibold'
+        }
+        return 'bg-slate-50 text-slate-600 border-slate-200'
     }
 
     const getFcLabel = (value: string | null) => {
+        if (!value) return '—'
         if (value === 'Aradım, Olumlu') return '🟢 Olumlu'
         if (value === 'Aradım, Olumsuz') return '🔴 Olumsuz'
         if (value === 'Tekrar Aranacak') return '🔄 Tekrar Aranacak'
         if (value === 'Değerlendiriyor') return '🤔 Değerlendiriyor'
+        if (value === 'Ulaşamadım - Hatalı Numara') return '🚫 Hatalı Numara'
+        if (value === 'Ulaşamadım - Cevap Vermiyor') return '📵 Cevap Yok'
+        if (value === 'Ulaşamadım - Meşgul / Reddetti') return '⏳ Meşgul'
+        if (value === 'Ulaşamadım - Kapalı / Ulaşılamıyor') return '📴 Kapalı'
+        if (value === 'Ulaşamadım - Numara Kullanılmıyor') return '❌ Kullanılmıyor'
+        if (value === 'Ulaşamadım - Yanlış Kişi') return '👤 Yanlış Kişi'
+        if (value === 'Ulaşamadım - WhatsApp / SMS Atıldı') return '💬 WhatsApp Atıldı'
         if (value === 'Ulaşamadım') return '📵 Ulaşamadım'
-        return '—'
+        return value
     }
 
     return (
         <div className="flex h-[calc(100vh-130px)] border rounded-xl overflow-hidden bg-card shadow-sm">
-            {/* Left: Rep List — Simple folder-style */}
             <div className="w-[200px] shrink-0 border-r bg-white flex flex-col">
                 <div className="flex-1 overflow-y-auto">
-                    {/* Tüm Temsilciler */}
                     <button
                         onClick={() => setSelectedRepId('__all__')}
                         className={cn(
@@ -175,7 +190,6 @@ export default function RepTrackingTab({
                         {selectedRepId === '__all__' && <Check className="w-3.5 h-3.5 ml-auto text-blue-500" />}
                     </button>
 
-                    {/* Atanmamış */}
                     <button
                         onClick={() => setSelectedRepId('__unassigned__')}
                         className={cn(
@@ -188,7 +202,6 @@ export default function RepTrackingTab({
                         {selectedRepId === '__unassigned__' && <Check className="w-3.5 h-3.5 ml-auto text-amber-500" />}
                     </button>
 
-                    {/* Rep Names */}
                     {internalProfiles.map((p: any) => (
                         <button
                             key={p.id}
@@ -206,14 +219,13 @@ export default function RepTrackingTab({
                 </div>
             </div>
 
-            {/* Right: Data Table */}
             <div className="flex-1 overflow-auto">
-                {/* Team Overview Dashboard when __all__ is selected */}
                 {selectedRepId === '__all__' && (() => {
                     const totalSalesCount = sales.length
                     const totalProcessed = sales.filter((s: any) => s.first_contact).length
                     const totalOlumlu = sales.filter((s: any) => s.first_contact === 'Aradım, Olumlu').length
-                    const totalUlasam = sales.filter((s: any) => s.first_contact === 'Ulaşamadım').length
+                    const totalHatali = sales.filter((s: any) => s.first_contact && (s.first_contact.includes('Hatalı') || s.first_contact.includes('Kullanılmıyor'))).length
+                    const totalUlasam = sales.filter((s: any) => s.first_contact && (s.first_contact.startsWith('Ulaş') || s.first_contact.includes('Cevap')) && !s.first_contact.includes('Hatalı') && !s.first_contact.includes('Kullanılmıyor')).length
                     const totalPending = totalSalesCount - totalProcessed
                     const totalCalls = activities.filter((a: any) => a.type === 'Call').length
                     const totalDurationSec = activities.filter((a: any) => a.type === 'Call').reduce((acc, a) => acc + (a.duration_seconds || 0), 0)
@@ -263,15 +275,26 @@ export default function RepTrackingTab({
                                 </div>
 
                                 <div className="px-2.5 py-1.5 rounded-lg bg-amber-50/80 border border-amber-200/80 shadow-2xs text-center">
-                                    <span className="text-[9px] font-bold text-amber-600 uppercase block">⏳ Bekleyen</span>
-                                    <span className="text-xs font-black text-amber-700">{totalPending}</span>
+                                    <span className="text-[9px] font-bold text-amber-600 uppercase block">📵 Ulaşılamadı</span>
+                                    <span className="text-xs font-black text-amber-700">{totalUlasam}</span>
+                                </div>
+
+                                {totalHatali > 0 && (
+                                    <div className="px-2.5 py-1.5 rounded-lg bg-rose-50/80 border border-rose-200/80 shadow-2xs text-center">
+                                        <span className="text-[9px] font-bold text-rose-600 uppercase block">🚫 Hatalı No</span>
+                                        <span className="text-xs font-black text-rose-700">{totalHatali}</span>
+                                    </div>
+                                )}
+
+                                <div className="px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs text-center">
+                                    <span className="text-[9px] font-bold text-slate-500 uppercase block">⏳ Bekleyen</span>
+                                    <span className="text-xs font-black text-slate-700">{totalPending}</span>
                                 </div>
                             </div>
                         </div>
                     )
                 })()}
 
-                {/* Mini Performance Dashboard — for specific rep */}
                 {selectedRepId !== '__all__' && selectedRepId !== '__unassigned__' && (() => {
                     const repName = internalProfiles.find((p: any) => p.id === selectedRepId)?.full_name
                     const repAllSales = sales.filter((s: any) => s.assigned_to === selectedRepId)
@@ -285,36 +308,11 @@ export default function RepTrackingTab({
                     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
                     const periods = [
-                        {
-                            label: 'Genel',
-                            icon: '📊',
-                            saleFilter: () => true,
-                            actFilter: () => true
-                        },
-                        {
-                            label: 'Bu Ay',
-                            icon: '📅',
-                            saleFilter: (s: any) => new Date(s.assigned_at || s.created_at) >= monthStart,
-                            actFilter: (a: any) => new Date(a.created_at || a.due_date) >= monthStart
-                        },
-                        {
-                            label: 'Bu Hafta',
-                            icon: '📆',
-                            saleFilter: (s: any) => new Date(s.assigned_at || s.created_at) >= weekStart,
-                            actFilter: (a: any) => new Date(a.created_at || a.due_date) >= weekStart
-                        },
-                        {
-                            label: 'Dün',
-                            icon: '⏪',
-                            saleFilter: (s: any) => { const d = new Date(s.assigned_at || s.created_at); return d >= yesterdayStart && d < todayStart },
-                            actFilter: (a: any) => { const d = new Date(a.created_at || a.due_date); return d >= yesterdayStart && d < todayStart }
-                        },
-                        {
-                            label: 'Bugün',
-                            icon: '🔥',
-                            saleFilter: (s: any) => new Date(s.assigned_at || s.created_at) >= todayStart,
-                            actFilter: (a: any) => new Date(a.created_at || a.due_date) >= todayStart
-                        },
+                        { label: 'Genel', icon: '📊', saleFilter: () => true, actFilter: () => true },
+                        { label: 'Bu Ay', icon: '📅', saleFilter: (s: any) => new Date(s.assigned_at || s.created_at) >= monthStart, actFilter: (a: any) => new Date(a.created_at || a.due_date) >= monthStart },
+                        { label: 'Bu Hafta', icon: '📆', saleFilter: (s: any) => new Date(s.assigned_at || s.created_at) >= weekStart, actFilter: (a: any) => new Date(a.created_at || a.due_date) >= weekStart },
+                        { label: 'Dün', icon: '⏪', saleFilter: (s: any) => { const d = new Date(s.assigned_at || s.created_at); return d >= yesterdayStart && d < todayStart }, actFilter: (a: any) => { const d = new Date(a.created_at || a.due_date); return d >= yesterdayStart && d < todayStart } },
+                        { label: 'Bugün', icon: '🔥', saleFilter: (s: any) => new Date(s.assigned_at || s.created_at) >= todayStart, actFilter: (a: any) => new Date(a.created_at || a.due_date) >= todayStart },
                     ]
 
                     return (
@@ -326,23 +324,21 @@ export default function RepTrackingTab({
                             {periods.map(period => {
                                 const periodSales = repAllSales.filter(period.saleFilter)
                                 const periodActs = repActivities.filter(period.actFilter)
-                                
                                 const totalLeads = periodSales.length
                                 const processed = periodSales.filter((s: any) => s.first_contact).length
                                 const olumlu = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumlu').length
                                 const olumsuz = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumsuz').length
-                                const ulasam = periodSales.filter((s: any) => s.first_contact === 'Ulaşamadım').length
+                                const hatali = periodSales.filter((s: any) => s.first_contact && (s.first_contact.includes('Hatalı') || s.first_contact.includes('Kullanılmıyor'))).length
+                                const ulasam = periodSales.filter((s: any) => s.first_contact && (s.first_contact.startsWith('Ulaş') || s.first_contact.includes('Cevap')) && !s.first_contact.includes('Hatalı') && !s.first_contact.includes('Kullanılmıyor')).length
                                 const pending = totalLeads - processed
                                 const pct = totalLeads > 0 ? Math.round((processed / totalLeads) * 100) : 0
-
-                                // Real call counts from activities + first_contact
                                 const actCalls = periodActs.filter(a => a.type === 'Call').length
                                 const totalCalls = actCalls > 0 ? actCalls : processed
                                 const durationSec = periodActs.filter(a => a.type === 'Call').reduce((acc, a) => acc + (a.duration_seconds || 0), 0)
                                 const durationMin = Math.round(durationSec / 60)
 
                                 return (
-                                    <div key={period.label} className="flex-shrink-0 min-w-[145px] rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-2xs hover:shadow-xs transition-shadow">
+                                    <div key={period.label} className="flex-shrink-0 min-w-[155px] rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-2xs hover:shadow-xs transition-shadow">
                                         <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-1">
                                                 <span className="text-xs">{period.icon}</span>
@@ -354,8 +350,6 @@ export default function RepTrackingTab({
                                                 </span>
                                             )}
                                         </div>
-
-                                        {/* Calls & Leads metrics */}
                                         <div className="flex items-baseline justify-between mt-1">
                                             <div>
                                                 <span className="text-base font-black text-blue-700 leading-none">{totalCalls}</span>
@@ -366,23 +360,15 @@ export default function RepTrackingTab({
                                                 <span className="text-[9px] text-slate-400 ml-0.5">lead</span>
                                             </div>
                                         </div>
-
-                                        {/* Progress Bar */}
                                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden my-1.5">
-                                            <div
-                                                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
-                                                style={{ width: `${pct}%` }}
-                                            />
+                                            <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all" style={{ width: `${pct}%` }} />
                                         </div>
-
-                                        {/* Outcome breakdown */}
-                                        <div className="flex justify-between text-[9px] pt-0.5 border-t border-slate-100">
+                                        <div className="flex justify-between items-center text-[9px] pt-0.5 border-t border-slate-100">
                                             <span className="text-emerald-600 font-bold" title="Olumlu">🟢 {olumlu}</span>
                                             <span className="text-red-500 font-bold" title="Olumsuz">🔴 {olumsuz}</span>
                                             <span className="text-amber-600 font-bold" title="Ulaşamadım">📵 {ulasam}</span>
-                                            {pending > 0 && (
-                                                <span className="text-slate-400 font-semibold" title="Bekleyen">⏳ {pending}</span>
-                                            )}
+                                            {hatali > 0 && <span className="text-rose-600 font-bold" title="Hatalı Numara">🚫 {hatali}</span>}
+                                            {pending > 0 && <span className="text-slate-400 font-semibold" title="Bekleyen">⏳ {pending}</span>}
                                         </div>
                                     </div>
                                 )
@@ -411,16 +397,13 @@ export default function RepTrackingTab({
     )
 }
 
-// ─── Resizable + Reorderable Table ─────────────────────────────────────────
-import React, { useCallback, useRef } from 'react'
-
 const STORAGE_KEY = 'rep-tracking-col-config'
 const DEFAULT_COL_ORDER = ['tarih', 'musteri', 'proje', 'ilk_temas', 'surec_notu', 'guncelleme']
 const DEFAULT_COL_WIDTHS: Record<string, number> = {
-    tarih: 120, musteri: 210, proje: 150, ilk_temas: 85, surec_notu: 0, guncelleme: 130
+    tarih: 120, musteri: 210, proje: 150, ilk_temas: 140, surec_notu: 0, guncelleme: 130
 }
 const COL_LABELS: Record<string, string> = {
-    tarih: 'Tarih', musteri: 'Müşteri', proje: 'Proje', ilk_temas: 'İlk Temas', surec_notu: 'Süreç Notu', guncelleme: 'Güncelleme'
+    tarih: 'Tarih', musteri: 'Müşteri', proje: 'Proje', ilk_temas: 'İlk Temas & Gerekçe', surec_notu: 'Süreç Notu', guncelleme: 'Güncelleme'
 }
 
 function loadColConfig() {
@@ -444,7 +427,6 @@ function TrackingTable({
     filterProject, setFilterProject, filterFc, setFilterFc,
     filterNote, setFilterNote, formatDate, getFcColor, getFcLabel, router,
 }: any) {
-    // Call recording modal state
     const [recordingModalOpen, setRecordingModalOpen] = useState(false)
     const [recordingPhone, setRecordingPhone] = useState('')
     const [recordingCustomerName, setRecordingCustomerName] = useState('')
@@ -454,12 +436,10 @@ function TrackingTable({
     const [dragOverCol, setDragOverCol] = useState<string | null>(null)
     const resizingRef = useRef<{ col: string; startX: number; startW: number } | null>(null)
 
-    // Save to localStorage on change
     useEffect(() => {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ order: colOrder, widths: colWidths })) } catch {}
     }, [colOrder, colWidths])
 
-    // Resize via mouse
     const onResizeStart = useCallback((col: string, e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
@@ -486,7 +466,6 @@ function TrackingTable({
         document.addEventListener('mouseup', onUp)
     }, [colWidths])
 
-    // Drag & drop reorder
     const handleDrop = (targetId: string) => {
         if (!dragCol || dragCol === targetId) return
         setColOrder(prev => {
@@ -502,7 +481,6 @@ function TrackingTable({
         setDragOverCol(null)
     }
 
-    // Render filter for column
     const renderFilter = (colId: string) => {
         switch (colId) {
             case 'tarih': return <Input type="date" value={filterDate} onChange={(e: any) => setFilterDate(e.target.value)} className="h-7 text-[11px] bg-white" />
@@ -521,12 +499,20 @@ function TrackingTable({
                     <SelectTrigger className="h-7 text-[11px] bg-white"><SelectValue placeholder="Tümü" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="__all__">Tümü</SelectItem>
-                        <SelectItem value="none">⏳ Aranmadı</SelectItem>
+                        <SelectItem value="none">⏳ Aranmadı (Boş)</SelectItem>
                         <SelectItem value="Aradım, Olumlu">🟢 Olumlu</SelectItem>
-                        <SelectItem value="Aradım, Olumsuz">🔴 Olumsuz</SelectItem>
-                        <SelectItem value="Tekrar Aranacak">🔄 Tekrar Aranacak</SelectItem>
                         <SelectItem value="Değerlendiriyor">🤔 Değerlendiriyor</SelectItem>
-                        <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
+                        <SelectItem value="Tekrar Aranacak">🔄 Tekrar Aranacak</SelectItem>
+                        <SelectItem value="Aradım, Olumsuz">🔴 Olumsuz</SelectItem>
+                        <SelectItem value="all_ulasam">📵 Ulaşılamayanlar (Tümü)</SelectItem>
+                        <SelectItem value="all_hatali">🚫 Hatalı / Yanlış No (Tümü)</SelectItem>
+                        <SelectItem value="Ulaşamadım - Hatalı Numara">🚫 Ulaşamadım - Hatalı Numara</SelectItem>
+                        <SelectItem value="Ulaşamadım - Cevap Vermiyor">📵 Ulaşamadım - Cevap Vermiyor</SelectItem>
+                        <SelectItem value="Ulaşamadım - Meşgul / Reddetti">⏳ Ulaşamadım - Meşgul</SelectItem>
+                        <SelectItem value="Ulaşamadım - Kapalı / Ulaşılamıyor">📴 Ulaşamadım - Kapalı</SelectItem>
+                        <SelectItem value="Ulaşamadım - Numara Kullanılmıyor">❌ Ulaşamadım - Kullanılmıyor</SelectItem>
+                        <SelectItem value="Ulaşamadım - Yanlış Kişi">👤 Ulaşamadım - Yanlış Kişi</SelectItem>
+                        <SelectItem value="Ulaşamadım - WhatsApp / SMS Atıldı">💬 Ulaşamadım - WhatsApp Atıldı</SelectItem>
                     </SelectContent>
                 </Select>
             )
@@ -535,7 +521,6 @@ function TrackingTable({
         }
     }
 
-    // Render cell for column
     const renderCell = (colId: string, sale: any) => {
         switch (colId) {
             case 'tarih':
@@ -575,18 +560,27 @@ function TrackingTable({
                             const newVal = val === '__empty__' ? null : val
                             const res = await updateFirstContact(sale.id, newVal)
                             if (res?.error) toast.error(res.error)
-                            else { toast.success('İlk temas güncellendi'); router.refresh() }
+                            else { toast.success('İlk temas durumu kaydedildi'); router.refresh() }
                         }}>
-                            <SelectTrigger className={cn("h-7 text-[11px] font-semibold border rounded-md px-2 gap-1 w-full", getFcColor(sale.first_contact))}>
+                            <SelectTrigger className={cn("h-7 text-[11px] font-semibold border rounded-md px-2 gap-1 w-full truncate", getFcColor(sale.first_contact))}>
                                 <SelectValue>{getFcLabel(sale.first_contact)}</SelectValue>
                             </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="__empty__">— Seçiniz</SelectItem>
+                            <SelectContent className="max-h-[300px]">
+                                <SelectItem value="__empty__">— Seçiniz (Temizle)</SelectItem>
+                                <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/80 my-0.5 rounded">Görüşme Sonuçları</div>
                                 <SelectItem value="Aradım, Olumlu">🟢 Aradım, Olumlu</SelectItem>
-                                <SelectItem value="Aradım, Olumsuz">🔴 Aradım, Olumsuz</SelectItem>
-                                <SelectItem value="Tekrar Aranacak">🔄 Tekrar Aranacak</SelectItem>
-                                <SelectItem value="Değerlendiriyor">🤔 Değerlendiriyor</SelectItem>
-                                <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
+                                <SelectItem value="Değerlendiriyor">🤔 Değerlendiriyor / Düşünüyor</SelectItem>
+                                <SelectItem value="Tekrar Aranacak">🔄 Tekrar Aranacak (Takipte)</SelectItem>
+                                <SelectItem value="Aradım, Olumsuz">🔴 Aradım, Olumsuz / İlgilenmiyor</SelectItem>
+                                <div className="px-2 py-1 text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50/80 my-0.5 rounded">Ulaşılamadı Gerekçeleri</div>
+                                <SelectItem value="Ulaşamadım - Hatalı Numara" className="text-rose-700 font-semibold">🚫 Ulaşamadım - Hatalı / Yanlış No</SelectItem>
+                                <SelectItem value="Ulaşamadım - Cevap Vermiyor">📵 Ulaşamadım - Cevap Vermiyor</SelectItem>
+                                <SelectItem value="Ulaşamadım - Meşgul / Reddetti">⏳ Ulaşamadım - Meşgul / Reddetti</SelectItem>
+                                <SelectItem value="Ulaşamadım - Kapalı / Ulaşılamıyor">📴 Ulaşamadım - Kapalı / Kapsama Dışı</SelectItem>
+                                <SelectItem value="Ulaşamadım - Numara Kullanılmıyor" className="text-rose-700">❌ Ulaşamadım - Numara İptal / Kullanılmıyor</SelectItem>
+                                <SelectItem value="Ulaşamadım - Yanlış Kişi">👤 Ulaşamadım - Yanlış Kişi / Başkası</SelectItem>
+                                <SelectItem value="Ulaşamadım - WhatsApp / SMS Atıldı">💬 Ulaşamadım - WhatsApp / SMS Atıldı</SelectItem>
+                                <SelectItem value="Ulaşamadım">📵 Ulaşamadım (Genel)</SelectItem>
                             </SelectContent>
                         </Select>
                     </td>

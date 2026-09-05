@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn, formatTurkeyDateTime } from '@/lib/utils'
 
 interface RepData {
     name: string
@@ -178,7 +178,7 @@ function ActivityRow({ activity }: { activity: ActivityItem }) {
                             activity.isOverdue ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"
                         )}>
                             <Calendar className="h-3 w-3" />
-                            {format(new Date(activity.dueDate), 'dd MMM yyyy HH:mm', { locale: tr })}
+                            {formatTurkeyDateTime(activity.dueDate, 'compact')}
                         </span>
                     )}
                 </div>

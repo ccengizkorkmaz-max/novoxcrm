@@ -25,7 +25,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { cn } from '@/lib/utils'
+import { cn, formatTurkeyDateTime } from '@/lib/utils'
 import { useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { ActivityForm } from './activity-form'
@@ -176,10 +176,10 @@ export function ActivityCalendar({ activities, customers, profiles, projects, on
                                         setSelectedActivity(activity)
                                         setShowEdit(true)
                                     }}
-                                    title={`${activity.summary || activity.customers?.full_name} | ${format(new Date(activity.due_date), 'HH:mm')} | ${activity.owner?.full_name || '-'}`}
+                                    title={`${activity.summary || activity.customers?.full_name} | ${formatTurkeyDateTime(activity.due_date, 'time')} | ${activity.owner?.full_name || '-'}`}
                                 >
                                     <span className="text-[10px] font-bold shrink-0 opacity-75">
-                                        {format(new Date(activity.due_date), 'HH:mm')}
+                                        {formatTurkeyDateTime(activity.due_date, 'time')}
                                     </span>
                                     <span className="truncate font-medium flex-1">
                                         {activity.summary || activity.customers?.full_name || 'Aktivite'}

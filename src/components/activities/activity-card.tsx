@@ -24,7 +24,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { cancelActivity, deleteActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
 import { toast } from 'sonner'
-import { cn, getVapiRecordingUrl } from "@/lib/utils"
+import { cn, getVapiRecordingUrl, formatTurkeyDateTime } from "@/lib/utils"
 import { MiniAudioPlayer } from "@/components/ui/mini-audio-player"
 
 export interface Activity {
@@ -297,7 +297,7 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                                     : "bg-slate-100 text-slate-700"
                             )}>
                                 <CalendarIcon className="h-3 w-3" />
-                                {format(new Date(activity.due_date), 'd MMM, HH:mm', { locale: locale === 'tr' ? tr : enUS })}
+                                {formatTurkeyDateTime(activity.due_date, 'short')}
                             </div>
                         ) : (
                             <span className="text-[10px] text-slate-400 italic">Tarih Yok</span>
@@ -428,7 +428,7 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                             {activity.due_date && (
                                 <div className="flex items-center gap-1.5">
                                     <CalendarIcon className="h-3.5 w-3.5" />
-                                    {format(new Date(activity.due_date), 'd MMMM yyyy, HH:mm', { locale: locale === 'tr' ? tr : enUS })}
+                                    {formatTurkeyDateTime(activity.due_date, 'full')}
                                 </div>
                             )}
                             {activity.customers?.full_name && (() => {
