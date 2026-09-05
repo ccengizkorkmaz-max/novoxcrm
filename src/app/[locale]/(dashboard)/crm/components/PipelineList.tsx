@@ -77,6 +77,87 @@ const PIPELINE_COL_LABELS: Record<PipelineColId, string> = {
     customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', first_contact: 'İlk Temas', process_note: 'Süreç Notu', lead_score: 'Lead Skor', lead_source: 'Lead Kaynağı', campaign: 'Son Kampanya', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
 }
 
+const getLeadSource = (sale: any): string => {
+    let src = sale.customers?.source || ''
+    // If empty or generic like "External", try to extract from description or other clues
+    if (!src || src.toLowerCase() === 'external') {
+        const desc = (sale.description || '').toLowerCase()
+        if (desc.includes('facebook')) return 'Facebook Ads'
+        if (desc.includes('instagram')) return 'Instagram'
+        if (desc.includes('google')) return 'Google Ads'
+        if (desc.includes('whatsapp') || desc.includes('wa ')) return 'WhatsApp'
+        if (desc.includes('sahibinden')) return 'Sahibinden'
+        if (desc.includes('hepsiemlak')) return 'Hepsiemlak'
+        if (desc.includes('web form') || desc.includes('web sitesi') || desc.includes('form:')) return 'WEB Form'
+        if (desc.includes('manuel')) return 'Manuel'
+        if (desc.includes('telefon')) return 'Telefon'
+    }
+    if (!src && sale.customers?.heard_from) {
+        src = sale.customers.heard_from
+    }
+    if (!src && sale.lead_origin) {
+        if (sale.lead_origin === 'company') return 'Şirket / Reklam'
+        if (sale.lead_origin === 'agent') return 'Danışman'
+    }
+    return src
+}
+
+const getLeadSourceBadge = (sale: any) => {
+    const src = getLeadSource(sale)
+    const srcLower = src.toLowerCase()
+    let srcLabel = src || '—'
+    let srcColor = 'bg-slate-50 text-slate-500 border-slate-200'
+
+    if (srcLower.includes('facebook')) {
+        srcLabel = '📘 Facebook Ads'
+        srcColor = 'bg-blue-50 text-blue-700 border-blue-200'
+    } else if (srcLower.includes('instagram')) {
+        srcLabel = '📸 Instagram'
+        srcColor = 'bg-pink-50 text-pink-700 border-pink-200'
+    } else if (srcLower.includes('google')) {
+        srcLabel = '🔍 Google Ads'
+        srcColor = 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    } else if (srcLower.includes('whatsapp') && (srcLower.includes('campaign') || srcLower.includes('kampanya'))) {
+        srcLabel = '📢 WA Kampanya'
+        srcColor = 'bg-green-50 text-green-700 border-green-200'
+    } else if (srcLower.includes('whatsapp') && (srcLower.includes('button') || srcLower.includes('buton'))) {
+        srcLabel = '💬 WA Buton'
+        srcColor = 'bg-green-50 text-green-700 border-green-200'
+    } else if (srcLower.includes('whatsapp') || srcLower.includes('sohbet')) {
+        srcLabel = '💬 WhatsApp'
+        srcColor = 'bg-green-50 text-green-700 border-green-200'
+    } else if (srcLower.includes('sahibinden')) {
+        srcLabel = '🟡 Sahibinden'
+        srcColor = 'bg-amber-50 text-amber-700 border-amber-200'
+    } else if (srcLower.includes('hepsiemlak')) {
+        srcLabel = '🔴 Hepsiemlak'
+        srcColor = 'bg-red-50 text-red-700 border-red-200'
+    } else if (srcLower.includes('web') || srcLower.includes('form')) {
+        srcLabel = '🌐 Web Form'
+        srcColor = 'bg-cyan-50 text-cyan-700 border-cyan-200'
+    } else if (srcLower.includes('e-posta') || srcLower.includes('email')) {
+        srcLabel = '📧 E-Posta'
+        srcColor = 'bg-violet-50 text-violet-700 border-violet-200'
+    } else if (srcLower.includes('referans') || srcLower.includes('referral')) {
+        srcLabel = '🤝 Referans'
+        srcColor = 'bg-amber-50 text-amber-700 border-amber-200'
+    } else if (srcLower.includes('manuel') || srcLower.includes('manual')) {
+        srcLabel = '✏️ Manuel'
+        srcColor = 'bg-slate-100 text-slate-600 border-slate-200'
+    } else if (srcLower.includes('telefon') || srcLower.includes('phone')) {
+        srcLabel = '📞 Telefon'
+        srcColor = 'bg-orange-50 text-orange-700 border-orange-200'
+    } else if (srcLower.includes('yürüyüş') || srcLower.includes('walk')) {
+        srcLabel = '🚶 Walk-in'
+        srcColor = 'bg-teal-50 text-teal-700 border-teal-200'
+    } else if (srcLower.includes('external') || srcLower.includes('dış')) {
+        srcLabel = '🔗 Dış Kaynak'
+        srcColor = 'bg-slate-100 text-slate-600 border-slate-200'
+    }
+
+    return { src, srcLabel, srcColor }
+}
+
 export default function PipelineList({
     sales,
     customers,
@@ -658,7 +739,7 @@ export default function PipelineList({
             if (colId === 'lead_score') return { id: colId, label: 'Lead Skor', type: 'multiselect' as const, options: ['hot', 'warm', 'cold', 'call_requested', 'disqualified'], optionLabels: { hot: '🔥 Hot', warm: '🌡️ Warm', cold: '❄️ Cold', call_requested: '📞 Arama', disqualified: '⛔ DQ' } }
             if (colId === 'campaign') return { id: colId, label: 'Son Kampanya', type: 'text' as const }
             if (colId === 'first_contact') return { id: colId, label: 'İlk Temas', type: 'select' as const, options: ['Aradım, Olumlu', 'Aradım, Olumsuz', 'Tekrar Aranacak', 'Değerlendiriyor', 'Ulaşamadım - Cevap Vermiyor', 'Ulaşamadım - Meşgul / Reddetti', 'Ulaşamadım - Kapalı / Ulaşılamıyor', 'Ulaşamadım - Hatalı Numara', 'Ulaşamadım - Numara Kullanılmıyor', 'Ulaşamadım - Yanlış Kişi', 'Ulaşamadım - WhatsApp / SMS Atıldı'] }
-            if (colId === 'lead_source') return { id: colId, label: 'Lead Kaynağı', type: 'select' as const, options: ['Facebook Ads', 'facebook_ads', 'WhatsApp Sohbet', 'WhatsApp Button', 'whatsapp_campaign', 'WEB Form', 'Manuel Giriş', 'E-Posta', 'Referans', 'Google Ads'] }
+            if (colId === 'lead_source') return { id: colId, label: 'Lead Kaynağı', type: 'select' as const, options: ['Facebook Ads', 'Instagram', 'Google Ads', 'WhatsApp', 'WEB Form', 'Sahibinden', 'Hepsiemlak', 'Manuel Giriş', 'E-Posta', 'Referans', 'Telefon', 'Walk-in', 'Dış Kaynak'] }
             if (colId === 'actions' || colId === 'quickicons' || colId === 'remaining') return { id: colId, label: colId, type: 'none' as const }
             return { id: colId, label: colId, type: 'text' as const }
         })
@@ -700,8 +781,9 @@ export default function PipelineList({
                 const bText = (sale.campaign_info?.buttonText || '').toLowerCase()
                 if (!wName.includes(q) && !bText.includes(q)) return false
             } else if (colId === 'lead_source') {
-                const src = sale.source || ''
-                if (src !== filterVal) return false
+                const raw = getLeadSource(sale).toLowerCase()
+                const target = filterVal.toLowerCase().replace(/_/g, ' ')
+                if (!raw.includes(target) && !target.includes(raw)) return false
             } else if (colId === 'first_contact') {
                 const fc = sale.first_contact || ''
                 if (fc !== filterVal) return false
@@ -935,7 +1017,7 @@ export default function PipelineList({
                                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-2.5 w-2.5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
                                                                     </span>
                                                                 )}
-                                                                {sale.source === 'E-Posta' && <Mail className="h-3 w-3 text-blue-500" />}
+                                                                {sale.customers?.source === 'E-Posta' && <Mail className="h-3 w-3 text-blue-500" />}
                                                                 {sale.description && (
                                                                     <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-blue-600" onClick={() => setViewingLead(sale)} title="Lead Bilgileri">
                                                                         <Info className="h-3 w-3" />
@@ -1231,49 +1313,10 @@ export default function PipelineList({
                                                     )
                                                 }
                                                 if (colId === 'lead_source') {
-                                                    const src = sale.source || ''
-                                                    const srcLower = src.toLowerCase()
-                                                    let srcLabel = src || '—'
-                                                    let srcColor = 'bg-slate-50 text-slate-500 border-slate-200'
-                                                    
-                                                    if (srcLower.includes('facebook')) {
-                                                        srcLabel = '📘 Facebook'
-                                                        srcColor = 'bg-blue-50 text-blue-700 border-blue-200'
-                                                    } else if (srcLower.includes('instagram')) {
-                                                        srcLabel = '📸 Instagram'
-                                                        srcColor = 'bg-pink-50 text-pink-700 border-pink-200'
-                                                    } else if (srcLower.includes('google')) {
-                                                        srcLabel = '🔍 Google'
-                                                        srcColor = 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                    } else if (srcLower.includes('whatsapp') && srcLower.includes('campaign')) {
-                                                        srcLabel = '📢 WA Kampanya'
-                                                        srcColor = 'bg-green-50 text-green-700 border-green-200'
-                                                    } else if (srcLower.includes('whatsapp') && srcLower.includes('button')) {
-                                                        srcLabel = '💬 WA Buton'
-                                                        srcColor = 'bg-green-50 text-green-700 border-green-200'
-                                                    } else if (srcLower.includes('whatsapp') || srcLower.includes('sohbet')) {
-                                                        srcLabel = '💬 WhatsApp'
-                                                        srcColor = 'bg-green-50 text-green-700 border-green-200'
-                                                    } else if (srcLower.includes('web') || srcLower.includes('form')) {
-                                                        srcLabel = '🌐 Web Form'
-                                                        srcColor = 'bg-cyan-50 text-cyan-700 border-cyan-200'
-                                                    } else if (srcLower.includes('e-posta') || srcLower.includes('email')) {
-                                                        srcLabel = '📧 E-Posta'
-                                                        srcColor = 'bg-violet-50 text-violet-700 border-violet-200'
-                                                    } else if (srcLower.includes('referans') || srcLower.includes('referral')) {
-                                                        srcLabel = '🤝 Referans'
-                                                        srcColor = 'bg-amber-50 text-amber-700 border-amber-200'
-                                                    } else if (srcLower.includes('manuel') || srcLower.includes('manual')) {
-                                                        srcLabel = '✏️ Manuel'
-                                                        srcColor = 'bg-slate-100 text-slate-600 border-slate-200'
-                                                    } else if (srcLower.includes('telefon') || srcLower.includes('phone')) {
-                                                        srcLabel = '📞 Telefon'
-                                                        srcColor = 'bg-orange-50 text-orange-700 border-orange-200'
-                                                    }
-
+                                                    const { src, srcLabel, srcColor } = getLeadSourceBadge(sale)
                                                     return (
                                                         <TableCell key="lead_source" className={cellCls}>
-                                                            <span className={cn("inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded border whitespace-nowrap", srcColor)} title={src}>
+                                                            <span className={cn("inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded border whitespace-nowrap", srcColor)} title={src || 'Belirtilmemiş'}>
                                                                 {srcLabel}
                                                             </span>
                                                         </TableCell>
@@ -1634,9 +1677,20 @@ export default function PipelineList({
                                         className="bg-slate-50 border border-slate-100 p-2 rounded-lg text-xs text-slate-600 line-clamp-2 cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => setViewingLead(sale)}
                                     >
-                                        <div className="flex items-center gap-1.5 mb-0.5">
-                                            {sale.source === 'E-Posta' ? <Mail className="h-3 w-3 text-blue-500" /> : <Info className="h-3 w-3 text-slate-400" />}
-                                            <span className="font-bold text-[10px] uppercase text-slate-400">Detay</span>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-1.5">
+                                                {sale.customers?.source === 'E-Posta' ? <Mail className="h-3 w-3 text-blue-500" /> : <Info className="h-3 w-3 text-slate-400" />}
+                                                <span className="font-bold text-[10px] uppercase text-slate-400">Detay</span>
+                                            </div>
+                                            {(() => {
+                                                const { src, srcLabel, srcColor } = getLeadSourceBadge(sale)
+                                                if (!src) return null
+                                                return (
+                                                    <span className={cn("inline-flex items-center px-1.5 py-0.5 text-[9px] font-semibold rounded border whitespace-nowrap", srcColor)}>
+                                                        {srcLabel}
+                                                    </span>
+                                                )
+                                            })()}
                                         </div>
                                         {sale.description}
                                     </div>
@@ -1940,14 +1994,25 @@ export default function PipelineList({
             <Dialog open={!!viewingLead} onOpenChange={(open) => !open && setViewingLead(null)}>
                 <DialogContent className="max-w-lg w-[95vw] rounded-2xl overflow-hidden p-0 bg-white dark:bg-slate-950">
                     <DialogHeader className="p-6 bg-slate-50 border-b">
-                        <div className="flex items-center gap-3 mb-1">
-                            <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-                                {viewingLead?.source === 'E-Posta' ? <Mail className="h-5 w-5" /> : <MessageSquareText className="h-5 w-5" />}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                                    {viewingLead?.customers?.source === 'E-Posta' ? <Mail className="h-5 w-5" /> : <MessageSquareText className="h-5 w-5" />}
+                                </div>
+                                <div>
+                                    <DialogTitle className="text-xl">{t('actions.leadDetails') || 'Talep Detayları'}</DialogTitle>
+                                    <p className="text-sm text-muted-foreground">{viewingLead?.customers?.full_name}</p>
+                                </div>
                             </div>
-                            <div>
-                                <DialogTitle className="text-xl">{t('actions.leadDetails') || 'Talep Detayları'}</DialogTitle>
-                                <p className="text-sm text-muted-foreground">{viewingLead?.customers?.full_name}</p>
-                            </div>
+                            {viewingLead && (() => {
+                                const { src, srcLabel, srcColor } = getLeadSourceBadge(viewingLead)
+                                if (!src) return null
+                                return (
+                                    <span className={cn("inline-flex items-center px-2 py-1 text-xs font-semibold rounded-md border shadow-sm", srcColor)}>
+                                        {srcLabel}
+                                    </span>
+                                )
+                            })()}
                         </div>
                     </DialogHeader>
                     <div className="p-6 space-y-4 max-h-[60vh] overflow-auto whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed">

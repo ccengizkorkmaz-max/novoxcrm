@@ -41,29 +41,45 @@ export default function SalesExportButton({ filters }: SalesExportButtonProps) {
             }
 
             // Prepare data for Excel
-            const exportData = data.map(sale => ({
-                'Müşteri Adı': sale.customers?.full_name || '',
-                'Müşteri Telefon': sale.customers?.phone || '',
-                'Müşteri E-posta': sale.customers?.email || '',
-                'Durum': sale.status === 'Lead' ? 'Aday (Lead)' : 
-                         sale.status === 'Prospect' ? 'Potansiyel (Prospect)' : 
-                         sale.status === 'Reservation' ? 'Rezervasyon' : 
-                         sale.status === 'Proposal' ? 'Teklif' : 
-                         sale.status === 'Negotiation' ? 'Görüşme (Pazarlık)' : 
-                         sale.status === 'Sold' ? 'Satıldı' : 
-                         sale.status === 'Completed' ? 'Tamamlandı' : 
-                         sale.status === 'Lost' ? 'Kaybedildi' : sale.status,
-                'Proje': sale.projects?.name || '',
-                'Ünite No': sale.units?.unit_number || '',
-                'Satış Fiyatı': sale.final_price || sale.units?.price || 0,
-                'Para Birimi': sale.currency || sale.units?.currency || 'TRY',
-                'Satış Temsilcisi': sale.profiles?.full_name || '',
-                'Oluşturulma Tarihi': new Date(sale.created_at).toLocaleDateString('tr-TR'),
-                'Son Güncelleme': sale.updated_at ? new Date(sale.updated_at).toLocaleDateString('tr-TR') : ''
-            }))
+            const exportData = data.map(sale => {
+                let leadSource = sale.customers?.source || ''
+                if (!leadSource || leadSource.toLowerCase() === 'external') {
+                    const desc = (sale.description || '').toLowerCase()
+                    if (desc.includes('facebook')) leadSource = 'Facebook Ads'
+                    else if (desc.includes('instagram')) leadSource = 'Instagram'
+                    else if (desc.includes('google')) leadSource = 'Google Ads'
+                    else if (desc.includes('whatsapp') || desc.includes('wa ')) leadSource = 'WhatsApp'
+                    else if (desc.includes('sahibinden')) leadSource = 'Sahibinden'
+                    else if (desc.includes('hepsiemlak')) leadSource = 'Hepsiemlak'
+                    else if (desc.includes('web form') || desc.includes('web sitesi')) leadSource = 'WEB Form'
+                    else if (desc.includes('manuel')) leadSource = 'Manuel'
+                    else if (desc.includes('telefon')) leadSource = 'Telefon'
+                }
+                return {
+                    'Müşteri Adı': sale.customers?.full_name || '',
+                    'Müşteri Telefon': sale.customers?.phone || '',
+                    'Müşteri E-posta': sale.customers?.email || '',
+                    'Lead Kaynağı': leadSource || '—',
+                    'Durum': sale.status === 'Lead' ? 'Aday (Lead)' : 
+                             sale.status === 'Prospect' ? 'Potansiyel (Prospect)' : 
+                             sale.status === 'Reservation' ? 'Rezervasyon' : 
+                             sale.status === 'Proposal' ? 'Teklif' : 
+                             sale.status === 'Negotiation' ? 'Görüşme (Pazarlık)' : 
+                             sale.status === 'Sold' ? 'Satıldı' : 
+                             sale.status === 'Completed' ? 'Tamamlandı' : 
+                             sale.status === 'Lost' ? 'Kaybedildi' : sale.status,
+                    'Proje': sale.projects?.name || '',
+                    'Ünite No': sale.units?.unit_number || '',
+                    'Satış Fiyatı': sale.final_price || sale.units?.price || 0,
+                    'Para Birimi': sale.currency || sale.units?.currency || 'TRY',
+                    'Satış Temsilcisi': sale.profiles?.full_name || '',
+                    'Oluşturulma Tarihi': new Date(sale.created_at).toLocaleDateString('tr-TR'),
+                    'Son Güncelleme': sale.updated_at ? new Date(sale.updated_at).toLocaleDateString('tr-TR') : ''
+                }
+            })
 
             const headers = [
-                'Müşteri Adı', 'Müşteri Telefon', 'Müşteri E-posta', 'Durum',
+                'Müşteri Adı', 'Müşteri Telefon', 'Müşteri E-posta', 'Lead Kaynağı', 'Durum',
                 'Proje', 'Ünite No', 'Satış Fiyatı', 'Para Birimi',
                 'Satış Temsilcisi', 'Oluşturulma Tarihi', 'Son Güncelleme'
             ]
@@ -74,6 +90,7 @@ export default function SalesExportButton({ filters }: SalesExportButtonProps) {
                 { wch: 25 }, // Müşteri Adı
                 { wch: 15 }, // Telefon
                 { wch: 25 }, // E-posta
+                { wch: 18 }, // Lead Kaynağı
                 { wch: 20 }, // Durum
                 { wch: 20 }, // Proje
                 { wch: 12 }, // Ünite No

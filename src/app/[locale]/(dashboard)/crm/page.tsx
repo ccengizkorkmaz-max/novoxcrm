@@ -78,7 +78,7 @@ export default async function CRMPage(props: {
     // Build sales list query (THE CRITICAL 50 RECORDS)
     let baseQuery = supabase
         .from('sales')
-        .select('*, customers!inner(id, full_name, email, phone, customer_number, communication_enabled, lead_qualifications(last_call_at, interest_level, interest_level_ai, interest_level_source, interest_level_history, call_notes, status)), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name, is_external)', { count: 'exact' })
+        .select('*, customers!inner(id, full_name, email, phone, customer_number, communication_enabled, source, lead_qualifications(last_call_at, interest_level, interest_level_ai, interest_level_source, interest_level_history, call_notes, status)), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name, is_external)', { count: 'exact' })
         .neq('status', 'Inbox')
 
     if (!isManager && user) {
@@ -137,7 +137,7 @@ export default async function CRMPage(props: {
         // Tracking: same table, no pagination, all non-Inbox sales
         showTrackingTab
             ? supabase.from('sales')
-                .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, projects(id, name)), projects(id, name), profiles(full_name, is_external)')
+                .select('*, customers!inner(id, full_name, email, phone, customer_number, source), units(unit_number, projects(id, name)), projects(id, name), profiles(full_name, is_external)')
                 .neq('status', 'Inbox')
                 .order('updated_at', { ascending: false, nullsFirst: false })
                 .order('created_at', { ascending: false })

@@ -26,7 +26,7 @@ export async function getSalesForExport(filters: {
     // Build base sales query for filtered data
     let baseQuery = supabase
         .from('sales')
-        .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)')
+        .select('*, customers!inner(id, full_name, email, phone, customer_number, source), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)')
         .neq('status', 'Inbox') // Exclude inbox items
         .order('created_at', { ascending: false })
 
