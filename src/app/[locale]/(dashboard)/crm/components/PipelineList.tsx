@@ -1113,6 +1113,7 @@ export default function PipelineList({
                                                                                     onCreated={(newAct) => {
                                                                                         setActivitiesState(prev => [...prev, newAct])
                                                                                     }}
+                                                                                    onOpenAdvancedActivity={() => handleCreateActivity(sale.customers)}
                                                                                 />
                                                                             )
                                                                         )}
