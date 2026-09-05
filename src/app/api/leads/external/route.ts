@@ -4,6 +4,13 @@ import { revalidatePath } from 'next/cache'
 import { sendWhatsAppTemplate } from '@/lib/whatsapp'
 import { makeOutboundCall, normalizeToE164 } from '@/lib/vapi'
 import { getCrmMode } from '@/lib/crm-mode'
+import { 
+    validateWebFormLead, 
+    extractWebFormName, 
+    extractWebFormPhone, 
+    extractWebFormEmail, 
+    extractWebFormProject 
+} from '@/lib/leads/webform-validator'
 
 export async function GET() {
     return NextResponse.json({
@@ -215,6 +222,44 @@ export async function POST(req: Request) {
         const FORM_SENDER_NAMES = ['novo']
         if (email && FORM_SENDER_EMAILS.includes(email.toLowerCase())) email = null
         if (name && FORM_SENDER_NAMES.includes(name.toLowerCase()) && email === null) name = null
+
+        // --- STRICT WEB FORM LEAD VALIDATION ---
+        // Sadece web formlarından gelen gerçek müşteri adayları kabul edilir.
+        // İş başvuruları, CV'ler, reklam/ajans teklifleri ve spamler kesinlikle elenir.
+        const isWebOrEmail = source === 'WEB Form' || source === 'Web Form' || source === 'Email' || source === 'Gelen Kutusu'
+        if (isWebOrEmail) {
+            const validation = validateWebFormLead({
+                name,
+                email,
+                phone,
+                message: bodyMessage,
+                source
+            })
+
+            if (!validation.isValid) {
+                console.warn(`⛔ External lead rejected (${validation.category}): ${validation.reason}. Name: ${name}, Subject: ${subject}`)
+                return NextResponse.json({
+                    success: false,
+                    message: `Lead reddedildi: ${validation.reason}`,
+                    category: validation.category,
+                    rejected: true
+                }, { status: 400 })
+            }
+
+            // Apply best extracted data
+            if (validation.extractedData.name && (!name || name.toLowerCase() === 'novo')) {
+                name = validation.extractedData.name
+            }
+            if (validation.extractedData.phone && !phone) {
+                phone = validation.extractedData.phone
+            }
+            if (validation.extractedData.email && (!email || email === 'web@novosirketlergrubu.com')) {
+                email = validation.extractedData.email
+            }
+            if (validation.extractedData.project && !parsedProject) {
+                parsedProject = validation.extractedData.project
+            }
+        }
 
         // Final fallback for missing name
         if (!name) {

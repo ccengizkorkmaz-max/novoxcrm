@@ -3,6 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { sendPoliSms, sendSms } from '@/lib/sms'
+import { 
+    validateWebFormLead, 
+    extractWebFormName, 
+    extractWebFormPhone, 
+    extractWebFormEmail, 
+    extractWebFormProject 
+} from '@/lib/leads/webform-validator'
 
 /**
  * Parse project name from inbox message (looks in Konu/Subject field)
@@ -199,18 +206,45 @@ export async function approveInboxItem(
             return { success: false, error: 'Inbox item not found or already processed' }
         }
 
-        // Resolve final field values
-        const finalName = overrides?.name || inboxItem.name
-        const finalEmail = overrides?.email || inboxItem.email
-        // Extract phone from message if not available in DB or overrides
-        const finalPhone = overrides?.phone || inboxItem.phone || extractPhoneFromMessage(inboxItem.message)
+        // --- STRICT WEB FORM LEAD VALIDATION ---
+        // Sadece web formlarından gelen gerçek müşteri adayları Satış Yönetimi'ne aktarılabilir.
+        const validation = validateWebFormLead({
+            name: overrides?.name || inboxItem.name,
+            email: overrides?.email || inboxItem.email,
+            phone: overrides?.phone || inboxItem.phone,
+            message: inboxItem.message,
+            source: inboxItem.source
+        })
+
+        // Kullanıcı modalda elle geçerli telefon ve isim girmedikçe, satış adayı olmayan kayıtları engelle
+        const hasExplicitOverride = !!(overrides?.name && overrides?.phone && overrides.phone.replace(/\D/g, '').length >= 10)
+
+        if (!validation.isValid && !hasExplicitOverride) {
+            console.warn(`[approveInboxItem] Blocked non-lead: ${validation.category} - ${validation.reason}`)
+            return {
+                success: false,
+                error: `Bu kayıt Satış Yönetimi'ne aktarılamaz: ${validation.reason}`
+            }
+        }
+
+        // Resolve final field values using smart extraction
+        const finalName = overrides?.name || validation.extractedData.name || extractWebFormName(inboxItem.message, inboxItem.name) || inboxItem.name || 'İsimsiz Lead'
+        const finalEmail = overrides?.email || validation.extractedData.email || extractWebFormEmail(inboxItem.message, inboxItem.email)
+        const finalPhone = overrides?.phone || validation.extractedData.phone || extractWebFormPhone(inboxItem.message, inboxItem.phone)
+
+        if (!finalPhone) {
+            return {
+                success: false,
+                error: 'Satış Yönetimi adayı oluşturmak için geçerli bir telefon numarası (en az 10 hane) zorunludur.'
+            }
+        }
 
         // --- PROJECT MATCHING ---
         // Try to match project from message if no projectId provided
         let resolvedProjectId = inboxItem.project_id || projectId || null
 
         if (!resolvedProjectId) {
-            const projectName = extractProjectFromMessage(inboxItem.message)
+            const projectName = validation.extractedData.project || extractWebFormProject(inboxItem.message) || extractProjectFromMessage(inboxItem.message)
             if (projectName) {
                 resolvedProjectId = await findProjectByName(supabase, inboxItem.tenant_id, projectName)
                 console.log(`Project match: "${projectName}" → ${resolvedProjectId || 'NOT FOUND'}`)
@@ -279,7 +313,7 @@ export async function approveInboxItem(
                         phone: finalPhone || null,
                         email: finalEmail || null,
                         status: 'new',
-                        source: inboxItem.source || 'Gelen Kutusu',
+                        source: 'WEB Form',
                         project_id: resolvedProjectId,
                         notes: inboxItem.message,
                         assigned_to: assignedTo
@@ -403,7 +437,7 @@ export async function approveInboxItem(
                     full_name: finalName,
                     email: finalEmail || null,
                     phone: finalPhone || null,
-                    source: inboxItem.source
+                    source: 'WEB Form'
                 })
                 .select('id')
                 .single()
@@ -461,7 +495,8 @@ export async function approveInboxItem(
                     customer_id: customerId,
                     project_id: resolvedProjectId,
                     status: 'Lead',
-                    description: inboxItem.message
+                    description: inboxItem.message,
+                    lead_origin: 'company'
                 })
                 .select('id')
                 .single()
@@ -682,19 +717,25 @@ export async function getBulkApproveTargetIds() {
 
         const { data: items, error: fetchError } = await supabase
             .from('inbox_items')
-            .select('id')
+            .select('id, name, email, phone, message, source')
             .eq('tenant_id', profile.tenant_id)
             .eq('status', 'pending')
-            .or('message.ilike.%Proje Bilgi Talep Formu%,email.eq.web@novosirketlergrubu.com,message.ilike.%KVKK Onayı%,message.ilike.%KVKK Onayi%')
+            .limit(500)
 
         if (fetchError) {
             console.error('Error fetching bulk target ids:', fetchError)
             return { success: false, error: fetchError.message }
         }
 
+        // SADECE ve SADECE doğrulanmış gerçek webform müşteri adayları (lead)
+        // İş başvuruları, CV'ler, reklam/ajans teklifleri ve telefonsuz kayıtlar elenir
+        const validIds = (items || [])
+            .filter(item => validateWebFormLead(item).isValid)
+            .map(i => i.id)
+
         return {
             success: true,
-            ids: (items || []).map(i => i.id)
+            ids: validIds
         }
     } catch (error: any) {
         console.error('Server error fetching bulk target ids:', error)
@@ -716,22 +757,24 @@ export async function getBulkArchiveTargetIds() {
 
         const { data: items, error: fetchError } = await supabase
             .from('inbox_items')
-            .select('id')
+            .select('id, name, email, phone, message, source')
             .eq('tenant_id', profile.tenant_id)
             .eq('status', 'pending')
-            .not('message', 'ilike', '%Proje Bilgi Talep Formu%')
-            .not('message', 'ilike', '%KVKK Onayı%')
-            .not('message', 'ilike', '%KVKK Onayi%')
-            .not('email', 'eq', 'web@novosirketlergrubu.com')
+            .limit(500)
 
         if (fetchError) {
             console.error('Error fetching bulk archive target ids:', fetchError)
             return { success: false, error: fetchError.message }
         }
 
+        // Satış adayı OLMAYAN tüm kayıtlar (iş başvuruları, CV'ler, spam, reklam mailleri vb.)
+        const nonLeadIds = (items || [])
+            .filter(item => !validateWebFormLead(item).isValid)
+            .map(i => i.id)
+
         return {
             success: true,
-            ids: (items || []).map(i => i.id)
+            ids: nonLeadIds
         }
     } catch (error: any) {
         console.error('Server error fetching bulk archive target ids:', error)

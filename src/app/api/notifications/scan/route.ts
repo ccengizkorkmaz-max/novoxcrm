@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { createNotification } from '@/lib/notifications/create'
 import { fetchUnreadEmails } from '@/lib/email/fetcher'
 import { sendSystemEmail } from '@/lib/email/mailer'
+import { validateWebFormLead } from '@/lib/leads/webform-validator'
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -310,26 +311,41 @@ export async function GET(request: Request) {
                         // Extract basic info
                         const senderName = email.from.split('<')[0].trim().replace(/"/g, '') || email.from
                         const senderEmail = email.from.match(/<(.+?)>/)?.[1] || email.from
+                        const messageBody = `**${email.subject}**\n\n${email.text || email.html || ''}`
+
+                        // Validate against genuine webform sales lead criteria
+                        const validation = validateWebFormLead({
+                            name: senderName,
+                            email: senderEmail,
+                            message: messageBody,
+                            source: 'Email'
+                        })
+
+                        const finalName = validation.isValid && validation.extractedData.name ? validation.extractedData.name : senderName
+                        const finalEmail = validation.isValid && validation.extractedData.email ? validation.extractedData.email : senderEmail
+                        const finalPhone = validation.extractedData.phone || null
+                        const itemSource = validation.isValid ? 'WEB Form' : (validation.category === 'job_application' ? 'Kariyer' : 'Email')
 
                         // Create Inbox Item (Manual approval required in UI)
                         const { error: inboxErr } = await supabase.from('inbox_items').insert({
                             tenant_id: tenantId,
-                            name: senderName,
-                            email: senderEmail,
-                            message: `**${email.subject}**\n\n${email.text || email.html || ''}`,
-                            source: 'Email',
+                            name: finalName,
+                            email: finalEmail,
+                            phone: finalPhone,
+                            message: messageBody,
+                            source: itemSource,
                             status: 'pending'
                         })
 
                         if (!inboxErr) {
                             results.newEmails++
-                            // Create a system notification for the new email lead
+                            // Create a system notification if it's a real lead or normal email
                             await createNotification({
                                 tenant_id: tenantId,
                                 type: 'Info',
                                 category: 'CRM',
-                                title: '📧 Yeni E-posta Talebi',
-                                message: `${senderName} isimli müşteriden yeni bir e-posta talebi geldi: ${email.subject}`,
+                                title: validation.isValid ? '🌐 Yeni Web Form Talebi' : '📧 Yeni E-posta',
+                                message: `${finalName} tarafından yeni bir mesaj: ${email.subject}`,
                                 link: '/inbox'
                             })
                         }

@@ -23,6 +23,7 @@ import {
     Filter
 } from 'lucide-react'
 import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems, getBulkApproveTargetIds, getBulkArchiveTargetIds } from '../actions'
+import { validateWebFormLead } from '@/lib/leads/webform-validator'
 import { startOfDay, startOfWeek, startOfMonth, subDays, isAfter, isEqual } from 'date-fns'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -321,22 +322,49 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
     }
 
     const parseMessageFields = (item: InboxItem) => {
-        const message = getDisplayMessage(item.message)
-
-        const nameMatch = message.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
-        const parsedName = nameMatch ? nameMatch[1].trim() : null
-
-        const emailMatch = message.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
-        const parsedEmail = emailMatch ? emailMatch[1].trim() : null
-
-        const phoneMatch = message.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
-        const parsedPhone = phoneMatch ? phoneMatch[1].trim() : null
-
+        const val = validateWebFormLead(item)
         return {
-            name: parsedName || item.name || '',
-            email: parsedEmail || item.email || '',
-            phone: parsedPhone || item.phone || '',
+            name: val.extractedData.name || item.name || '',
+            email: val.extractedData.email || (item.email !== 'web@novosirketlergrubu.com' ? item.email : '') || '',
+            phone: val.extractedData.phone || item.phone || '',
         }
+    }
+
+    const renderLeadTypeBadge = (item: InboxItem) => {
+        const val = validateWebFormLead(item)
+        if (val.isValid) {
+            return (
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-semibold hover:bg-emerald-100">
+                    🌐 Web Form Lead
+                </Badge>
+            )
+        }
+        if (val.category === 'job_application') {
+            return (
+                <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-semibold hover:bg-amber-100">
+                    💼 İş Başvurusu / CV
+                </Badge>
+            )
+        }
+        if (val.category === 'vendor_spam') {
+            return (
+                <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-semibold hover:bg-rose-100">
+                    🚫 Reklam / Spam
+                </Badge>
+            )
+        }
+        if (val.category === 'missing_phone') {
+            return (
+                <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] font-semibold hover:bg-orange-100">
+                    ⚠️ Telefon Eksik
+                </Badge>
+            )
+        }
+        return (
+            <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[10px] font-medium">
+                📧 E-Posta
+            </Badge>
+        )
     }
 
     const handleViewItem = (item: InboxItem) => {
@@ -366,6 +394,14 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
 
     const handleApprove = async () => {
         if (!viewingItem) return
+
+        const val = validateWebFormLead(viewingItem)
+        const hasCustomPhone = editPhone && editPhone.replace(/\D/g, '').length >= 10
+
+        if (!val.isValid && !hasCustomPhone) {
+            toast.error(`Bu kayıt Satış Yönetimi'ne aktarılamaz: ${val.reason}`)
+            return
+        }
 
         setApproving(true)
         const result = await approveInboxItem(viewingItem.id, undefined, {
@@ -648,12 +684,13 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
                                                 </div>
                                             )}
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                     <User className="h-4 w-4 text-slate-500" />
                                                     <span className="font-medium">{item.name}</span>
                                                     <Badge variant="outline" className="text-xs">
                                                         {item.source}
                                                     </Badge>
+                                                    {renderLeadTypeBadge(item)}
                                                     {renderStatusBadge(item.status)}
                                                 </div>
                                                 <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
@@ -700,6 +737,29 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
 
                     {viewingItem && (
                         <div className="space-y-4">
+                            {(() => {
+                                const val = validateWebFormLead(viewingItem)
+                                if (!val.isValid) {
+                                    return (
+                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
+                                            <span className="text-base leading-none mt-0.5">⚠️</span>
+                                            <div>
+                                                <div className="font-bold text-amber-900">Satış Lead'i Doğrulanamadı</div>
+                                                <div className="text-amber-800 mt-0.5">{val.reason}</div>
+                                                <p className="mt-1.5 text-[11px] text-amber-700 leading-normal">
+                                                    Yalnızca web formlarından gelen gerçek müşteri adayları Satış Yönetimi'ne aktarılabilir. İş başvuruları veya teklif maillerini "Reddet" ile arşive alabilirsiniz.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )
+                                }
+                                return (
+                                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                                        <span className="text-base leading-none">✅</span>
+                                        <span className="font-semibold">Doğrulanmış Web Form Lead'i: Satış Yönetimi'ne aktarılmaya uygun.</span>
+                                    </div>
+                                )
+                            })()}
                             <div className="grid gap-4">
                                 <div>
                                     <div className="flex items-center justify-between gap-2">
