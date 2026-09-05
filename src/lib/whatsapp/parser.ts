@@ -286,7 +286,7 @@ export async function findOrCreateConversation(
             last_message_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             last_message_preview: messagePreview.substring(0, 50),
-            unread_count: 1,
+            unread_count: ((existing.unread_count as number) || 0) + 1,
             channel,
         };
         // Eğer customer_id yoksa ve eşleştirme bulduysa güncelle

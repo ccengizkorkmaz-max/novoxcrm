@@ -172,7 +172,10 @@ export default function PipelineList({
     tenantType = 'developer',
     leadOwnershipDays = 90,
     isAdvanceMode = false,
-    userRole = 'sales'
+    userRole = 'sales',
+    unreadWpMap = {},
+    unreadWpCount = 0,
+    isUnansweredWpFilter = false
 }: {
     sales: any[],
     customers: any[],
@@ -186,11 +189,26 @@ export default function PipelineList({
     tenantType?: string,
     leadOwnershipDays?: number,
     isAdvanceMode?: boolean,
-    userRole?: string
+    userRole?: string,
+    unreadWpMap?: Record<string, { count: number; preview: string; at: string }>,
+    unreadWpCount?: number,
+    isUnansweredWpFilter?: boolean
 }) {
     const t = useTranslations('CRM')
     const locale = useLocale()
     const isBroker = tenantType === 'broker'
+
+    const toggleUnansweredWpFilter = () => {
+        const params = new URLSearchParams(searchParams.toString())
+        if (isUnansweredWpFilter) {
+            params.delete('unanswered_wp')
+            params.delete('wp_unanswered')
+        } else {
+            params.set('unanswered_wp', 'true')
+        }
+        params.set('page', '1')
+        router.push(`?${params.toString()}`)
+    }
 
     const [activitiesState, setActivitiesState] = useState<any[]>(initialActivities)
 
@@ -310,6 +328,22 @@ export default function PipelineList({
     const itemsPerPage = 50
     const router = useRouter()
     const searchParams = useSearchParams()
+
+    useEffect(() => {
+        const handleOpenChat = (e: Event) => {
+            const ce = e as CustomEvent
+            if (ce.detail?.customer) {
+                setWhatsAppDrawerState({
+                    isOpen: true,
+                    customer: ce.detail.customer,
+                    saleId: ce.detail.saleId || undefined,
+                    projectName: ce.detail.projectName || undefined
+                })
+            }
+        }
+        window.addEventListener('open-crm-whatsapp-chat', handleOpenChat)
+        return () => window.removeEventListener('open-crm-whatsapp-chat', handleOpenChat)
+    }, [])
 
     // Real-time updates
     useSupabaseRealtime({ table: 'sales' })
@@ -836,6 +870,44 @@ export default function PipelineList({
 
     return (
         <div className="space-y-4">
+            {/* WhatsApp Yanıt Bekleyenler Hızlı Filtre Barı */}
+            {(unreadWpCount > 0 || isUnansweredWpFilter) && (
+                <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl shadow-xs transition-all">
+                    <div className="flex items-center gap-2.5">
+                        <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
+                        </span>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                            <span className="text-xs font-bold text-rose-950 dark:text-rose-200">
+                                {isUnansweredWpFilter 
+                                    ? `Yanıt Bekleyen WhatsApp Mesajları Filtrelendi (${totalSalesCount} kayıt)`
+                                    : `${unreadWpCount} müşteriden yeni WhatsApp yanıtı var!`}
+                            </span>
+                            {!isUnansweredWpFilter && (
+                                <span className="text-[11px] text-rose-700 dark:text-rose-300 font-medium hidden sm:inline">
+                                    Cevapsız kalan leadleri tek tıkla listeleyin
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    <Button
+                        size="sm"
+                        variant={isUnansweredWpFilter ? "default" : "outline"}
+                        onClick={toggleUnansweredWpFilter}
+                        className={cn(
+                            "h-7 text-xs font-bold gap-1.5 transition-all shadow-xs shrink-0",
+                            isUnansweredWpFilter
+                                ? "bg-rose-600 hover:bg-rose-700 text-white border-transparent"
+                                : "bg-white text-rose-700 border-rose-300 hover:bg-rose-100 hover:text-rose-800 dark:bg-rose-900/40 dark:text-rose-200 dark:hover:bg-rose-900/60"
+                        )}
+                    >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        {isUnansweredWpFilter ? 'Filtreyi Kaldır (Tümünü Göster)' : `🔴 Yanıt Bekleyenleri Listele (${unreadWpCount})`}
+                    </Button>
+                </div>
+            )}
+
             {/* Desktop Table View */}
             <div className="hidden md:block relative group">
                 {/* Column hint bar */}
@@ -997,14 +1069,18 @@ export default function PipelineList({
                                     }
 
                                     const activeAppointment = activitiesState.find(a => a.customer_id === sale.customer_id && (a.status === 'Planned' || a.status === 'Pending'))
+                                    const unreadWp = sale.customer_id ? unreadWpMap[sale.customer_id] : null
+                                    const hasUnreadWp = Boolean(unreadWp && unreadWp.count > 0)
 
                                     return (
                                         <TableRow
                                             key={sale.id}
                                             className={`transition-all border-b ${
-                                                activeAppointment
-                                                    ? 'bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100/90 border-l-4 border-l-emerald-500 font-medium'
-                                                    : isCompleted ? 'bg-emerald-50/30 hover:bg-emerald-50/50' : isLost ? 'bg-red-50/20 hover:bg-red-50/40' : 'hover:bg-slate-50/80'
+                                                hasUnreadWp
+                                                    ? 'bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100/80 border-l-4 border-l-rose-500 font-medium'
+                                                    : activeAppointment
+                                                        ? 'bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100/90 border-l-4 border-l-emerald-500 font-medium'
+                                                        : isCompleted ? 'bg-emerald-50/30 hover:bg-emerald-50/50' : isLost ? 'bg-red-50/20 hover:bg-red-50/40' : 'hover:bg-slate-50/80'
                                             }`}
                                         >
                                             {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')) && !hiddenCols.includes(colId)).map(colId => {
@@ -1058,28 +1134,46 @@ export default function PipelineList({
                                                                             <Sparkles className="h-2.5 w-2.5 text-purple-700 animate-pulse" />
                                                                             AI Ara
                                                                         </Button>
-                                                                        <Button 
-                                                                            variant="ghost" 
-                                                                            size="sm" 
-                                                                            className="h-5 px-2 py-0 text-[10px] font-bold text-emerald-950 bg-emerald-100/90 hover:text-emerald-950 hover:bg-emerald-200 rounded border border-emerald-300 gap-1 flex-shrink-0 active:scale-95 transition-all shadow-2xs"
-                                                                            onClick={(e) => { 
-                                                                                e.stopPropagation(); 
-                                                                                setWhatsAppDrawerState({ 
-                                                                                    isOpen: true, 
-                                                                                    customer: { 
-                                                                                        id: sale.customers?.id, 
-                                                                                        full_name: sale.customers?.full_name || 'Müşteri', 
-                                                                                        phone: sale.customers?.phone 
-                                                                                    }, 
-                                                                                    saleId: sale.id, 
-                                                                                    projectName: sale.units?.projects?.name || sale.projects?.name 
-                                                                                }); 
-                                                                            }}
-                                                                            title="WhatsApp ile Canlı Yazış (Kurumsal Hat: +90 533 602 42 81)"
-                                                                        >
-                                                                            <MessageCircle className="h-2.5 w-2.5 text-emerald-700" />
-                                                                            WP Yazış
-                                                                        </Button>
+                                                                        {(() => {
+                                                                            const unreadInfo = sale.customer_id ? unreadWpMap[sale.customer_id] : null;
+                                                                            const hasUnread = Boolean(unreadInfo && unreadInfo.count > 0);
+                                                                            return (
+                                                                                <Button 
+                                                                                    variant="ghost" 
+                                                                                    size="sm" 
+                                                                                    className={cn(
+                                                                                        "h-5 px-2 py-0 text-[10px] font-bold rounded border gap-1 flex-shrink-0 active:scale-95 transition-all shadow-2xs relative",
+                                                                                        hasUnread
+                                                                                            ? "text-rose-950 bg-rose-100/90 hover:text-rose-950 hover:bg-rose-200 border-rose-300 ring-1 ring-rose-400 animate-pulse font-extrabold"
+                                                                                            : "text-emerald-950 bg-emerald-100/90 hover:text-emerald-950 hover:bg-emerald-200 border-emerald-300"
+                                                                                    )}
+                                                                                    onClick={(e) => { 
+                                                                                        e.stopPropagation(); 
+                                                                                        setWhatsAppDrawerState({ 
+                                                                                            isOpen: true, 
+                                                                                            customer: { 
+                                                                                                id: sale.customers?.id, 
+                                                                                                full_name: sale.customers?.full_name || 'Müşteri', 
+                                                                                                phone: sale.customers?.phone 
+                                                                                            }, 
+                                                                                            saleId: sale.id, 
+                                                                                            projectName: sale.units?.projects?.name || sale.projects?.name 
+                                                                                        }); 
+                                                                                    }}
+                                                                                    title={hasUnread ? `🔴 Yeni Yanıt (${unreadInfo?.count}): "${unreadInfo?.preview || ''}"` : "WhatsApp ile Canlı Yazış (Kurumsal Hat: +90 533 602 42 81)"}
+                                                                                >
+                                                                                    {hasUnread ? (
+                                                                                        <span className="relative flex h-2 w-2 mr-0.5">
+                                                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
+                                                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <MessageCircle className="h-2.5 w-2.5 text-emerald-700" />
+                                                                                    )}
+                                                                                    WP Yazış {hasUnread ? `(${unreadInfo?.count})` : ''}
+                                                                                </Button>
+                                                                            )
+                                                                        })()}
 
                                                                         {/* Hızlı Randevu / Aktif Randevu İkoncuğu */}
                                                                         {activeAppointment ? (
@@ -1571,7 +1665,12 @@ export default function PipelineList({
                                                                      <Button 
                                                                          variant="outline" 
                                                                          size="icon" 
-                                                                         className="h-6 w-6 text-emerald-600 border-emerald-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all active:scale-90" 
+                                                                         className={cn(
+                                                                             "h-6 w-6 transition-all active:scale-90 relative",
+                                                                             hasUnreadWp
+                                                                                 ? "text-rose-600 border-rose-300 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-400 animate-pulse"
+                                                                                 : "text-emerald-600 border-emerald-100 hover:bg-emerald-50 hover:border-emerald-200"
+                                                                         )}
                                                                          onClick={() => setWhatsAppDrawerState({
                                                                              isOpen: true,
                                                                              customer: {
@@ -1582,9 +1681,14 @@ export default function PipelineList({
                                                                              saleId: sale.id,
                                                                              projectName: sale.units?.projects?.name || sale.projects?.name
                                                                          })} 
-                                                                         title="WhatsApp ile Canlı Yazış (Kurumsal Hat)"
+                                                                         title={hasUnreadWp ? `🔴 Yeni WhatsApp Yanıtı (${unreadWp?.count}): "${unreadWp?.preview || ''}"` : "WhatsApp ile Canlı Yazış (Kurumsal Hat)"}
                                                                      >
                                                                          <MessageCircle className="h-3 w-3" />
+                                                                         {hasUnreadWp && (
+                                                                             <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rose-600 text-[8px] font-black text-white shadow-xs">
+                                                                                 {unreadWp?.count && unreadWp.count > 9 ? '9+' : unreadWp?.count}
+                                                                             </span>
+                                                                         )}
                                                                      </Button>
                                                                      <Button 
                                                                          variant="outline" 
@@ -1653,9 +1757,13 @@ export default function PipelineList({
                             }
                         }
 
+                        const unreadWp = sale.customer_id ? unreadWpMap[sale.customer_id] : null
+                        const hasUnreadWp = Boolean(unreadWp && unreadWp.count > 0)
+
                         return (
                             <div key={sale.id} className={cn(
                                 "rounded-xl border bg-card p-4 shadow-sm space-y-3 relative overflow-hidden",
+                                hasUnreadWp && "border-rose-400 bg-rose-50/40 ring-1 ring-rose-400",
                                 isCompleted && "border-emerald-200 bg-emerald-50/20",
                                 isLost && "border-red-100 bg-red-50/10"
                             )}>
@@ -1711,7 +1819,12 @@ export default function PipelineList({
                                                 <Button 
                                                     variant="ghost" 
                                                     size="sm" 
-                                                    className="h-5 px-1.5 py-0 text-[10px] font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded border border-emerald-200 gap-1 flex-shrink-0 active:scale-95 transition-all"
+                                                    className={cn(
+                                                        "h-5 px-1.5 py-0 text-[10px] font-semibold rounded border gap-1 flex-shrink-0 active:scale-95 transition-all relative",
+                                                        hasUnreadWp
+                                                            ? "text-rose-700 bg-rose-100 hover:bg-rose-200 border-rose-300 animate-pulse font-bold"
+                                                            : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+                                                    )}
                                                     onClick={(e) => { 
                                                         e.stopPropagation(); 
                                                         setWhatsAppDrawerState({ 
@@ -1725,10 +1838,17 @@ export default function PipelineList({
                                                             projectName: sale.units?.projects?.name || sale.projects?.name 
                                                         }); 
                                                     }}
-                                                    title="WhatsApp ile Canlı Yazış (Kurumsal Hat)"
+                                                    title={hasUnreadWp ? `🔴 Yeni WhatsApp Yanıtı (${unreadWp?.count}): "${unreadWp?.preview || ''}"` : "WhatsApp ile Canlı Yazış (Kurumsal Hat)"}
                                                 >
-                                                    <MessageCircle className="h-2.5 w-2.5 fill-emerald-100" />
-                                                    WP
+                                                    {hasUnreadWp ? (
+                                                        <span className="relative flex h-2 w-2 mr-0.5">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                                                        </span>
+                                                    ) : (
+                                                        <MessageCircle className="h-2.5 w-2.5 fill-emerald-100" />
+                                                    )}
+                                                    WP {hasUnreadWp ? `(${unreadWp?.count})` : ''}
                                                 </Button>
                                             </div>
                                         )}

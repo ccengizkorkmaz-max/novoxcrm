@@ -4929,10 +4929,14 @@ export async function getOrCreateCustomerWhatsAppConversation(params: {
             }
             conv = newConv
         } else {
-            // Eksik bağlantılar varsa güncelle
+            // Eksik bağlantılar varsa güncelle veya okunmamış sayısını sıfırla
             const updates: any = {}
             if (params.customerId && !conv.customer_id) updates.customer_id = params.customerId
             if (validLeadId && !conv.lead_id) updates.lead_id = validLeadId
+            if (conv.unread_count && conv.unread_count > 0) {
+                updates.unread_count = 0
+                conv.unread_count = 0
+            }
             if (Object.keys(updates).length > 0) {
                 await adminSupabase.from('whatsapp_conversations').update(updates).eq('id', conv.id)
             }

@@ -19,6 +19,8 @@ import DeferredPipelineStats from './components/DeferredPipelineStats'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import DeferredCRMToolbar from './components/DeferredCRMToolbar'
 import CRMHeaderToggles from './components/CRMHeaderToggles'
+import CRMUnansweredWpToggle from './components/CRMUnansweredWpToggle'
+import CrmWhatsAppRealtimeNotifier from './components/CrmWhatsAppRealtimeNotifier'
 import { CRMStatsCollapse } from './components/CRMStatsCollapse'
 import RepTrackingTab from './components/RepTrackingTab'
 import CRMTabs from './components/CRMTabs'
@@ -110,6 +112,41 @@ export default async function CRMPage(props: {
             baseQuery = baseQuery.is('first_contact', null)
         } else {
             baseQuery = baseQuery.eq('first_contact', filterFirstContact)
+        }
+    }
+
+    const filterUnansweredWp = params.unanswered_wp === 'true' || params.wp_unanswered === 'true'
+
+    // Fetch unread WhatsApp conversations for this tenant (replies waiting for sales rep response)
+    const { data: rawUnreadConvs } = userTenantId
+        ? await adminSupabase
+            .from('whatsapp_conversations')
+            .select('id, customer_id, phone_number, unread_count, last_message_preview, last_message_at')
+            .eq('tenant_id', userTenantId)
+            .gt('unread_count', 0)
+            .order('last_message_at', { ascending: false })
+            .limit(1000)
+        : { data: [] }
+
+    const unreadWpMap: Record<string, { count: number; preview: string; at: string }> = {}
+    const unreadCustomerIds: string[] = []
+
+    rawUnreadConvs?.forEach((c: any) => {
+        if (c.customer_id) {
+            unreadWpMap[c.customer_id] = {
+                count: c.unread_count || 1,
+                preview: c.last_message_preview || '',
+                at: c.last_message_at
+            }
+            unreadCustomerIds.push(c.customer_id)
+        }
+    })
+
+    if (filterUnansweredWp) {
+        if (unreadCustomerIds.length > 0) {
+            baseQuery = baseQuery.in('customer_id', unreadCustomerIds)
+        } else {
+            baseQuery = baseQuery.eq('id', '00000000-0000-0000-0000-000000000000')
         }
     }
 
@@ -316,6 +353,10 @@ export default async function CRMPage(props: {
                         {/* Search + Export + AutoAssign */}
                         <div className="flex items-center gap-1.5 shrink-0 ml-1 flex-wrap">
                             <CRMHeaderToggles />
+                            <CRMUnansweredWpToggle 
+                                unreadCount={unreadCustomerIds.length}
+                                isActive={filterUnansweredWp}
+                            />
                             <div className="w-72 lg:w-96">
                                 <Suspense fallback={<div className="h-9 w-full bg-muted animate-pulse rounded" />}>
                                     <CRMSearch />
@@ -386,8 +427,14 @@ export default async function CRMPage(props: {
                     leadOwnershipDays={leadOwnershipDays}
                     isAdvanceMode={isAdvanceMode}
                     userRole={userProfile?.role || 'sales'}
+                    unreadWpMap={unreadWpMap}
+                    unreadWpCount={unreadCustomerIds.length}
+                    isUnansweredWpFilter={filterUnansweredWp}
                 />
             )}
+
+            {/* Realtime Inbound WhatsApp Notification & Live Sync */}
+            <CrmWhatsAppRealtimeNotifier tenantId={userTenantId} />
         </div>
     )
 }
