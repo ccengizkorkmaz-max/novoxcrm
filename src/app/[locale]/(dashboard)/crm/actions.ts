@@ -4163,8 +4163,42 @@ export async function createQuickAppointment(params: {
     const { data: profile } = await supabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
 
     const fullSummary = params.summary || 'Randevu'
+
+    // ── Resolve sales office location details (address + maps link) ──
+    let locationName = params.location || 'Satış Ofisi'
+    let locationAddress = ''
+    let mapsLink = ''
+
+    if (profile?.tenant_id && params.location) {
+        const { data: tenantData } = await adminSupabase
+            .from('tenants')
+            .select('brand_config')
+            .eq('id', profile.tenant_id)
+            .single()
+
+        const officesList = (tenantData?.brand_config as any)?.sales_offices || []
+        const locVal = params.location.trim()
+        const matchedOffice = officesList.find((o: any) =>
+            o.name === locVal || locVal.includes(o.name) || o.name.includes(locVal)
+        )
+
+        if (matchedOffice) {
+            locationName = matchedOffice.name
+            locationAddress = [matchedOffice.address, matchedOffice.district, matchedOffice.city].filter(Boolean).join(', ')
+            mapsLink = matchedOffice.mapsUrl || (matchedOffice.latitude && matchedOffice.longitude
+                ? `https://maps.google.com/?q=${matchedOffice.latitude},${matchedOffice.longitude}`
+                : (locationAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${matchedOffice.name} ${locationAddress}`)}` : ''))
+        }
+    }
+
+    // Build location display string: "İzmir Satış Ofisi - Karşıyaka, İzmir"
+    const locationDisplay = locationAddress ? `${locationName} - ${locationAddress}` : locationName
+    // Full location with maps link for notifications
+    const locationWithLink = mapsLink ? `${locationDisplay}\n🗺️ Konum: ${mapsLink}` : locationDisplay
+
     const fullNotes = [
-        params.location ? `Konum: ${params.location}` : null,
+        `Konum: ${locationDisplay}`,
+        mapsLink ? `Harita: ${mapsLink}` : null,
         params.notes ? `Not: ${params.notes}` : null
     ].filter(Boolean).join('\n')
 
@@ -4203,7 +4237,7 @@ export async function createQuickAppointment(params: {
             topic: 'General',
             summary: fullSummary,
             notes: fullNotes,
-            description: params.location ? `Yer: ${params.location}` : fullSummary,
+            description: `Yer: ${locationDisplay}`,
             due_date: new Date(params.dueDate).toISOString(),
             status: 'Planned',
             priority: 'High'
@@ -4248,15 +4282,14 @@ export async function createQuickAppointment(params: {
 
             const customerName = customer?.full_name || 'Müşteri'
             const customerPhone = customer?.phone || '-'
-            const location = params.location || 'Satış Ofisi'
 
             const { sendWhatsAppTemplate, sendWhatsAppInteractiveButtons } = await import('@/lib/whatsapp')
 
             const waPhoneId = tenantWa?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
             const waToken = tenantWa?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
 
-            // Randevu detay metni (Satış temsilcisine gidecek metin)
-            const appointmentDetailText = `👤 Müşteri: ${customerName} (${customerPhone})\n📅 Tarih: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}${params.notes ? `\n📌 Not: ${params.notes}` : ''}`
+            // Randevu detay metni (Satış temsilcisine gidecek metin - konum + maps linki dahil)
+            const appointmentDetailText = `👤 Müşteri: ${customerName} (${customerPhone})\n📅 Tarih: ${formattedDate}\n📍 Yer: ${locationWithLink}\n📝 Konu: ${fullSummary}${params.notes ? `\n📌 Not: ${params.notes}` : ''}`
 
             // 1. Satış Temsilcisine Meta Template Bildirimi (randevu_hatirlatma)
             let randevuTemplateResult = await sendWhatsAppTemplate(
@@ -4300,7 +4333,7 @@ export async function createQuickAppointment(params: {
                     [
                         customerName,
                         customerPhone,
-                        `📅 RANDEVU: ${formattedDate} | Yer: ${location} | ${fullSummary}`
+                        `📅 RANDEVU: ${formattedDate} | Yer: ${locationDisplay} | ${fullSummary}`
                     ],
                     'tr',
                     waPhoneId,
@@ -4320,7 +4353,7 @@ export async function createQuickAppointment(params: {
                     [
                         customerName,      // {{1}} Müşteri Adı
                         formattedDate,     // {{2}} Tarih ve Saat
-                        location,          // {{3}} Randevu Yeri
+                        locationWithLink,  // {{3}} Randevu Yeri (adres + maps linki)
                         repInfo            // {{4}} Satış Temsilcisi
                     ],
                     'tr',

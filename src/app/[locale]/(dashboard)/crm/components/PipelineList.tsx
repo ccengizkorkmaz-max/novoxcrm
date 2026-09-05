@@ -652,7 +652,7 @@ export default function PipelineList({
             if (colId === 'amount') return { id: colId, label: 'Tutar', type: 'text' as const }
             if (colId === 'lead_score') return { id: colId, label: 'Lead Skor', type: 'multiselect' as const, options: ['hot', 'warm', 'cold', 'call_requested', 'disqualified'], optionLabels: { hot: '🔥 Hot', warm: '🌡️ Warm', cold: '❄️ Cold', call_requested: '📞 Arama', disqualified: '⛔ DQ' } }
             if (colId === 'campaign') return { id: colId, label: 'Son Kampanya', type: 'text' as const }
-            if (colId === 'first_contact') return { id: colId, label: 'İlk Temas', type: 'select' as const, options: ['Aradım, Olumlu', 'Aradım, Olumsuz', 'Tekrar Aranacak', 'Değerlendiriyor', 'Ulaşamadım'] }
+            if (colId === 'first_contact') return { id: colId, label: 'İlk Temas', type: 'select' as const, options: ['Aradım, Olumlu', 'Aradım, Olumsuz', 'Tekrar Aranacak', 'Değerlendiriyor', 'Ulaşamadım - Cevap Vermiyor', 'Ulaşamadım - Meşgul / Reddetti', 'Ulaşamadım - Kapalı / Ulaşılamıyor', 'Ulaşamadım - Hatalı Numara', 'Ulaşamadım - Numara Kullanılmıyor', 'Ulaşamadım - Yanlış Kişi', 'Ulaşamadım - WhatsApp / SMS Atıldı'] }
             if (colId === 'actions' || colId === 'quickicons' || colId === 'remaining') return { id: colId, label: colId, type: 'none' as const }
             return { id: colId, label: colId, type: 'text' as const }
         })
@@ -1092,12 +1092,22 @@ export default function PipelineList({
                                                         : fcValue === 'Aradım, Olumsuz' ? 'bg-red-100 text-red-700 border-red-200'
                                                         : fcValue === 'Tekrar Aranacak' ? 'bg-blue-100 text-blue-700 border-blue-200'
                                                         : fcValue === 'Değerlendiriyor' ? 'bg-purple-100 text-purple-700 border-purple-200'
-                                                        : fcValue === 'Ulaşamadım' ? 'bg-amber-100 text-amber-700 border-amber-200'
+                                                        : (fcValue?.includes('Hatalı') || fcValue?.includes('Kullanılmıyor')) ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                                        : fcValue?.includes('Yanlış Kişi') ? 'bg-slate-200 text-slate-800 border-slate-300'
+                                                        : (fcValue?.includes('WhatsApp') || fcValue?.includes('SMS')) ? 'bg-teal-100 text-teal-800 border-teal-300'
+                                                        : fcValue?.startsWith('Ulaşamadım') ? 'bg-amber-100 text-amber-700 border-amber-200'
                                                         : 'bg-slate-50 text-slate-400 border-slate-200'
                                                     const fcLabel = fcValue === 'Aradım, Olumlu' ? '🟢 Olumlu'
                                                         : fcValue === 'Aradım, Olumsuz' ? '🔴 Olumsuz'
                                                         : fcValue === 'Tekrar Aranacak' ? '🔄 Tekrar Aranacak'
                                                         : fcValue === 'Değerlendiriyor' ? '🤔 Değerlendiriyor'
+                                                        : fcValue === 'Ulaşamadım - Hatalı Numara' ? '🚫 Hatalı Numara'
+                                                        : fcValue === 'Ulaşamadım - Cevap Vermiyor' ? '📵 Cevap Yok'
+                                                        : fcValue === 'Ulaşamadım - Meşgul / Reddetti' ? '⏳ Meşgul'
+                                                        : fcValue === 'Ulaşamadım - Kapalı / Ulaşılamıyor' ? '📴 Kapalı'
+                                                        : fcValue === 'Ulaşamadım - Numara Kullanılmıyor' ? '❌ Kullanılmıyor'
+                                                        : fcValue === 'Ulaşamadım - Yanlış Kişi' ? '👤 Yanlış Kişi'
+                                                        : fcValue === 'Ulaşamadım - WhatsApp / SMS Atıldı' ? '💬 WhatsApp Atıldı'
                                                         : fcValue === 'Ulaşamadım' ? '📵 Ulaşamadım'
                                                         : '—'
                                                     return (
@@ -1123,7 +1133,13 @@ export default function PipelineList({
                                                                     <SelectItem value="Aradım, Olumsuz">🔴 Aradım, Olumsuz</SelectItem>
                                                                     <SelectItem value="Tekrar Aranacak">🔄 Tekrar Aranacak</SelectItem>
                                                                     <SelectItem value="Değerlendiriyor">🤔 Değerlendiriyor</SelectItem>
-                                                                    <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
+                                                                    <SelectItem value="Ulaşamadım - Cevap Vermiyor" className="text-amber-700">📵 Ulaşamadım - Cevap Vermiyor</SelectItem>
+                                                                    <SelectItem value="Ulaşamadım - Meşgul / Reddetti" className="text-amber-700">⏳ Ulaşamadım - Meşgul / Reddetti</SelectItem>
+                                                                    <SelectItem value="Ulaşamadım - Kapalı / Ulaşılamıyor" className="text-amber-700">📴 Ulaşamadım - Kapalı / Ulaşılamıyor</SelectItem>
+                                                                    <SelectItem value="Ulaşamadım - Hatalı Numara" className="text-rose-700 font-semibold">🚫 Ulaşamadım - Hatalı / Yanlış No</SelectItem>
+                                                                    <SelectItem value="Ulaşamadım - Numara Kullanılmıyor" className="text-rose-700 font-semibold">❌ Ulaşamadım - Numara Kullanılmıyor</SelectItem>
+                                                                    <SelectItem value="Ulaşamadım - Yanlış Kişi" className="text-slate-600">👤 Ulaşamadım - Yanlış Kişi</SelectItem>
+                                                                    <SelectItem value="Ulaşamadım - WhatsApp / SMS Atıldı" className="text-teal-700">💬 Ulaşamadım - WhatsApp / SMS Atıldı</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </TableCell>
