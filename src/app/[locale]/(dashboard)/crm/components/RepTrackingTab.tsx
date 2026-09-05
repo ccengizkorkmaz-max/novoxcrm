@@ -1,7 +1,8 @@
 'use client'
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { Users, AlertTriangle, Check, StickyNote, Phone as PhoneIcon, Loader2, Headphones } from 'lucide-react'
+import { Users, AlertTriangle, Check, StickyNote, Phone as PhoneIcon, Loader2, Headphones, Download } from 'lucide-react'
+import { exportToExcel } from '@/lib/report-export'
 import CallRecordingModal from './CallRecordingModal'
 import {
     Select,
@@ -16,6 +17,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { updateFirstContact, updateProcessNote, fetchTrackingSales } from '../actions'
@@ -35,6 +37,29 @@ export default function RepTrackingTab({
     const [activities, setActivities] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [fetchError, setFetchError] = useState<string | null>(null)
+
+    // Excel Export Handler
+    const handleExportExcel = () => {
+        if (!filteredSales || filteredSales.length === 0) {
+            toast.error('Dışa aktarılacak kayıt bulunamadı.')
+            return
+        }
+
+        const data = filteredSales.map((s: any) => ({
+            'Tarih': s.assigned_at || s.created_at ? new Date(s.assigned_at || s.created_at).toLocaleString('tr-TR') : '-',
+            'Müşteri Adı': s.customers?.full_name || '-',
+            'Müşteri No': s.customers?.customer_number || '-',
+            'Telefon': s.customers?.phone || '-',
+            'Proje': s.units?.projects?.name || s.projects?.name || '-',
+            'Temsilci': s.profiles?.full_name || (profiles.find(p => p.id === s.assigned_to)?.full_name || 'Atanmamış'),
+            'İlk Temas Durumu': s.first_contact || 'Aranmadı',
+            'Süreç Notu': s.process_note || '',
+            'Son Güncelleme': s.updated_at ? new Date(s.updated_at).toLocaleString('tr-TR') : '-'
+        }))
+
+        exportToExcel(data, `ilk_temas_takip_raporu_${new Date().toISOString().slice(0, 10)}`)
+        toast.success(`${data.length} kayıt Excel olarak indirildi.`)
+    }
 
     // Fetch data via server action on mount
     useEffect(() => {
@@ -113,7 +138,7 @@ export default function RepTrackingTab({
             if (filterFc === 'none') {
                 if (s.first_contact) return false
             } else if (filterFc === 'all_ulasam') {
-                if (!s.first_contact || (!s.first_contact.startsWith('Ulaş') && !s.first_contact.includes('Hatalı') && !s.first_contact.includes('Cevap'))) return false
+                if (!s.first_contact || (!s.first_contact.startsWith('Ulaş') && !s.first_contact.includes('Cevap'))) return false
             } else if (filterFc === 'all_hatali') {
                 if (!s.first_contact || (!s.first_contact.includes('Hatalı') && !s.first_contact.includes('Kullanılmıyor') && !s.first_contact.includes('Yanlış'))) return false
             } else {
@@ -240,15 +265,22 @@ export default function RepTrackingTab({
                                 </div>
                                 <div>
                                     <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Ekip Genel Arama & Lead Özeti</h3>
-                                    <p className="text-[10px] text-slate-500 font-medium">Tüm temsilcilerin toplam arama, görüşme ve temas performansı</p>
+                                    <p className="text-[10px] text-slate-500 font-medium">Sayaçlara tıklayarak alt tabloyu anında filtreleyebilirsiniz</p>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-2 flex-wrap">
-                                <div className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs text-center">
+                                <button
+                                    onClick={() => setFilterFc('')}
+                                    className={cn(
+                                        "px-2.5 py-1.5 rounded-lg bg-white border shadow-2xs text-center cursor-pointer transition-all hover:border-blue-400",
+                                        filterFc === '' && "ring-2 ring-blue-500 border-transparent bg-blue-50/40 font-bold"
+                                    )}
+                                    title="Tüm kayıtları listele"
+                                >
                                     <span className="text-[9px] font-bold text-slate-400 uppercase block">Toplam Lead</span>
                                     <span className="text-xs font-black text-slate-800">{totalSalesCount}</span>
-                                </div>
+                                </button>
 
                                 <div className="px-2.5 py-1.5 rounded-lg bg-blue-50/80 border border-blue-200/80 shadow-2xs text-center">
                                     <span className="text-[9px] font-bold text-blue-600 uppercase block">📞 Aramalar</span>
@@ -269,27 +301,65 @@ export default function RepTrackingTab({
                                     </div>
                                 )}
 
-                                <div className="px-2.5 py-1.5 rounded-lg bg-emerald-50/80 border border-emerald-200/80 shadow-2xs text-center">
+                                <button
+                                    onClick={() => setFilterFc(filterFc === 'Aradım, Olumlu' ? '' : 'Aradım, Olumlu')}
+                                    className={cn(
+                                        "px-2.5 py-1.5 rounded-lg bg-emerald-50/80 border border-emerald-200/80 shadow-2xs text-center cursor-pointer transition-all hover:border-emerald-500",
+                                        filterFc === 'Aradım, Olumlu' && "ring-2 ring-emerald-500 border-transparent bg-emerald-100 font-bold"
+                                    )}
+                                    title="Sadece Olumlu olanları filtrele"
+                                >
                                     <span className="text-[9px] font-bold text-emerald-600 uppercase block">🟢 Olumlu</span>
                                     <span className="text-xs font-black text-emerald-700">{totalOlumlu}</span>
-                                </div>
+                                </button>
 
-                                <div className="px-2.5 py-1.5 rounded-lg bg-amber-50/80 border border-amber-200/80 shadow-2xs text-center">
+                                <button
+                                    onClick={() => setFilterFc(filterFc === 'all_ulasam' ? '' : 'all_ulasam')}
+                                    className={cn(
+                                        "px-2.5 py-1.5 rounded-lg bg-amber-50/80 border border-amber-200/80 shadow-2xs text-center cursor-pointer transition-all hover:border-amber-500",
+                                        filterFc === 'all_ulasam' && "ring-2 ring-amber-500 border-transparent bg-amber-100 font-bold"
+                                    )}
+                                    title="Ulaşılamayanları filtrele"
+                                >
                                     <span className="text-[9px] font-bold text-amber-600 uppercase block">📵 Ulaşılamadı</span>
                                     <span className="text-xs font-black text-amber-700">{totalUlasam}</span>
-                                </div>
+                                </button>
 
                                 {totalHatali > 0 && (
-                                    <div className="px-2.5 py-1.5 rounded-lg bg-rose-50/80 border border-rose-200/80 shadow-2xs text-center">
+                                    <button
+                                        onClick={() => setFilterFc(filterFc === 'all_hatali' ? '' : 'all_hatali')}
+                                        className={cn(
+                                            "px-2.5 py-1.5 rounded-lg bg-rose-50/80 border border-rose-200/80 shadow-2xs text-center cursor-pointer transition-all hover:border-rose-500",
+                                            filterFc === 'all_hatali' && "ring-2 ring-rose-500 border-transparent bg-rose-100 font-bold"
+                                        )}
+                                        title="Hatalı / Geçersiz numaraları filtrele"
+                                    >
                                         <span className="text-[9px] font-bold text-rose-600 uppercase block">🚫 Hatalı No</span>
                                         <span className="text-xs font-black text-rose-700">{totalHatali}</span>
-                                    </div>
+                                    </button>
                                 )}
 
-                                <div className="px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs text-center">
+                                <button
+                                    onClick={() => setFilterFc(filterFc === 'none' ? '' : 'none')}
+                                    className={cn(
+                                        "px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs text-center cursor-pointer transition-all hover:border-slate-400",
+                                        filterFc === 'none' && "ring-2 ring-slate-600 border-transparent bg-slate-100 font-bold"
+                                    )}
+                                    title="Henüz aranmayanları filtrele"
+                                >
                                     <span className="text-[9px] font-bold text-slate-500 uppercase block">⏳ Bekleyen</span>
                                     <span className="text-xs font-black text-slate-700">{totalPending}</span>
-                                </div>
+                                </button>
+
+                                <Button
+                                    onClick={handleExportExcel}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs font-bold gap-1 text-slate-700 hover:text-emerald-700 border-slate-300 ml-1"
+                                    title="Tablodaki verileri Excel olarak indir"
+                                >
+                                    <Download className="w-3.5 h-3.5 text-emerald-600" /> Excel
+                                </Button>
                             </div>
                         </div>
                     )
@@ -316,63 +386,75 @@ export default function RepTrackingTab({
                     ]
 
                     return (
-                        <div className="px-3 py-2.5 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b flex gap-2.5 overflow-x-auto">
-                            <div className="flex flex-col justify-center mr-2 shrink-0">
-                                <span className="text-xs font-black text-slate-800">{repName}</span>
-                                <span className="text-[10px] text-slate-400 font-semibold">Temsilci Performansı</span>
-                            </div>
-                            {periods.map(period => {
-                                const periodSales = repAllSales.filter(period.saleFilter)
-                                const periodActs = repActivities.filter(period.actFilter)
-                                const totalLeads = periodSales.length
-                                const processed = periodSales.filter((s: any) => s.first_contact).length
-                                const olumlu = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumlu').length
-                                const olumsuz = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumsuz').length
-                                const hatali = periodSales.filter((s: any) => s.first_contact && (s.first_contact.includes('Hatalı') || s.first_contact.includes('Kullanılmıyor'))).length
-                                const ulasam = periodSales.filter((s: any) => s.first_contact && (s.first_contact.startsWith('Ulaş') || s.first_contact.includes('Cevap')) && !s.first_contact.includes('Hatalı') && !s.first_contact.includes('Kullanılmıyor')).length
-                                const pending = totalLeads - processed
-                                const pct = totalLeads > 0 ? Math.round((processed / totalLeads) * 100) : 0
-                                const actCalls = periodActs.filter(a => a.type === 'Call').length
-                                const totalCalls = actCalls > 0 ? actCalls : processed
-                                const durationSec = periodActs.filter(a => a.type === 'Call').reduce((acc, a) => acc + (a.duration_seconds || 0), 0)
-                                const durationMin = Math.round(durationSec / 60)
+                        <div className="px-3 py-2.5 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b flex items-center justify-between gap-2.5 overflow-x-auto">
+                            <div className="flex items-center gap-2.5">
+                                <div className="flex flex-col justify-center mr-2 shrink-0">
+                                    <span className="text-xs font-black text-slate-800">{repName}</span>
+                                    <span className="text-[10px] text-slate-400 font-semibold">Temsilci Performansı</span>
+                                </div>
+                                {periods.map(period => {
+                                    const periodSales = repAllSales.filter(period.saleFilter)
+                                    const periodActs = repActivities.filter(period.actFilter)
+                                    const totalLeads = periodSales.length
+                                    const processed = periodSales.filter((s: any) => s.first_contact).length
+                                    const olumlu = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumlu').length
+                                    const olumsuz = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumsuz').length
+                                    const hatali = periodSales.filter((s: any) => s.first_contact && (s.first_contact.includes('Hatalı') || s.first_contact.includes('Kullanılmıyor'))).length
+                                    const ulasam = periodSales.filter((s: any) => s.first_contact && (s.first_contact.startsWith('Ulaş') || s.first_contact.includes('Cevap')) && !s.first_contact.includes('Hatalı') && !s.first_contact.includes('Kullanılmıyor')).length
+                                    const pending = totalLeads - processed
+                                    const pct = totalLeads > 0 ? Math.round((processed / totalLeads) * 100) : 0
+                                    const actCalls = periodActs.filter(a => a.type === 'Call').length
+                                    const totalCalls = actCalls > 0 ? actCalls : processed
+                                    const durationSec = periodActs.filter(a => a.type === 'Call').reduce((acc, a) => acc + (a.duration_seconds || 0), 0)
+                                    const durationMin = Math.round(durationSec / 60)
 
-                                return (
-                                    <div key={period.label} className="flex-shrink-0 min-w-[155px] rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-2xs hover:shadow-xs transition-shadow">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <div className="flex items-center gap-1">
-                                                <span className="text-xs">{period.icon}</span>
-                                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight">{period.label}</span>
+                                    return (
+                                        <div key={period.label} className="flex-shrink-0 min-w-[155px] rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-2xs hover:shadow-xs transition-shadow">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs">{period.icon}</span>
+                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight">{period.label}</span>
+                                                </div>
+                                                {durationMin > 0 && (
+                                                    <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-100">
+                                                        ⏱️ {durationMin} dk
+                                                    </span>
+                                                )}
                                             </div>
-                                            {durationMin > 0 && (
-                                                <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-100">
-                                                    ⏱️ {durationMin} dk
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-baseline justify-between mt-1">
-                                            <div>
-                                                <span className="text-base font-black text-blue-700 leading-none">{totalCalls}</span>
-                                                <span className="text-[9px] font-bold text-slate-400 ml-1">arama</span>
+                                            <div className="flex items-baseline justify-between mt-1">
+                                                <div>
+                                                    <span className="text-base font-black text-blue-700 leading-none">{totalCalls}</span>
+                                                    <span className="text-[9px] font-bold text-slate-400 ml-1">arama</span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-xs font-bold text-slate-700 leading-none">{totalLeads}</span>
+                                                    <span className="text-[9px] text-slate-400 ml-0.5">lead</span>
+                                                </div>
                                             </div>
-                                            <div className="text-right">
-                                                <span className="text-xs font-bold text-slate-700 leading-none">{totalLeads}</span>
-                                                <span className="text-[9px] text-slate-400 ml-0.5">lead</span>
+                                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden my-1.5">
+                                                <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                                            </div>
+                                            <div className="flex justify-between items-center text-[9px] pt-0.5 border-t border-slate-100">
+                                                <span className="text-emerald-600 font-bold" title="Olumlu">🟢 {olumlu}</span>
+                                                <span className="text-red-500 font-bold" title="Olumsuz">🔴 {olumsuz}</span>
+                                                <span className="text-amber-600 font-bold" title="Ulaşamadım">📵 {ulasam}</span>
+                                                {hatali > 0 && <span className="text-rose-600 font-bold" title="Hatalı Numara">🚫 {hatali}</span>}
+                                                {pending > 0 && <span className="text-slate-400 font-semibold" title="Bekleyen">⏳ {pending}</span>}
                                             </div>
                                         </div>
-                                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden my-1.5">
-                                            <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all" style={{ width: `${pct}%` }} />
-                                        </div>
-                                        <div className="flex justify-between items-center text-[9px] pt-0.5 border-t border-slate-100">
-                                            <span className="text-emerald-600 font-bold" title="Olumlu">🟢 {olumlu}</span>
-                                            <span className="text-red-500 font-bold" title="Olumsuz">🔴 {olumsuz}</span>
-                                            <span className="text-amber-600 font-bold" title="Ulaşamadım">📵 {ulasam}</span>
-                                            {hatali > 0 && <span className="text-rose-600 font-bold" title="Hatalı Numara">🚫 {hatali}</span>}
-                                            {pending > 0 && <span className="text-slate-400 font-semibold" title="Bekleyen">⏳ {pending}</span>}
-                                        </div>
-                                    </div>
-                                )
-                            })}
+                                    )
+                                })}
+                            </div>
+
+                            <Button
+                                onClick={handleExportExcel}
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-xs font-bold gap-1 text-slate-700 hover:text-emerald-700 border-slate-300 shrink-0 ml-2"
+                                title="Bu temsilcinin kayıtlarını Excel olarak indir"
+                            >
+                                <Download className="w-3.5 h-3.5 text-emerald-600" /> Excel
+                            </Button>
                         </div>
                     )
                 })()}

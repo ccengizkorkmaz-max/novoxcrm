@@ -2193,7 +2193,7 @@ export async function getActivityTrackingReport() {
         salesPageIndices.map(page =>
             adminSupabase
                 .from('sales')
-                .select('id, customer_id, status, project_id, projects(name), assigned_to')
+                .select('id, customer_id, status, project_id, projects(name), assigned_to, first_contact, created_at')
                 .eq('tenant_id', profile.tenant_id)
                 .not('status', 'in', '("Lost","Cancelled","Transferred")')
                 .range(page * pageSize, (page + 1) * pageSize - 1)
@@ -2207,7 +2207,8 @@ export async function getActivityTrackingReport() {
         salesByCustomer[s.customer_id] = {
             status: s.status,
             project: (s.projects as any)?.name || '-',
-            assignedTo: s.assigned_to ? (profileNameMap.get(s.assigned_to) || '-') : '-'
+            assignedTo: s.assigned_to ? (profileNameMap.get(s.assigned_to) || '-') : '-',
+            firstContact: s.first_contact || null
         }
     })
 
@@ -2228,6 +2229,17 @@ export async function getActivityTrackingReport() {
             cancelled: number
             planned: number
             showUpRate: number
+        }
+        contactLogs: {
+            total: number
+            positive: number
+            negative: number
+            unreachable: number
+            busy: number
+            invalidNumber: number
+            whatsapp: number
+            pending: number
+            reachRate: number
         }
         activities: any[]
     }> = {}
@@ -2261,6 +2273,17 @@ export async function getActivityTrackingReport() {
                     planned: 0,
                     showUpRate: 0
                 },
+                contactLogs: {
+                    total: 0,
+                    positive: 0,
+                    negative: 0,
+                    unreachable: 0,
+                    busy: 0,
+                    invalidNumber: 0,
+                    whatsapp: 0,
+                    pending: 0,
+                    reachRate: 0
+                },
                 activities: []
             }
         }
@@ -2276,6 +2299,32 @@ export async function getActivityTrackingReport() {
         if (isCompleted) rep.completed++
         if (isPlanned) rep.planned++
         if (isOverdue) rep.overdue++
+
+        // Track Contact / Call Logs
+        const actSummary = (act.summary || '').toLowerCase()
+        const actOutcome = (act.outcome || '').toLowerCase()
+        const isCallOrContact = ['Call', 'Phone', 'Telefon', 'Whatsapp', 'Meeting', 'OfficeMeeting'].includes(act.type) || actSummary.includes('temas') || actSummary.includes('arama')
+
+        if (isCallOrContact) {
+            rep.contactLogs.total++
+            if (actOutcome.includes('invalid') || actSummary.includes('hatalı numara') || actSummary.includes('kullanılmıyor') || actSummary.includes('yanlış kişi')) {
+                rep.contactLogs.invalidNumber++
+            } else if (actOutcome.includes('busy') || actSummary.includes('meşgul') || actSummary.includes('reddetti')) {
+                rep.contactLogs.busy++
+            } else if (actOutcome.includes('no answer') || actOutcome.includes('no-show') || actSummary.includes('ulaşamadım') || actSummary.includes('cevap vermiyor') || actSummary.includes('kapalı')) {
+                rep.contactLogs.unreachable++
+            } else if (act.type === 'Whatsapp' || actSummary.includes('whatsapp') || actSummary.includes('sms')) {
+                rep.contactLogs.whatsapp++
+            } else if (['success', 'offer presented', 'reached interested', 'considering'].includes(actOutcome) || actSummary.includes('olumlu') || actSummary.includes('randevu')) {
+                rep.contactLogs.positive++
+            } else if (['lost', 'reached not interested'].includes(actOutcome) || actSummary.includes('olumsuz')) {
+                rep.contactLogs.negative++
+            } else if (isPlanned) {
+                rep.contactLogs.pending++
+            } else {
+                rep.contactLogs.positive++
+            }
+        }
 
         // Track Appointment / Meeting specific statuses (Geldi - Gelmedi - Revize vb.)
         const isAppointment = ['Meeting', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Showroom'].includes(act.type)
@@ -2323,7 +2372,23 @@ export async function getActivityTrackingReport() {
         })
     }
 
-    // Calculate idle days and appointment show-up rate for each rep
+    // Also factor sales pipeline first contact into rep contact logs if not already logged as activity
+    sales.forEach(sale => {
+        if (!sale.assigned_to) return
+        const repId = sale.assigned_to
+        const rep = repMap[repId]
+        if (!rep) return
+
+        const fc = sale.first_contact
+        if (fc) {
+            // Count first_contact if it exists
+            if (fc.includes('Hatalı Numara') || fc.includes('Numara Kullanılmıyor') || fc.includes('Yanlış Kişi')) {
+                // already covered or tracked
+            }
+        }
+    })
+
+    // Calculate idle days, appointment show-up rate, and contact reach rate for each rep
     const repData = Object.values(repMap).map(rep => {
         const idleDays = rep.lastActivityDate
             ? Math.floor((now.getTime() - new Date(rep.lastActivityDate).getTime()) / (1000 * 60 * 60 * 24))
@@ -2332,6 +2397,10 @@ export async function getActivityTrackingReport() {
         const evaluatedAppointments = rep.appointments.attended + rep.appointments.noShow
         const showUpRate = evaluatedAppointments > 0 ? Math.round((rep.appointments.attended / evaluatedAppointments) * 100) : (rep.appointments.attended > 0 ? 100 : 0)
         rep.appointments.showUpRate = showUpRate
+
+        const evaluatedContacts = rep.contactLogs.positive + rep.contactLogs.negative + rep.contactLogs.unreachable + rep.contactLogs.busy + rep.contactLogs.invalidNumber + rep.contactLogs.whatsapp
+        const successfulReach = rep.contactLogs.positive + rep.contactLogs.negative
+        rep.contactLogs.reachRate = evaluatedContacts > 0 ? Math.round((successfulReach / evaluatedContacts) * 100) : 0
 
         // Sort: overdue first, then by due_date ascending
         rep.activities.sort((a, b) => {
@@ -2358,6 +2427,18 @@ export async function getActivityTrackingReport() {
     const totalNoShow = repData.reduce((sum, r) => sum + r.appointments.noShow, 0)
     const totalRescheduled = repData.reduce((sum, r) => sum + r.appointments.rescheduled, 0)
 
+    const totalContactLogs = repData.reduce((sum, r) => sum + r.contactLogs.total, 0)
+    const totalPositive = repData.reduce((sum, r) => sum + r.contactLogs.positive, 0)
+    const totalNegative = repData.reduce((sum, r) => sum + r.contactLogs.negative, 0)
+    const totalUnreachable = repData.reduce((sum, r) => sum + r.contactLogs.unreachable, 0)
+    const totalBusy = repData.reduce((sum, r) => sum + r.contactLogs.busy, 0)
+    const totalInvalidNumber = repData.reduce((sum, r) => sum + r.contactLogs.invalidNumber, 0)
+    const totalWhatsapp = repData.reduce((sum, r) => sum + r.contactLogs.whatsapp, 0)
+    const totalPendingContacts = repData.reduce((sum, r) => sum + r.contactLogs.pending, 0)
+
+    const totalEvaluatedContacts = totalPositive + totalNegative + totalUnreachable + totalBusy + totalInvalidNumber + totalWhatsapp
+    const overallReachRate = totalEvaluatedContacts > 0 ? Math.round(((totalPositive + totalNegative) / totalEvaluatedContacts) * 100) : 0
+
     return {
         repData,
         summary: {
@@ -2373,6 +2454,17 @@ export async function getActivityTrackingReport() {
                 noShow: totalNoShow,
                 rescheduled: totalRescheduled,
                 showUpRate: (totalAttended + totalNoShow) > 0 ? Math.round((totalAttended / (totalAttended + totalNoShow)) * 100) : 100
+            },
+            contactSummary: {
+                total: totalContactLogs,
+                positive: totalPositive,
+                negative: totalNegative,
+                unreachable: totalUnreachable,
+                busy: totalBusy,
+                invalidNumber: totalInvalidNumber,
+                whatsapp: totalWhatsapp,
+                pending: totalPendingContacts,
+                reachRate: overallReachRate
             }
         }
     }

@@ -7,12 +7,15 @@ import {
     AlertTriangle, CheckCircle2, Clock, Users, Activity,
     ChevronDown, ChevronUp, Phone, Calendar, Mail, MessageCircle,
     MapPin, Filter, Search, ChevronLeft, ChevronRight, ChevronsLeft,
-    ChevronsRight, ArrowUpDown, Maximize2, Minimize2, Sparkles, AlertCircle
+    ChevronsRight, ArrowUpDown, Maximize2, Minimize2, Sparkles, AlertCircle,
+    FileSpreadsheet, PhoneCall, PhoneOff, PhoneMissed, CheckCircle, XCircle,
+    MessageSquare, Hash, TrendingUp
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn, formatTurkeyDateTime } from '@/lib/utils'
+import { exportToExcel } from '@/lib/report-export'
 
 interface RepData {
     name: string
@@ -31,6 +34,17 @@ interface RepData {
         cancelled: number
         planned: number
         showUpRate: number
+    }
+    contactLogs?: {
+        total: number
+        positive: number
+        negative: number
+        unreachable: number
+        busy: number
+        invalidNumber: number
+        whatsapp: number
+        pending: number
+        reachRate: number
     }
     activities: ActivityItem[]
 }
@@ -68,6 +82,17 @@ interface TrackingData {
             noShow: number
             rescheduled: number
             showUpRate: number
+        }
+        contactSummary?: {
+            total: number
+            positive: number
+            negative: number
+            unreachable: number
+            busy: number
+            invalidNumber: number
+            whatsapp: number
+            pending: number
+            reachRate: number
         }
     }
 }
@@ -242,7 +267,29 @@ function RepCard({ rep, isExpanded, onToggle }: {
 
                 <div className="flex items-center gap-4">
                     {/* Metrics desktop */}
-                    <div className="hidden sm:flex items-center gap-3 text-xs font-semibold">
+                    <div className="hidden lg:flex items-center gap-2.5 text-xs font-semibold">
+                        {rep.contactLogs && rep.contactLogs.total > 0 && (
+                            <div className="flex items-center gap-1.5 pr-2 mr-2 border-r border-slate-200 dark:border-slate-800 text-[11px]">
+                                {rep.contactLogs.positive > 0 && (
+                                    <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-bold" title="Olumlu Temas">
+                                        🟢 {rep.contactLogs.positive}
+                                    </span>
+                                )}
+                                {rep.contactLogs.unreachable > 0 && (
+                                    <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full font-medium" title="Ulaşılamadı">
+                                        📵 {rep.contactLogs.unreachable}
+                                    </span>
+                                )}
+                                {rep.contactLogs.invalidNumber > 0 && (
+                                    <span className="text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full font-bold" title="Hatalı Numara">
+                                        🚫 {rep.contactLogs.invalidNumber}
+                                    </span>
+                                )}
+                                <span className="text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full font-bold" title="Ulaşma Başarı Oranı">
+                                    📈 %{rep.contactLogs.reachRate}
+                                </span>
+                            </div>
+                        )}
                         {rep.overdue > 0 ? (
                             <span className="flex items-center gap-1 text-red-700 bg-red-100 border border-red-200 dark:bg-red-900/30 dark:text-red-300 px-2.5 py-1 rounded-full">
                                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -271,6 +318,11 @@ function RepCard({ rep, isExpanded, onToggle }: {
 
             {/* Mobile metrics */}
             <div className="sm:hidden px-4 pb-3 flex flex-wrap gap-2 text-xs">
+                {rep.contactLogs && rep.contactLogs.total > 0 && (
+                    <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 font-bold">
+                        📞 {rep.contactLogs.total} Log (%{rep.contactLogs.reachRate} Ulaşma)
+                    </span>
+                )}
                 {rep.overdue > 0 && (
                     <span className="text-red-700 font-bold bg-red-100 px-2 py-0.5 rounded-full border border-red-200">
                         ⚠️ {rep.overdue} gecikmiş
@@ -456,10 +508,290 @@ export default function ActivityTrackingClient({ data }: { data: TrackingData })
         setExpandedReps(new Set())
     }
 
+    const [showContactMatrix, setShowContactMatrix] = useState(true)
+
     const { summary } = data
+    const contactSummary = summary.contactSummary
+
+    const handleExportContactMatrix = () => {
+        const matrixData = data.repData.map(r => ({
+            'Temsilci': r.name,
+            'Toplam Temas Logu': r.contactLogs?.total || 0,
+            'Olumlu / Randevu': r.contactLogs?.positive || 0,
+            'Olumsuz': r.contactLogs?.negative || 0,
+            'Ulaşılamadı': r.contactLogs?.unreachable || 0,
+            'Hatalı / Geçersiz No': r.contactLogs?.invalidNumber || 0,
+            'Meşgul': r.contactLogs?.busy || 0,
+            'WhatsApp / SMS': r.contactLogs?.whatsapp || 0,
+            'Ulaşma Başarı Oranı (%)': `%${r.contactLogs?.reachRate || 0}`,
+            'Randevu Katılım Oranı (%)': `%${r.appointments?.showUpRate || 0}`,
+            'Toplam Aktivite': r.total,
+            'Tamamlanan': r.completed,
+            'Geciken': r.overdue,
+            'Pasif Gün Sayısı': r.idleDays === 999 ? 'Aktivite Yok' : r.idleDays,
+        }))
+        exportToExcel(matrixData, `temas_ve_log_analitigi_${new Date().toISOString().slice(0, 10)}`, 'Temas Analitiği')
+    }
+
+    const handleExportActivities = () => {
+        const allActivities = data.repData.flatMap(r =>
+            r.activities.map(a => ({
+                'Temsilci': r.name,
+                'Müşteri Adı': a.customerName,
+                'Telefon': a.customerPhone || '-',
+                'Aktivite Türü': a.type,
+                'Durum': a.status,
+                'Sonuç / Outcome': a.outcome,
+                'Özet / Açıklama': a.summary,
+                'Öncelik': a.priority,
+                'Vade Tarihi': a.dueDate ? formatTurkeyDateTime(a.dueDate, 'dateTime') : '-',
+                'Gecikme Durumu': a.isOverdue ? `${a.daysSinceDue} gün gecikmiş` : 'Zamanında / Tamamlandı',
+                'İlgili Proje': a.projectName,
+                'Satış Aşaması': a.pipelineStage,
+                'Oluşturulma Tarihi': a.createdAt ? formatTurkeyDateTime(a.createdAt, 'dateTime') : '-'
+            }))
+        )
+        exportToExcel(allActivities, `aktivite_ve_gorev_raporu_${new Date().toISOString().slice(0, 10)}`, 'Aktivite Listesi')
+    }
 
     return (
         <div className="space-y-6">
+            {/* Contact Logs & Call Analytics Section (Item 2 & 4) */}
+            <div className="rounded-2xl border bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950 p-5 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                            <PhoneCall className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                                    Temas Sonuçları & Arama Logları Analitiği
+                                </h3>
+                                <Badge variant="secondary" className="text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                    Canlı Log Özeti
+                                </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Müşteri arama ve temas sonuçları, ulaşılamayan ve hatalı numara kayıtlarının ekip analitiği
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportContactMatrix}
+                            className="h-8 text-xs font-semibold gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                        >
+                            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>Log Matrisi (Excel)</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportActivities}
+                            className="h-8 text-xs font-semibold gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                        >
+                            <FileSpreadsheet className="h-3.5 w-3.5 text-blue-600" />
+                            <span>Tüm Aktiviteler (Excel)</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowContactMatrix(!showContactMatrix)}
+                            className="h-8 px-2 text-xs text-slate-500 hover:bg-slate-100"
+                            title={showContactMatrix ? "Matrisi Gizle" : "Matrisi Göster"}
+                        >
+                            {showContactMatrix ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                </div>
+
+                {/* KPI Cards Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                    <div className="rounded-xl border bg-card p-3 shadow-xs">
+                        <div className="flex items-center gap-1.5 text-slate-500 mb-1">
+                            <PhoneCall className="h-3.5 w-3.5 text-slate-600" />
+                            <span className="text-[11px] font-semibold">Toplam Temas</span>
+                        </div>
+                        <p className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+                            {contactSummary?.total?.toLocaleString('tr-TR') || 0}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-emerald-50/50 border-emerald-200/80 p-3 shadow-xs">
+                        <div className="flex items-center gap-1.5 text-emerald-700 mb-1">
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-bold">🟢 Olumlu</span>
+                        </div>
+                        <p className="text-xl font-extrabold text-emerald-700">
+                            {contactSummary?.positive?.toLocaleString('tr-TR') || 0}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-rose-50/50 border-rose-200/80 p-3 shadow-xs">
+                        <div className="flex items-center gap-1.5 text-rose-700 mb-1">
+                            <XCircle className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-bold">🔴 Olumsuz</span>
+                        </div>
+                        <p className="text-xl font-extrabold text-rose-700">
+                            {contactSummary?.negative?.toLocaleString('tr-TR') || 0}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-amber-50/50 border-amber-200/80 p-3 shadow-xs">
+                        <div className="flex items-center gap-1.5 text-amber-700 mb-1">
+                            <PhoneMissed className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-bold">📵 Ulaşılamadı</span>
+                        </div>
+                        <p className="text-xl font-extrabold text-amber-700">
+                            {contactSummary?.unreachable?.toLocaleString('tr-TR') || 0}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-red-50/70 border-red-200 p-3 shadow-xs">
+                        <div className="flex items-center gap-1.5 text-red-700 mb-1">
+                            <PhoneOff className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-bold">🚫 Hatalı No</span>
+                        </div>
+                        <p className="text-xl font-extrabold text-red-700">
+                            {contactSummary?.invalidNumber?.toLocaleString('tr-TR') || 0}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-slate-50 border-slate-200 p-3 shadow-xs">
+                        <div className="flex items-center gap-1.5 text-slate-600 mb-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-bold">📳 Meşgul</span>
+                        </div>
+                        <p className="text-xl font-extrabold text-slate-700">
+                            {contactSummary?.busy?.toLocaleString('tr-TR') || 0}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-teal-50/50 border-teal-200/80 p-3 shadow-xs">
+                        <div className="flex items-center gap-1.5 text-teal-700 mb-1">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-bold">💬 WhatsApp</span>
+                        </div>
+                        <p className="text-xl font-extrabold text-teal-700">
+                            {contactSummary?.whatsapp?.toLocaleString('tr-TR') || 0}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-blue-50/60 border-blue-200 p-3 shadow-xs">
+                        <div className="flex items-center gap-1.5 text-blue-700 mb-1">
+                            <TrendingUp className="h-3.5 w-3.5" />
+                            <span className="text-[11px] font-bold">📈 Ulaşma %</span>
+                        </div>
+                        <p className="text-xl font-extrabold text-blue-700">
+                            %{contactSummary?.reachRate || 0}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Rep Contact Matrix Table (Collapsible) */}
+                {showContactMatrix && (
+                    <div className="border rounded-xl bg-white dark:bg-slate-900 overflow-hidden shadow-xs mt-3">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs text-left">
+                                <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
+                                    <tr>
+                                        <th className="py-2.5 px-3">Temsilci</th>
+                                        <th className="py-2.5 px-3 text-center">Toplam Log</th>
+                                        <th className="py-2.5 px-3 text-center text-emerald-700">🟢 Olumlu</th>
+                                        <th className="py-2.5 px-3 text-center text-rose-700">🔴 Olumsuz</th>
+                                        <th className="py-2.5 px-3 text-center text-amber-700">📵 Ulaşılamadı</th>
+                                        <th className="py-2.5 px-3 text-center text-red-700">🚫 Hatalı No</th>
+                                        <th className="py-2.5 px-3 text-center text-slate-600">📳 Meşgul</th>
+                                        <th className="py-2.5 px-3 text-center text-teal-700">💬 WhatsApp</th>
+                                        <th className="py-2.5 px-3 text-center text-blue-700">Ulaşma Başarısı</th>
+                                        <th className="py-2.5 px-3 text-center text-purple-700">Randevu Katılım</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {data.repData.map(rep => {
+                                        const c = rep.contactLogs || { total: 0, positive: 0, negative: 0, unreachable: 0, busy: 0, invalidNumber: 0, whatsapp: 0, reachRate: 0 }
+                                        const app = rep.appointments || { total: 0, attended: 0, showUpRate: 100 }
+                                        return (
+                                            <tr
+                                                key={rep.name}
+                                                onClick={() => {
+                                                    setSearchQuery(rep.name)
+                                                    setCurrentPage(1)
+                                                }}
+                                                className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                                                title={`${rep.name} filtrelemek için tıklayın`}
+                                            >
+                                                <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                                                    <div className="h-6 w-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                                                        {rep.name.slice(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <span>{rep.name}</span>
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-300">
+                                                    {c.total}
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center font-bold text-emerald-600">
+                                                    {c.positive > 0 ? c.positive : '-'}
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center font-bold text-rose-600">
+                                                    {c.negative > 0 ? c.negative : '-'}
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center font-bold text-amber-600">
+                                                    {c.unreachable > 0 ? c.unreachable : '-'}
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center font-bold text-red-600">
+                                                    {c.invalidNumber > 0 ? (
+                                                        <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">
+                                                            {c.invalidNumber}
+                                                        </span>
+                                                    ) : '-'}
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center text-slate-600">
+                                                    {c.busy > 0 ? c.busy : '-'}
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center text-teal-600 font-medium">
+                                                    {c.whatsapp > 0 ? c.whatsapp : '-'}
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <div className="w-16 bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                                                            <div
+                                                                className={cn(
+                                                                    "h-full rounded-full",
+                                                                    c.reachRate >= 70 ? "bg-emerald-500" :
+                                                                    c.reachRate >= 40 ? "bg-blue-500" : "bg-amber-500"
+                                                                )}
+                                                                style={{ width: `${Math.min(100, Math.max(0, c.reachRate))}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                                                            %{c.reachRate}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center">
+                                                    {app.total > 0 ? (
+                                                        <span className="font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
+                                                            %{app.showUpRate} ({app.attended}/{app.total})
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-400">-</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             {/* Summary Cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 <SummaryCard
