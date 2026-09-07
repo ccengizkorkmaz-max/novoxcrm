@@ -76,8 +76,12 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
     const [period, setPeriod] = useState<PeriodType>(initialData?.period || 'this_month')
     const [projectId, setProjectId] = useState<string>(initialData?.selectedProjectId || 'all')
     const [activeTab, setActiveTab] = useState<string>('forecast')
-    const [lastSyncTime, setLastSyncTime] = useState<string>(new Date().toLocaleTimeString('tr-TR'))
+    const [lastSyncTime, setLastSyncTime] = useState<string>('')
     const [isRealtimePulse, setIsRealtimePulse] = useState(false)
+
+    useEffect(() => {
+        setLastSyncTime(new Date().toLocaleTimeString('tr-TR'))
+    }, [])
 
     // Currency Formatter Helper
     const formatCurrency = (val: number) => {
@@ -149,11 +153,19 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
         reloadData(period, pId)
     }
 
-    if (!data) {
+    if (!data || data.error || !data.kpi) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
-                <RefreshCw className="h-8 w-8 text-amber-500 animate-spin" />
-                <p className="text-sm font-medium text-slate-500">CEO Satış Hunisi hesaplanıyor...</p>
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 p-8 bg-slate-50 rounded-3xl border border-slate-200 text-center">
+                <AlertCircle className="h-12 w-12 text-rose-500" />
+                <div className="space-y-1">
+                    <h3 className="text-lg font-black text-slate-800">Veriler Yüklenirken Bir Sorun Oluştu</h3>
+                    <p className="text-sm text-slate-500 max-w-md">
+                        {data?.error || 'Satış hunisi verileri şu anda alınamadı. Lütfen oturumunuzu kontrol edip tekrar deneyin.'}
+                    </p>
+                </div>
+                <Button onClick={() => reloadData()} className="rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700">
+                    <RefreshCw className="h-4 w-4 mr-2" /> Tekrar Dene
+                </Button>
             </div>
         )
     }

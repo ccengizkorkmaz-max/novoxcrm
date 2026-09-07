@@ -37,9 +37,9 @@ export async function generateMetadata(): Promise<Metadata> {
   if (brandName === 'Oikos CRM') {
     title = `Oikos CRM | Emlak Danışmanları ve Acenteler İçin Hızlı Gayrimenkul CRM`;
     description = `Oikos CRM, hızlı büyüyen emlak ofisleri ve danışmanlar için pratik ve uygun fiyatlı gayrimenkul CRM yazılımıdır. Yapay zeka destekli müşteri takibi ve portföy yönetimi.`;
-  } else if (brandName === 'Novox CRM') {
-    title = `Novox CRM | Kurumsal İnşaat Firmaları ve Geliştiriciler İçin Gayrimenkul CRM`;
-    description = `Novox CRM, büyük ölçekli inşaat ve gayrimenkul geliştirme firmaları için ERP entegrasyonlu, gelişmiş proje ve satış yönetimi çözümüdür.`;
+  } else if (brandName === 'Novox CRM' || brandName === 'NovoXCRM') {
+    title = `NovoXCRM | Kurumsal İnşaat Firmaları ve Geliştiriciler İçin Gayrimenkul CRM`;
+    description = `NovoXCRM, büyük ölçekli inşaat ve gayrimenkul geliştirme firmaları için ERP entegrasyonlu, gelişmiş proje ve satış yönetimi çözümüdür.`;
   }
 
   return {
@@ -120,7 +120,8 @@ export default async function RootLayout({
     return obj;
   }
 
-  const messages = brandName === 'Novo CRM' ? rawMessages : brandifyMessages(rawMessages);
+  const isNovo = brandName === 'NovoXCRM' || brandName === 'Novo CRM' || brandName === 'Novox CRM';
+  const messages = isNovo ? rawMessages : brandifyMessages(rawMessages);
   return (
     <html lang={locale} suppressHydrationWarning data-ui-style="spatial">
       <head>

@@ -47,22 +47,29 @@ export function useBrand() {
  */
 export function useBrandedTranslations(namespace: string) {
     const t = useTranslations(namespace)
-    const { brandName, brandShort } = useBrand()
+    const { brandName } = useBrand()
 
     const replaceBrand = useCallback(
         (text: string): string => {
-            if (brandName === 'NovoXCRM' || brandName === 'Novo CRM') {
+            if (!text) return text
+            const isOikos = brandName === 'Oikos CRM' || brandName === 'Oikos'
+            if (!isOikos) {
                 return text
+                    .replace(/OikosXCRM/g, 'NovoXCRM')
+                    .replace(/Oikos CRM/g, 'NovoXCRM')
+                    .replace(/OikosCRM/g, 'NovoXCRM')
+                    .replace(/Oikos/g, 'NovoXCRM')
                     .replace(/Novo CRM/g, 'NovoXCRM')
                     .replace(/NovoCRM/g, 'NovoXCRM')
+                    .replace(/Novox CRM/g, 'NovoXCRM')
             }
             return text
                 .replace(/NovoXCRM/g, brandName)
                 .replace(/Novo CRM/g, brandName)
                 .replace(/NovoCRM/g, brandName.replace(' ', ''))
-                .replace(/\bNovo\b/g, brandShort)
+                .replace(/\bNovo\b/g, 'Oikos')
         },
-        [brandName, brandShort]
+        [brandName]
     )
 
     // Deep-replace brand in any JSON structure returned by t.raw()

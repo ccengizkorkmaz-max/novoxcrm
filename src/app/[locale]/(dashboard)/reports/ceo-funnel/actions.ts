@@ -134,7 +134,7 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
             lost_reason,
             projects:project_id ( id, name ),
             profiles:assigned_to ( id, full_name, email ),
-            customers:customer_id ( id, full_name, phone, source, lead_status, created_at ),
+            customers:customer_id ( id, full_name, phone, source, created_at ),
             units:unit_id ( id, unit_number, price )
         `)
         .eq('tenant_id', tenantId)

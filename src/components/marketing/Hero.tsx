@@ -63,7 +63,7 @@ export function Hero() {
 
                 {/* Subheadline */}
                 <p className="max-w-4xl mx-auto text-xl text-slate-400 mb-10 leading-relaxed">
-                    {t('description').split('Novo CRM').map((part, i, arr) => (
+                    {t('description').split(/(?:NovoXCRM|Novo CRM)/g).map((part, i, arr) => (
                         <span key={i}>
                             {part}
                             {i < arr.length - 1 && <span className="text-white font-bold">{brandName}</span>}
