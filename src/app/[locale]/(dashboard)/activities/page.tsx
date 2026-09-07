@@ -121,7 +121,7 @@ export default async function ActivitiesPage(props: {
         adminSupabase
             .from('meetings')
             .select(`
-                id, title, description, status, scheduled_at, daily_room_name, daily_room_url, customer_id, project_id, host_user_id,
+                id, title, description, status, scheduled_at, created_at, daily_room_name, daily_room_url, customer_id, project_id, host_user_id,
                 customers(id, full_name, phone, email, customer_type, company_name),
                 host:profiles!meetings_host_user_id_fkey(id, full_name, phone),
                 projects:project_id(id, name)

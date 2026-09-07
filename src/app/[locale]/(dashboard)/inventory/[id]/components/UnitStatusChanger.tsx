@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,30 +31,40 @@ const STATUSES = [
 ]
 
 export function UnitStatusChanger({ unitId, currentStatus, isLegacy }: UnitStatusChangerProps) {
+    const router = useRouter()
+    const [status, setStatus] = useState(currentStatus || 'For Sale')
     const [changing, setChanging] = useState(false)
     const [reason, setReason] = useState('')
     const [showOptions, setShowOptions] = useState(false)
 
-    const statusObj = STATUSES.find(s => s.value.toLowerCase() === currentStatus?.toLowerCase()) || { label: currentStatus, color: 'bg-slate-500' }
+    useEffect(() => {
+        if (currentStatus) {
+            setStatus(currentStatus)
+        }
+    }, [currentStatus])
+
+    const statusObj = STATUSES.find(s => s.value.toLowerCase() === (status || '').toLowerCase()) || { label: status || 'Belirsiz', color: 'bg-slate-500' }
 
     const handleStatusChange = async (newStatus: string) => {
-        if (newStatus === currentStatus) return
+        if (newStatus === status) return
 
         setChanging(true)
         const result = await updateUnitStatusExtended(unitId, newStatus, reason)
         setChanging(false)
 
         if (result.success) {
-            toast.success(`Durum "${STATUSES.find(s => s.value === newStatus)?.label}" olarak güncellendi.`)
+            setStatus(newStatus)
+            toast.success(`Durum "${STATUSES.find(s => s.value === newStatus)?.label || newStatus}" olarak güncellendi.`)
             setShowOptions(false)
             setReason('')
+            router.refresh()
         } else {
             toast.error(result.error || 'Güncelleme başarısız.')
         }
     }
 
     const availableStatuses = STATUSES.filter(s => {
-        if (s.value === currentStatus) return false;
+        if (s.value === status) return false;
         
         // Sold statüsüne sadece legacy kayıtlar için izin ver
         if (!isLegacy && (s.value === 'Sold' || s.value === 'Satıldı')) {
@@ -89,7 +100,7 @@ export function UnitStatusChanger({ unitId, currentStatus, isLegacy }: UnitStatu
                         size="sm"
                         className="h-8 text-[11px] font-bold px-3 border-slate-200 bg-white hover:bg-slate-50 shadow-sm transition-all active:scale-95"
                         onClick={() => setShowOptions(!showOptions)}
-                        disabled={changing || currentStatus === 'Sold' || currentStatus === 'Satıldı'}
+                        disabled={changing || status === 'Sold' || status === 'Satıldı'}
                     >
                         {showOptions ? 'KAPAT' : 'DEĞİŞTİR'}
                     </Button>

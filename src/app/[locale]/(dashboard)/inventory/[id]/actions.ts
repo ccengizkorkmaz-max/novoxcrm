@@ -31,10 +31,12 @@ export async function updateUnit(formData: FormData) {
     const costRaw = formData.get('cost')
     const cost = (isAdmin && costRaw !== null && costRaw !== '') ? Number(costRaw) : (costRaw === '' ? null : undefined)
 
+    const statusVal = formData.get('status') as string | null
+
     const updates: Record<string, any> = {
         unit_number: formData.get('unit_number') as string,
         type: formData.get('type') as string,
-        status: formData.get('status') as string,
+        ...(statusVal && statusVal.trim() !== '' ? { status: statusVal.trim() } : {}),
         price: formData.get('price') ? Number(formData.get('price')) : null,
         currency: formData.get('currency') as string,
         area_gross: formData.get('area_gross') ? Number(formData.get('area_gross')) : null,

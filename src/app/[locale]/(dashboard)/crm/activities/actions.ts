@@ -227,8 +227,18 @@ export async function createActivity(formData: FormData) {
                 const headerTopic = projName ? `*${projName}* projemiz için planlanan` : 'Planlanan'
                 const waMessageText = `Sn. *${customerData.full_name || 'Müşterimiz'}*,\n\n${headerTopic} randevunuz başarıyla oluşturulmuştur.\n\n📅 *Randevu Zamanı:* ${formattedDate || 'Planlanan Saatte'}\n🏢 *Görüşme Noktası:* ${locationName}\n📍 *Açık Adres:* ${locationAddress || locationName}${mapsLink ? `\n🗺️ *Harita Konumu:* ${mapsLink}` : ''}${welcomeNotes ? `\nℹ️ *Not:* ${welcomeNotes}` : ''}\n👤 *Sorumlu Danışman:* ${repName}${repPhone ? ` (${repPhone})` : ''}\n\nSizi ağırlamaktan memnuniyet duyarız.`
 
-                const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
-                await sendWhatsAppMessage(customerData.phone, waMessageText)
+                const { sendWhatsAppMessage, logOutboundWhatsAppMessage } = await import('@/lib/whatsapp')
+                const waSendRes = await sendWhatsAppMessage(customerData.phone, waMessageText)
+                const waMsgId = (waSendRes as any)?.data?.messages?.[0]?.id || null
+
+                // Log into conversations & messages so it appears in CRM chat drawer
+                await logOutboundWhatsAppMessage({
+                    tenantId: profile.tenant_id,
+                    phone: customerData.phone,
+                    customerId: customer_id,
+                    content: waMessageText,
+                    waMessageId: waMsgId
+                })
 
                 // Log into activities table
                 await adminSupabase.from('activities').insert({

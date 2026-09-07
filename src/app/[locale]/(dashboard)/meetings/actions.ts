@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRoom, createMeetingToken, deleteRoom, buildGuestMeetingUrl, buildHostMeetingUrl } from '@/lib/daily'
-import { sendWhatsAppTemplate } from '@/lib/whatsapp'
+import { sendWhatsAppTemplate, logOutboundWhatsAppMessage } from '@/lib/whatsapp'
 import { MEETING_OUTCOME_LABELS, MEETING_TYPE_LABELS } from './constants'
 
 // ─── Types ──────────────────────────────────────────────────
@@ -192,10 +192,10 @@ export async function createMeeting(input: CreateMeetingInput) {
             const guestUrl = buildGuestMeetingUrl(room.name)
             const scheduledDate = new Date(input.scheduled_at)
             const dateStr = scheduledDate.toLocaleDateString('tr-TR', {
-                day: 'numeric', month: 'long', year: 'numeric'
+                day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Istanbul'
             })
             const timeStr = scheduledDate.toLocaleTimeString('tr-TR', {
-                hour: '2-digit', minute: '2-digit'
+                hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul'
             })
 
             // Get project name if available
@@ -213,14 +213,17 @@ export async function createMeeting(input: CreateMeetingInput) {
                 const adminSupabase = createAdminClient()
                 const { data: tenant } = await adminSupabase
                     .from('tenants')
-                    .select('whatsapp_config')
+                    .select('whatsapp_config, wa_phone_number_id, wa_access_token')
                     .eq('id', profile.tenant_id)
                     .single()
 
-                if (tenant?.whatsapp_config?.phone_number_id) {
+                const phoneId = tenant?.whatsapp_config?.phone_number_id || tenant?.wa_phone_number_id
+                const waToken = tenant?.whatsapp_config?.access_token || tenant?.wa_access_token
+
+                if (phoneId) {
                     // Template: meeting_invite
                     // {{1}}=isim, {{2}}=tarih/saat, {{3}}=proje, {{4}}=link
-                    await sendWhatsAppTemplate(
+                    const waRes = await sendWhatsAppTemplate(
                         customer.phone,
                         'meeting_invite',
                         [
@@ -230,10 +233,21 @@ export async function createMeeting(input: CreateMeetingInput) {
                             guestUrl,
                         ],
                         'tr',
-                        tenant.whatsapp_config.phone_number_id,
-                        tenant.whatsapp_config.access_token
+                        phoneId,
+                        waToken
                     )
                     console.log(`[Meetings] ✅ WhatsApp template invite sent to ${customer.phone}`)
+
+                    // Log outbound WhatsApp message into conversation history
+                    const waMessageId = (waRes as any)?.data?.messages?.[0]?.id || null
+                    const inviteSummary = `[Online Toplantı Daveti: ${input.title}]\n📅 Tarih: ${dateStr} saat ${timeStr}\n🏢 Proje: ${projectName}\n🔗 Katılım Linki: ${guestUrl}`
+                    await logOutboundWhatsAppMessage({
+                        tenantId: profile.tenant_id,
+                        phone: customer.phone,
+                        customerId: input.customer_id,
+                        content: inviteSummary,
+                        waMessageId
+                    })
                 }
             } catch (waErr: any) {
                 console.error('[Meetings] WhatsApp send error:', waErr.message)
@@ -243,6 +257,10 @@ export async function createMeeting(input: CreateMeetingInput) {
 
         // 5. Log activity on customer timeline & activities stream
         try {
+            const scheduledDate = new Date(input.scheduled_at)
+            const dateStr = scheduledDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Istanbul' })
+            const timeStr = scheduledDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' })
+
             await adminDb.from('activities').insert({
                 tenant_id: profile.tenant_id,
                 customer_id: input.customer_id,
@@ -252,7 +270,7 @@ export async function createMeeting(input: CreateMeetingInput) {
                 type: 'OnlineMeeting',
                 topic: 'Online Toplantı',
                 summary: `📹 Online toplantı planlandı: ${input.title}`,
-                description: `Tarih: ${new Date(input.scheduled_at).toLocaleDateString('tr-TR')} ${new Date(input.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}\nTip: ${MEETING_TYPE_LABELS[input.meeting_type] || input.meeting_type}\nDanışman: ${hostName}`,
+                description: `Tarih: ${dateStr} ${timeStr}\nTip: ${MEETING_TYPE_LABELS[input.meeting_type] || input.meeting_type}\nDanışman: ${hostName}`,
                 due_date: input.scheduled_at,
                 daily_room_name: room.name,
                 meeting_id: meetingId,

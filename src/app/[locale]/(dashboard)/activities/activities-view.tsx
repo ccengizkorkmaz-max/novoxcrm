@@ -40,6 +40,7 @@ interface ActivitiesViewProps {
 
 type TimeBucketFilter = 'upcoming' | 'today' | 'week' | 'month' | 'overdue' | 'past' | 'all'
 type ViewMode = 'stream' | 'daily' | 'weekly' | 'monthly'
+export type OutcomeSegmentFilter = 'all' | 'tekrar_aranacak' | 'ulasilamadi' | 'randevu_alindi' | 'olumlu' | 'degerlendiriyor' | 'olumsuz' | 'bekleyen'
 
 export function ActivitiesView({
     initialActivities,
@@ -58,6 +59,7 @@ export function ActivitiesView({
     // Main view & filter states
     const [viewMode, setViewMode] = useState<ViewMode>('stream')
     const [timeBucket, setTimeBucket] = useState<TimeBucketFilter>('upcoming')
+    const [selectedOutcomeSegment, setSelectedOutcomeSegment] = useState<OutcomeSegmentFilter>('all')
     const [searchQuery, setSearchQuery] = useState('')
     const [showCreate, setShowCreate] = useState(false)
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
@@ -78,28 +80,43 @@ export function ActivitiesView({
 
     // Normalize activities to typed objects, merging online meetings
     const allActivities: ActivityItem[] = useMemo(() => {
-        const list: ActivityItem[] = initialActivities.map(a => ({
-            id: a.id,
-            type: a.type,
-            topic: a.topic,
-            summary: a.summary,
-            customer_id: a.customer_id,
-            customers: a.customers,
-            leads: a.leads,
-            owner: a.owner,
-            owner_id: a.owner_id,
-            due_date: a.due_date,
-            status: a.status,
-            outcome: a.outcome,
-            notes: a.notes,
-            description: a.description,
-            priority: a.priority,
-            reminder_at: a.reminder_at,
-            project_id: a.project_id,
-            projects: a.project_id ? { name: projectMap.get(a.project_id) || '' } : undefined,
-            daily_room_name: a.daily_room_name,
-            meeting_id: a.meeting_id
-        }))
+        // Map meetings by id for instant date sync
+        const meetingById = new Map<string, any>()
+        meetings.forEach((m: any) => meetingById.set(m.id, m))
+
+        const list: ActivityItem[] = initialActivities.map(a => {
+            const matchedM = a.meeting_id ? meetingById.get(a.meeting_id) : null
+            return {
+                id: a.id,
+                type: a.type,
+                topic: a.topic,
+                summary: a.summary,
+                customer_id: a.customer_id,
+                customers: a.customers ? {
+                    id: a.customers.id,
+                    full_name: a.customers.full_name || `${a.customers.first_name || ''} ${a.customers.last_name || ''}`.trim() || 'Müşteri',
+                    phone: a.customers.phone,
+                    email: a.customers.email,
+                    customer_type: a.customers.customer_type,
+                    company_name: a.customers.company_name,
+                    company: a.customers.company
+                } : undefined,
+                leads: a.leads,
+                owner: a.owner,
+                owner_id: a.owner_id,
+                due_date: matchedM?.scheduled_at || a.due_date,
+                status: a.status,
+                outcome: a.outcome,
+                notes: a.notes,
+                description: a.description,
+                priority: a.priority,
+                reminder_at: a.reminder_at,
+                project_id: a.project_id,
+                projects: a.project_id ? { name: projectMap.get(a.project_id) || '' } : undefined,
+                daily_room_name: a.daily_room_name,
+                meeting_id: a.meeting_id
+            }
+        })
 
         // Collect existing meeting references so we do not duplicate
         const existingMeetingIds = new Set(
@@ -122,9 +139,8 @@ export function ActivitiesView({
                 'cancelled': 'Cancelled'
             }
 
-            const custFullName = m.customers
-                ? `${m.customers.first_name || ''} ${m.customers.last_name || ''}`.trim()
-                : ''
+            const custFullName = m.customers?.full_name ||
+                `${m.customers?.first_name || ''} ${m.customers?.last_name || ''}`.trim() || ''
 
             list.push({
                 id: `meeting-${m.id}`,
@@ -144,7 +160,7 @@ export function ActivitiesView({
                     full_name: m.host.full_name
                 } : undefined,
                 owner_id: m.host_user_id,
-                due_date: m.meeting_time || m.created_at,
+                due_date: m.scheduled_at || m.created_at,
                 status: statusMap[m.status] || 'Planned',
                 outcome: undefined,
                 notes: m.description,
@@ -209,6 +225,63 @@ export function ActivitiesView({
             upcomingTotal
         }
     }, [allActivities])
+
+    // Outcome Segment Counts (Calculated for current owner/project context)
+    const outcomeCounts = useMemo(() => {
+        let tekrarAranacak = 0
+        let ulasilamadi = 0
+        let randevuAlindi = 0
+        let olumlu = 0
+        let degerlendiriyor = 0
+        let olumsuz = 0
+        let bekleyen = 0
+
+        allActivities.forEach(a => {
+            if (onlyMyActivities && a.owner_id !== user.id && (a as any).user_id !== user.id) return
+            if (selectedOwners.length > 0 && a.owner_id && !selectedOwners.includes(a.owner_id)) return
+            if (selectedProjectId && a.project_id !== selectedProjectId) return
+
+            const actOutcome = (a.outcome || '').toLowerCase()
+            const actSummary = (a.summary || '').toLowerCase()
+            const actNotes = (a.notes || '').toLowerCase()
+            const actDesc = (a.description || '').toLowerCase()
+            const allText = `${actOutcome} ${actSummary} ${actNotes} ${actDesc}`
+
+            if (allText.includes('tekrar aran') || allText.includes('tekrar aray') || allText.includes('takip')) {
+                tekrarAranacak++
+            }
+            if (allText.includes('ulaş') || allText.includes('ulas') || allText.includes('cevap yok') || allText.includes('cevap vermiyor') || allText.includes('meşgul') || allText.includes('kapalı')) {
+                ulasilamadi++
+            }
+            const isAppointmentType = ['Meeting', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit'].includes(a.type)
+            if (allText.includes('randevu') || isAppointmentType) {
+                randevuAlindi++
+            }
+            if (allText.includes('olumlu') || a.outcome === 'Success') {
+                olumlu++
+            }
+            if (allText.includes('değerlendir') || allText.includes('degerlendir')) {
+                degerlendiriyor++
+            }
+            if (allText.includes('olumsuz') || allText.includes('ilgilenmiyor')) {
+                olumsuz++
+            }
+            if (a.status !== 'Completed' && !a.outcome) {
+                bekleyen++
+            }
+        })
+
+        return {
+            all: allActivities.length,
+            tekrarAranacak,
+            ulasilamadi,
+            randevuAlindi,
+            olumlu,
+            degerlendiriyor,
+            olumsuz,
+            bekleyen
+        }
+    }, [allActivities, onlyMyActivities, selectedOwners, selectedProjectId, user.id])
 
     // Filter logic
     const filteredActivities = useMemo(() => {
@@ -317,12 +390,38 @@ export function ActivitiesView({
                 if (parseISO(a.due_date) > end) return false
             }
 
+            // 9. Outcome / İlk Temas Filter
+            if (selectedOutcomeSegment !== 'all') {
+                const actOutcome = (a.outcome || '').toLowerCase()
+                const actSummary = (a.summary || '').toLowerCase()
+                const actNotes = (a.notes || '').toLowerCase()
+                const actDesc = (a.description || '').toLowerCase()
+                const allText = `${actOutcome} ${actSummary} ${actNotes} ${actDesc}`
+
+                if (selectedOutcomeSegment === 'tekrar_aranacak') {
+                    if (!allText.includes('tekrar aran') && !allText.includes('tekrar aray') && !allText.includes('takip')) return false
+                } else if (selectedOutcomeSegment === 'ulasilamadi') {
+                    if (!allText.includes('ulaş') && !allText.includes('ulas') && !allText.includes('cevap yok') && !allText.includes('cevap vermiyor') && !allText.includes('meşgul') && !allText.includes('kapalı')) return false
+                } else if (selectedOutcomeSegment === 'randevu_alindi') {
+                    const isAppointmentType = ['Meeting', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit'].includes(a.type)
+                    if (!allText.includes('randevu') && !isAppointmentType) return false
+                } else if (selectedOutcomeSegment === 'olumlu') {
+                    if (!allText.includes('olumlu') && a.outcome !== 'Success') return false
+                } else if (selectedOutcomeSegment === 'degerlendiriyor') {
+                    if (!allText.includes('değerlendir') && !allText.includes('degerlendir')) return false
+                } else if (selectedOutcomeSegment === 'olumsuz') {
+                    if (!allText.includes('olumsuz') && !allText.includes('ilgilenmiyor')) return false
+                } else if (selectedOutcomeSegment === 'bekleyen') {
+                    if (a.status === 'Completed' || a.outcome) return false
+                }
+            }
+
             return true
         })
     }, [
         allActivities, onlyMyActivities, selectedOwners, selectedProjectId,
         selectedTypes, selectedStatuses, selectedPriorities, searchQuery,
-        timeBucket, customDateStart, customDateEnd, user.id
+        timeBucket, selectedOutcomeSegment, customDateStart, customDateEnd, user.id
     ])
 
     // Sorted Activities
@@ -429,6 +528,7 @@ export function ActivitiesView({
 
     const resetFilters = () => {
         setTimeBucket('upcoming')
+        setSelectedOutcomeSegment('all')
         setSearchQuery('')
         setOnlyMyActivities(false)
         setSelectedTypes([])
@@ -442,6 +542,7 @@ export function ActivitiesView({
     }
 
     const hasActiveFilters = searchQuery !== '' ||
+        selectedOutcomeSegment !== 'all' ||
         onlyMyActivities ||
         selectedTypes.length > 0 ||
         selectedStatuses.length > 0 ||
@@ -845,7 +946,166 @@ export function ActivitiesView({
                     )}
                 </div>
 
-                {/* Row 3: Quick Type Category Filter (All, Randevular, Online Görüşme, Aramalar, WhatsApp, Görevler) */}
+                {/* Row 3: İlk Temas & Sonuç Segmentasyonu (Tekrar Aranacak, Ulaşılamadı, Randevular, Olumlu, Değerlendiriyor, Olumsuz, Bekleyen) */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1.5 scrollbar-none text-xs border-t border-slate-100">
+                    <span className="text-[11px] font-bold text-slate-500 shrink-0 uppercase tracking-wider mr-1 flex items-center gap-1">
+                        <span>🎯</span> Temas / Sonuç:
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedOutcomeSegment('all')}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors",
+                            selectedOutcomeSegment === 'all'
+                                ? "bg-slate-900 text-white shadow-xs"
+                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        )}
+                    >
+                        Tümü
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedOutcomeSegment('tekrar_aranacak')}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5",
+                            selectedOutcomeSegment === 'tekrar_aranacak'
+                                ? "bg-blue-600 text-white shadow-xs"
+                                : "bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200/80"
+                        )}
+                    >
+                        <span>🔄 Tekrar Aranacak</span>
+                        {outcomeCounts.tekrarAranacak > 0 && (
+                            <span className={cn(
+                                "px-1.5 py-0.2 rounded-full text-[10px] font-black",
+                                selectedOutcomeSegment === 'tekrar_aranacak' ? "bg-white/25 text-white" : "bg-blue-200 text-blue-900"
+                            )}>
+                                {outcomeCounts.tekrarAranacak}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedOutcomeSegment('ulasilamadi')}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5",
+                            selectedOutcomeSegment === 'ulasilamadi'
+                                ? "bg-amber-600 text-white shadow-xs"
+                                : "bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200/80"
+                        )}
+                    >
+                        <span>📵 Ulaşılamadı</span>
+                        {outcomeCounts.ulasilamadi > 0 && (
+                            <span className={cn(
+                                "px-1.5 py-0.2 rounded-full text-[10px] font-black",
+                                selectedOutcomeSegment === 'ulasilamadi' ? "bg-white/25 text-white" : "bg-amber-200 text-amber-950"
+                            )}>
+                                {outcomeCounts.ulasilamadi}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedOutcomeSegment('randevu_alindi')}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5",
+                            selectedOutcomeSegment === 'randevu_alindi'
+                                ? "bg-purple-600 text-white shadow-xs"
+                                : "bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200/80"
+                        )}
+                    >
+                        <span>📅 Randevu Alındı</span>
+                        {outcomeCounts.randevuAlindi > 0 && (
+                            <span className={cn(
+                                "px-1.5 py-0.2 rounded-full text-[10px] font-black",
+                                selectedOutcomeSegment === 'randevu_alindi' ? "bg-white/25 text-white" : "bg-purple-200 text-purple-950"
+                            )}>
+                                {outcomeCounts.randevuAlindi}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedOutcomeSegment('olumlu')}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5",
+                            selectedOutcomeSegment === 'olumlu'
+                                ? "bg-emerald-600 text-white shadow-xs"
+                                : "bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200/80"
+                        )}
+                    >
+                        <span>🟢 Arandı, Olumlu</span>
+                        {outcomeCounts.olumlu > 0 && (
+                            <span className={cn(
+                                "px-1.5 py-0.2 rounded-full text-[10px] font-black",
+                                selectedOutcomeSegment === 'olumlu' ? "bg-white/25 text-white" : "bg-emerald-200 text-emerald-950"
+                            )}>
+                                {outcomeCounts.olumlu}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedOutcomeSegment('degerlendiriyor')}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5",
+                            selectedOutcomeSegment === 'degerlendiriyor'
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : "bg-indigo-50 text-indigo-900 hover:bg-indigo-100 border border-indigo-200/80"
+                        )}
+                    >
+                        <span>🤔 Değerlendiriyor</span>
+                        {outcomeCounts.degerlendiriyor > 0 && (
+                            <span className={cn(
+                                "px-1.5 py-0.2 rounded-full text-[10px] font-black",
+                                selectedOutcomeSegment === 'degerlendiriyor' ? "bg-white/25 text-white" : "bg-indigo-200 text-indigo-950"
+                            )}>
+                                {outcomeCounts.degerlendiriyor}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedOutcomeSegment('olumsuz')}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5",
+                            selectedOutcomeSegment === 'olumsuz'
+                                ? "bg-rose-600 text-white shadow-xs"
+                                : "bg-rose-50 text-rose-900 hover:bg-rose-100 border border-rose-200/80"
+                        )}
+                    >
+                        <span>🔴 Olumsuz</span>
+                        {outcomeCounts.olumsuz > 0 && (
+                            <span className={cn(
+                                "px-1.5 py-0.2 rounded-full text-[10px] font-black",
+                                selectedOutcomeSegment === 'olumsuz' ? "bg-white/25 text-white" : "bg-rose-200 text-rose-950"
+                            )}>
+                                {outcomeCounts.olumsuz}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedOutcomeSegment('bekleyen')}
+                        className={cn(
+                            "px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5",
+                            selectedOutcomeSegment === 'bekleyen'
+                                ? "bg-slate-700 text-white shadow-xs"
+                                : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+                        )}
+                    >
+                        <span>⏳ Planlanan/Bekleyen</span>
+                        {outcomeCounts.bekleyen > 0 && (
+                            <span className={cn(
+                                "px-1.5 py-0.2 rounded-full text-[10px] font-black",
+                                selectedOutcomeSegment === 'bekleyen' ? "bg-white/25 text-white" : "bg-slate-200 text-slate-800"
+                            )}>
+                                {outcomeCounts.bekleyen}
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                {/* Row 4: Quick Type Category Filter (All, Randevular, Online Görüşme, Aramalar, WhatsApp, Görevler) */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-1 scrollbar-none text-xs border-t border-slate-100">
                     <span className="text-[11px] font-bold text-slate-400 shrink-0 uppercase tracking-wider mr-1">Tür:</span>
                     <button

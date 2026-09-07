@@ -118,6 +118,7 @@ export function UnitEditForm({ unit, disabled = false, isAdmin = false }: { unit
     return (
         <form onSubmit={handleSubmit}>
             <input type="hidden" name="id" value={unit.id} />
+            <input type="hidden" name="status" value={unit.status || 'For Sale'} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column: Image & Status */}

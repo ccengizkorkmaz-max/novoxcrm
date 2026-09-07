@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { ActivityStreamCard, ActivityItem } from './activity-stream-card'
 import { ActivityForm } from './activity-form'
 import { useLocale } from 'next-intl'
-import { cn } from '@/lib/utils'
+import { cn, isSameDayTurkey } from '@/lib/utils'
 
 interface ActivityDailyViewProps {
     activities: ActivityItem[]
@@ -51,7 +51,7 @@ export function ActivityDailyView({
     const dayActivities = activities.filter(a => {
         if (!a.due_date) return false
         try {
-            return isSameDay(parseISO(a.due_date), selectedDate)
+            return isSameDayTurkey(a.due_date, selectedDate)
         } catch {
             return false
         }

@@ -25,7 +25,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { cancelActivity, deleteActivity, outcomeActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, formatTurkeyDateTime } from '@/lib/utils'
 import { Link } from '@/i18n/routing'
 
 export interface ActivityItem {
@@ -235,13 +235,13 @@ export function ActivityStreamCard({
                         {/* 1. Date Block (Like Screenshot: 4 EYL 13:00) */}
                         <div className="flex flex-col items-center justify-center min-w-[62px] sm:min-w-[68px] py-2 px-1.5 rounded-xl bg-slate-50/80 border border-slate-200/80 group-hover:bg-violet-50/40 group-hover:border-violet-200 transition-colors shrink-0 text-center select-none">
                             <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-800 leading-none">
-                                {format(dueDate, 'd')}
+                                {activity.due_date ? (formatTurkeyDateTime(activity.due_date, 'dayMonth').split(' ')[0] || format(dueDate, 'd')) : format(dueDate, 'd')}
                             </span>
                             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-0.5 leading-none">
-                                {format(dueDate, 'MMM', { locale: dateLocale })}
+                                {activity.due_date ? (formatTurkeyDateTime(activity.due_date, 'dayMonth').split(' ')[1] || format(dueDate, 'MMM', { locale: dateLocale })) : format(dueDate, 'MMM', { locale: dateLocale })}
                             </span>
                             <span className="text-xs font-bold text-violet-600 dark:text-violet-400 mt-1.5 leading-none">
-                                {format(dueDate, 'HH:mm')}
+                                {activity.due_date ? formatTurkeyDateTime(activity.due_date, 'time') : format(dueDate, 'HH:mm')}
                             </span>
 
                             {isToday(dueDate) && (
@@ -280,6 +280,32 @@ export function ActivityStreamCard({
                                 >
                                     {statusInfo.label}
                                 </Badge>
+
+                                {activity.outcome && (
+                                    <Badge
+                                        variant="outline"
+                                        className={cn(
+                                            "text-[10px] px-2 py-0.5 font-bold border rounded-md shrink-0 flex items-center gap-1",
+                                            activity.outcome.toLowerCase().includes('tekrar aran') ? "bg-blue-100 text-blue-900 border-blue-300 font-bold" :
+                                            activity.outcome.toLowerCase().includes('ulaş') || activity.outcome.toLowerCase().includes('ulas') || activity.outcome.toLowerCase().includes('cevap') ? "bg-amber-100 text-amber-900 border-amber-300 font-bold" :
+                                            activity.outcome.toLowerCase().includes('randevu') ? "bg-purple-100 text-purple-900 border-purple-300 font-bold" :
+                                            activity.outcome.toLowerCase().includes('olumlu') || activity.outcome === 'Success' ? "bg-emerald-100 text-emerald-900 border-emerald-300 font-bold" :
+                                            activity.outcome.toLowerCase().includes('değerlendir') ? "bg-indigo-100 text-indigo-900 border-indigo-300 font-bold" :
+                                            activity.outcome.toLowerCase().includes('olumsuz') ? "bg-rose-100 text-rose-900 border-rose-300 font-bold" :
+                                            "bg-slate-100 text-slate-800 border-slate-300"
+                                        )}
+                                    >
+                                        <span>
+                                            {activity.outcome.toLowerCase().includes('tekrar aran') ? '🔄' :
+                                             activity.outcome.toLowerCase().includes('ulaş') || activity.outcome.toLowerCase().includes('ulas') ? '📵' :
+                                             activity.outcome.toLowerCase().includes('randevu') ? '📅' :
+                                             activity.outcome.toLowerCase().includes('olumlu') || activity.outcome === 'Success' ? '🟢' :
+                                             activity.outcome.toLowerCase().includes('değerlendir') ? '🤔' :
+                                             activity.outcome.toLowerCase().includes('olumsuz') ? '🔴' : '🎯'}
+                                        </span>
+                                        <span>{activity.outcome}</span>
+                                    </Badge>
+                                )}
 
                                 {activity.priority === 'Urgent' && (
                                     <Badge className="bg-red-600 text-white text-[9px] font-extrabold px-1.5 py-0 h-4">

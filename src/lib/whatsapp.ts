@@ -332,3 +332,119 @@ export async function sendWhatsAppInteractiveButtons(
     }
 }
 
+/**
+ * Logs an outbound WhatsApp message into whatsapp_conversations and whatsapp_messages
+ * so it becomes immediately visible in the CRM customer chat and /conversations screen.
+ */
+export async function logOutboundWhatsAppMessage(params: {
+    tenantId: string
+    phone: string
+    customerId?: string | null
+    content: string
+    waMessageId?: string | null
+}) {
+    try {
+        const { createAdminClient } = await import('@/lib/supabase/admin')
+        const adminSupabase = createAdminClient()
+        const cleanPhone = normalizePhone(params.phone)
+        const last10 = cleanPhone.slice(-10)
+
+        // 1. Find or match existing conversation
+        let convId: string | null = null
+        let existingConv: any = null
+
+        if (params.customerId) {
+            const { data: byCust } = await adminSupabase
+                .from('whatsapp_conversations')
+                .select('*')
+                .eq('tenant_id', params.tenantId)
+                .eq('customer_id', params.customerId)
+                .order('last_message_at', { ascending: false, nullsFirst: false })
+                .limit(1)
+                .maybeSingle()
+            if (byCust?.id) {
+                convId = byCust.id
+                existingConv = byCust
+            }
+        }
+
+        if (!convId && last10.length >= 10) {
+            const { data: byPhone } = await adminSupabase
+                .from('whatsapp_conversations')
+                .select('*')
+                .eq('tenant_id', params.tenantId)
+                .ilike('phone_number', `%${last10}%`)
+                .order('last_message_at', { ascending: false, nullsFirst: false })
+                .limit(1)
+                .maybeSingle()
+            if (byPhone?.id) {
+                convId = byPhone.id
+                existingConv = byPhone
+            }
+        }
+
+        // 2. Create conversation if not found
+        if (!convId) {
+            const { data: newConv, error: createErr } = await adminSupabase
+                .from('whatsapp_conversations')
+                .insert({
+                    tenant_id: params.tenantId,
+                    customer_id: params.customerId || null,
+                    phone_number: cleanPhone,
+                    unread_count: 0,
+                    last_message_at: new Date().toISOString(),
+                    last_message_preview: params.content.substring(0, 100),
+                    ai_enabled: false
+                })
+                .select('id')
+                .single()
+            if (!createErr && newConv?.id) {
+                convId = newConv.id
+            }
+        } else {
+            // Update last message preview and time
+            await adminSupabase
+                .from('whatsapp_conversations')
+                .update({
+                    last_message_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    last_message_preview: params.content.substring(0, 100),
+                    ...(params.customerId && !existingConv?.customer_id ? { customer_id: params.customerId } : {})
+                })
+                .eq('id', convId)
+        }
+
+        if (!convId) {
+            console.error('[logOutboundWhatsAppMessage] Could not find or create conversation for phone:', cleanPhone)
+            return null
+        }
+
+        // 3. Insert message into whatsapp_messages
+        const { data: msg, error: msgErr } = await adminSupabase
+            .from('whatsapp_messages')
+            .insert({
+                conversation_id: convId,
+                tenant_id: params.tenantId,
+                direction: 'outbound',
+                status: 'sent',
+                role: 'assistant',
+                wa_message_id: params.waMessageId || null,
+                content: params.content,
+                created_at: new Date().toISOString()
+            })
+            .select('id')
+            .single()
+
+        if (msgErr) {
+            console.error('[logOutboundWhatsAppMessage] Insert message error:', msgErr.message)
+            return null
+        }
+
+        return msg
+    } catch (err: any) {
+        console.error('[logOutboundWhatsAppMessage] Error:', err?.message)
+        return null
+    }
+}
+
+

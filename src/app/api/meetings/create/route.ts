@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRoom, createMeetingToken, deleteRoom, buildGuestMeetingUrl } from '@/lib/daily'
-import { sendWhatsAppTemplate } from '@/lib/whatsapp'
+import { sendWhatsAppTemplate, logOutboundWhatsAppMessage } from '@/lib/whatsapp'
 
 export async function POST(request: NextRequest) {
     try {
@@ -111,8 +111,8 @@ export async function POST(request: NextRequest) {
         try {
             const guestUrl = buildGuestMeetingUrl(room.name)
             const d = new Date(input.scheduled_at)
-            const dateStr = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-            const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+            const dateStr = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Istanbul' })
+            const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' })
 
             let projectName = 'online görüşmemiz'
             if (input.project_id) {
@@ -143,7 +143,18 @@ export async function POST(request: NextRequest) {
                     'tr',
                     waPhoneId,
                     waToken
-                ).then(res => console.log('[API] Customer WA template result:', res)).catch(console.error)
+                ).then(async (res) => {
+                    console.log('[API] Customer WA template result:', res)
+                    const waMessageId = (res as any)?.data?.messages?.[0]?.id || null
+                    const inviteSummary = `[Online Toplantı Daveti: ${input.title}]\n📅 Tarih: ${dateStr} saat ${timeStr}\n🏢 Proje: ${projectName}\n🔗 Katılım Linki: ${guestUrl}`
+                    await logOutboundWhatsAppMessage({
+                        tenantId: profile.tenant_id,
+                        phone: customer.phone,
+                        customerId: input.customer_id,
+                        content: inviteSummary,
+                        waMessageId
+                    })
+                }).catch(console.error)
             }
 
             // 2. Send WhatsApp & CRM Notification to Organizer / Host User
