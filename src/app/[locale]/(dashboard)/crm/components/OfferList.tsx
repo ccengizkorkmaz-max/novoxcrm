@@ -307,11 +307,20 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                             initialPaymentPlan={offer.payment_plan}
                                                             offerStatus={offer.status}
                                                         />
+                                                        {offer.status !== 'Accepted' && !COMPLETED_STATUSES.includes(offer.status) && (
+                                                            <ApproveOfferButton
+                                                                offerId={offer.id}
+                                                                customerName={offer.customers?.full_name || ''}
+                                                                unitInfo={`${offer.units?.projects?.name || ''} - ${offer.units?.unit_number || ''}`}
+                                                                customerId={offer.customer_id}
+                                                                unitId={offer.unit_id}
+                                                            />
+                                                        )}
                                                         {offer.status === 'Accepted' && (
                                                             <Button
                                                                 variant="default"
                                                                 size="sm"
-                                                                className="bg-green-600 hover:bg-green-700 text-white"
+                                                                className="bg-green-600 hover:bg-green-700 text-white font-semibold"
                                                                 onClick={() => handleStartContract(offer)}
                                                                 disabled={startingContractId === offer.id}
                                                             >

@@ -2675,13 +2675,13 @@ export async function approveOfferDirectly(offerId: string) {
             .from('offers')
             .update(updateData)
             .eq('id', offerId)
-            .select('sale_id, price, currency')
+            .select('id, sale_id, price, currency, customer_id, unit_id, tenant_id')
             .single()
 
         if (error) throw error
 
         // 3. Sync Payment Plan to Sale Table (if present in negotiation)
-        if (updateData.payment_plan && updateData.payment_plan.payment_items && updatedOffer) {
+        if (updateData.payment_plan && updateData.payment_plan.payment_items && updatedOffer?.sale_id) {
             try {
                 await createPaymentPlan(
                     updatedOffer.sale_id,
@@ -2694,12 +2694,52 @@ export async function approveOfferDirectly(offerId: string) {
             }
         }
 
-        // 1416: revalidatePath('/crm')
-        // 1417: revalidatePath('/crm/offers')
-        // 1418: return { success: true }
-        
-        // 4. Finalize the offer (this handles sale status, contract, unit status, and finance)
-        return await finalizeOffer(offerId)
+        // 4. Update Sale record if associated
+        if (updatedOffer?.sale_id) {
+            try {
+                await supabase
+                    .from('sales')
+                    .update({
+                        final_price: updatedOffer.price,
+                        currency: updatedOffer.currency
+                    })
+                    .eq('id', updatedOffer.sale_id)
+            } catch (saleErr) {
+                console.error('Failed to update sale price on offer approval:', saleErr)
+            }
+        }
+
+        // 5. Log activity for CRM timeline tracking
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user && updatedOffer) {
+                const formattedPrice = new Intl.NumberFormat('tr-TR', { 
+                    style: 'currency', 
+                    currency: updatedOffer.currency || 'TRY', 
+                    maximumFractionDigits: 0 
+                }).format(updatedOffer.price)
+
+                await supabase.from('activities').insert({
+                    tenant_id: updatedOffer.tenant_id,
+                    customer_id: updatedOffer.customer_id,
+                    owner_id: user.id,
+                    user_id: user.id,
+                    type: 'System',
+                    topic: 'Teklif',
+                    summary: `Teklif Onaylandı: ${formattedPrice}`,
+                    description: `Teklif onaylandı ve 'Kabul Edildi' durumuna alındı. Sözleşme oluşturma aşamasına geçilebilir.`,
+                    status: 'Completed',
+                    due_date: new Date().toISOString()
+                })
+            }
+        } catch (actErr) {
+            console.error('Failed to log offer approval activity:', actErr)
+        }
+
+        revalidatePath('/offers')
+        revalidatePath('/crm')
+        revalidatePath('/contracts')
+        return { success: true }
     } catch (error: any) {
         console.error('Approve Offer Error:', error)
         return { error: error.message || 'Teklif onaylanırken bir hata oluştu' }
