@@ -81,11 +81,13 @@ export default function RepresentativeAssignor({
                     )}
                 >
                     <option value="unassigned">-- Temsilci Atanmamış --</option>
-                    {salesRepresentatives.map((rep) => (
-                        <option key={rep.id} value={rep.id}>
-                            {rep.full_name}
-                        </option>
-                    ))}
+                    {salesRepresentatives
+                        .filter(rep => rep.role !== 'broker' && (rep as any).is_external !== true)
+                        .map((rep) => (
+                            <option key={rep.id} value={rep.id}>
+                                {rep.full_name}
+                            </option>
+                        ))}
                 </select>
             </div>
 

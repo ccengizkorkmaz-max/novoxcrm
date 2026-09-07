@@ -186,7 +186,8 @@ export async function getMessagingSession(id: string) {
 }
 
 /**
- * Fetches all sales representatives (profiles) for current tenant
+ * Fetches all internal sales representatives (profiles) for current tenant.
+ * Dış brokerlar (role = 'broker' veya is_external = true) ve pasif kullanıcılar hariç tutulur.
  */
 export async function getSalesRepresentatives() {
     try {
@@ -204,8 +205,10 @@ export async function getSalesRepresentatives() {
 
         const { data: profiles, error } = await supabase
             .from('profiles')
-            .select('id, full_name, role')
+            .select('id, full_name, role, is_external, is_active')
             .eq('tenant_id', userProfile.tenant_id)
+            .neq('role', 'broker')
+            .or('is_external.is.null,is_external.eq.false')
             .order('full_name', { ascending: true })
 
         if (error) {
@@ -213,7 +216,15 @@ export async function getSalesRepresentatives() {
             return []
         }
 
-        return profiles || []
+        // Dış broker ve pasif kullanıcı kontrolü (kesin güvenlik katmanı)
+        const internalSalesReps = (profiles || []).filter(p => 
+            p.role !== 'broker' && 
+            p.is_external !== true && 
+            p.is_active !== false &&
+            Boolean(p.full_name?.trim())
+        )
+
+        return internalSalesReps
     } catch (error) {
         console.error('Server error fetching sales reps:', error)
         return []
