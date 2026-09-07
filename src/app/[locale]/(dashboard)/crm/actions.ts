@@ -883,7 +883,7 @@ export async function createSale(formData: FormData) {
                                 phone_number: wpPhone,
                                 customer_id,
                                 channel: 'whatsapp',
-                                ai_enabled: true,
+                                ai_enabled: false,
                                 last_message_preview: `[Şablon] ${templateName}`,
                                 unread_count: 0
                             }).select('id').single()
@@ -4805,7 +4805,7 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
                 phone_number: cleanPhone,
                 customer_id: params.customerId,
                 channel: 'whatsapp',
-                ai_enabled: true,
+                ai_enabled: false,
                 last_message_preview: params.customMessage || `[Şablon: ${params.templateName || 'novo_katalog_paylasimi'}]`,
                 unread_count: 0
             }).select('id').single()

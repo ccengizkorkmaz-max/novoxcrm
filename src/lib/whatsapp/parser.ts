@@ -299,7 +299,7 @@ export async function findOrCreateConversation(
         
         await supabase.from('whatsapp_conversations').update(updateData).eq('id', existing.id);
 
-        return { conversationId: existing.id, aiEnabled: existing.ai_enabled };
+        return { conversationId: existing.id, aiEnabled: existing.ai_enabled ?? false };
     }
 
     // Yeni sohbet
@@ -310,9 +310,9 @@ export async function findOrCreateConversation(
         lead_id: leadId,         // Eşleşen lead'i otomatik bağla
         last_message_preview: messagePreview.substring(0, 50),
         unread_count: 1,
-        ai_enabled: true,
+        ai_enabled: false,
         channel,
     }).select('id').single();
 
-    return { conversationId: newConv?.id || null, aiEnabled: true };
+    return { conversationId: newConv?.id || null, aiEnabled: false };
 }

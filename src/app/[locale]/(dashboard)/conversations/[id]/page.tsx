@@ -65,7 +65,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                 </div>
 
                 <div className="mt-8 pr-2">
-                    <AiToggle sessionId={id} initialAiEnabled={session.ai_enabled ?? true} />
+                    <AiToggle sessionId={id} initialAiEnabled={session.ai_enabled ?? false} />
                 </div>
             </div>
 

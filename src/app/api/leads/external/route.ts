@@ -556,7 +556,7 @@ export async function POST(req: Request) {
                                         if (!existingConv) {
                                             const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
                                                 tenant_id, phone_number: wpPhone, customer_id: customerId,
-                                                channel: 'whatsapp', ai_enabled: true,
+                                                channel: 'whatsapp', ai_enabled: false,
                                                 last_message_preview: `[Şablon] ${templateName}`, unread_count: 0
                                             }).select('id').single();
                                             existingConv = newConv;
@@ -926,7 +926,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                                     if (!existingConv) {
                                         const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
                                             tenant_id, phone_number: wpPhone, customer_id: customerId,
-                                            channel: 'whatsapp', ai_enabled: true,
+                                            channel: 'whatsapp', ai_enabled: false,
                                             last_message_preview: `[Şablon] ${templateName}`, unread_count: 0
                                         }).select('id').single()
                                         existingConv = newConv
