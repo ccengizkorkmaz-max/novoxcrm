@@ -43,56 +43,171 @@ export async function clearCeoFunnelCache(tenantId?: string) {
     }
 }
 
-async function fetchAllSales(supabase: any, tenantId: string, selectedProjectId: string | null) {
-    const allSales: any[] = []
-    let salesPage = 0
-    const CHUNK_SIZE = 1000
+interface FetchCeoSalesOptions {
+    tenantId: string
+    selectedProjectId: string | null
+    currentStart: Date | null
+    currentEnd: Date | null
+    prevStart: Date | null
+    prevEnd: Date | null
+    now: Date
+}
 
-    while (true) {
-        let query = supabase
-            .from('sales')
-            .select(`
-                id,
-                tenant_id,
-                customer_id,
-                unit_id,
-                assigned_to,
-                status,
-                deposit_amount,
-                final_price,
-                currency,
-                created_at,
-                updated_at,
-                contract_date,
-                project_id,
-                lead_origin,
-                lost_reason,
-                projects:project_id ( id, name ),
-                profiles:assigned_to ( id, full_name, email ),
-                customers:customer_id ( id, full_name, phone, source, created_at ),
-                units:unit_id ( id, unit_number, price )
-            `)
-            .eq('tenant_id', tenantId)
+async function fetchCeoSalesData(supabase: any, options: FetchCeoSalesOptions) {
+    const { tenantId, selectedProjectId, currentStart, currentEnd, prevStart, prevEnd, now } = options
 
-        if (selectedProjectId) {
-            query = query.eq('project_id', selectedProjectId)
-        }
+    // 1. Current Period Sales Query (with full relations, up to 3000 rows)
+    let currentQuery = supabase
+        .from('sales')
+        .select(`
+            id,
+            tenant_id,
+            customer_id,
+            unit_id,
+            assigned_to,
+            status,
+            deposit_amount,
+            final_price,
+            currency,
+            created_at,
+            updated_at,
+            contract_date,
+            project_id,
+            lead_origin,
+            lost_reason,
+            projects:project_id ( id, name ),
+            profiles:assigned_to ( id, full_name, email ),
+            customers:customer_id ( id, full_name, phone, source, created_at ),
+            units:unit_id ( id, unit_number, price )
+        `)
+        .eq('tenant_id', tenantId)
 
-        const { data, error: salesErr } = await query
-            .order('id', { ascending: true })
-            .range(salesPage * CHUNK_SIZE, (salesPage + 1) * CHUNK_SIZE - 1)
-
-        if (salesErr) {
-            console.error('CeoFunnel sales fetch error:', salesErr)
-            break
-        }
-
-        if (!data || data.length === 0) break
-        allSales.push(...data)
-        if (data.length < CHUNK_SIZE) break
-        salesPage++
+    if (selectedProjectId) {
+        currentQuery = currentQuery.eq('project_id', selectedProjectId)
     }
-    return allSales
+
+    if (currentStart) {
+        currentQuery = currentQuery.gte('created_at', currentStart.toISOString())
+        if (currentEnd && currentEnd < now) {
+            currentQuery = currentQuery.lte('created_at', currentEnd.toISOString())
+        }
+    }
+
+    currentQuery = currentQuery.order('created_at', { ascending: false }).limit(3000)
+
+    // 2. High-value pipeline deals (Proposal, Option, Won, etc.) from ANY period (so none are missed)
+    let pipelineQuery = supabase
+        .from('sales')
+        .select(`
+            id,
+            tenant_id,
+            customer_id,
+            unit_id,
+            assigned_to,
+            status,
+            deposit_amount,
+            final_price,
+            currency,
+            created_at,
+            updated_at,
+            contract_date,
+            project_id,
+            lead_origin,
+            lost_reason,
+            projects:project_id ( id, name ),
+            profiles:assigned_to ( id, full_name, email ),
+            customers:customer_id ( id, full_name, phone, source, created_at ),
+            units:unit_id ( id, unit_number, price )
+        `)
+        .eq('tenant_id', tenantId)
+        .in('status', ['Proposal', 'Option', 'Won', 'Teklif - Kapora Bekleniyor', 'Opsiyon - Kapora Bekleniyor', 'Contract', 'Sold'])
+
+    if (selectedProjectId) {
+        pipelineQuery = pipelineQuery.eq('project_id', selectedProjectId)
+    }
+
+    pipelineQuery = pipelineQuery.order('created_at', { ascending: false }).limit(1000)
+
+    // 3. Exact count for current period (in case there are >3000 leads)
+    let currentCountQuery = supabase
+        .from('sales')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+
+    if (selectedProjectId) {
+        currentCountQuery = currentCountQuery.eq('project_id', selectedProjectId)
+    }
+    if (currentStart) {
+        currentCountQuery = currentCountQuery.gte('created_at', currentStart.toISOString())
+        if (currentEnd && currentEnd < now) {
+            currentCountQuery = currentCountQuery.lte('created_at', currentEnd.toISOString())
+        }
+    }
+
+    // 4. Exact count for previous period
+    let prevCountQuery: any = Promise.resolve({ count: 0 })
+    if (prevStart) {
+        let pq = supabase
+            .from('sales')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId)
+            .gte('created_at', prevStart.toISOString())
+        if (prevEnd) {
+            pq = pq.lt('created_at', prevEnd.toISOString())
+        }
+        if (selectedProjectId) {
+            pq = pq.eq('project_id', selectedProjectId)
+        }
+        prevCountQuery = pq
+    }
+
+    // 5. 6-Month Trend parallel counts (exact counts for each month in ms)
+    const monthlyCountPromises = [0, 1, 2, 3, 4, 5].map(i => {
+        const mDate = subMonths(now, i)
+        const mStart = startOfMonth(mDate).toISOString()
+        const mEnd = i > 0 ? startOfMonth(subMonths(now, i - 1)).toISOString() : now.toISOString()
+        let q = supabase
+            .from('sales')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId)
+            .gte('created_at', mStart)
+            .lt('created_at', mEnd)
+        if (selectedProjectId) q = q.eq('project_id', selectedProjectId)
+        return q
+    })
+
+    // Execute in parallel
+    const [
+        currentRes,
+        pipelineRes,
+        currentCountRes,
+        prevCountRes,
+        ...trendCountResults
+    ] = await Promise.all([
+        currentQuery,
+        pipelineQuery,
+        currentCountQuery,
+        prevCountQuery,
+        ...monthlyCountPromises
+    ])
+
+    const currentSalesData = currentRes.data || []
+    const pipelineSalesData = pipelineRes.data || []
+
+    // Merge & deduplicate current sales and pipeline deals
+    const salesMap = new Map<string, any>()
+    currentSalesData.forEach((s: any) => salesMap.set(s.id, s))
+    pipelineSalesData.forEach((s: any) => salesMap.set(s.id, s))
+    const allFetchedSales = Array.from(salesMap.values())
+
+    return {
+        allSales: allFetchedSales as any[],
+        currentPeriodSales: currentSalesData as any[],
+        pipelineSales: pipelineSalesData as any[],
+        exactCurrentLeadCount: (currentCountRes.count ?? currentSalesData.length) as number,
+        exactPrevLeadCount: ((prevCountRes as any).count ?? 0) as number,
+        monthlyLeadCounts: trendCountResults.map((r: any) => (r.count as number) ?? 0) as number[]
+    }
 }
 
 async function fetchAllContracts(supabase: any, tenantId: string, selectedProjectId: string | null) {
@@ -340,21 +455,7 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         }
     }
 
-    // 2. PARALLEL EXECUTION: Fetch Projects, Sales, Contracts & Activities simultaneously!
-    const [projectsRes, allSales, allContracts, allActivities] = await Promise.all([
-        supabase
-            .from('projects')
-            .select('id, name')
-            .eq('tenant_id', tenantId)
-            .order('name'),
-        fetchAllSales(supabase, tenantId, selectedProjectId),
-        fetchAllContracts(supabase, tenantId, selectedProjectId),
-        fetchAllActivities(supabase, tenantId, selectedProjectId)
-    ])
-
-    const projects = projectsRes.data || []
-
-    // 3. Determine Date Ranges
+    // 2. Determine Date Ranges
     let currentStart: Date | null = null
     let currentEnd: Date | null = now
     let prevStart: Date | null = null
@@ -387,6 +488,33 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         prevStart = null
     }
 
+    // 3. PARALLEL EXECUTION: Fetch Projects, Sales (Fast Sliced), Contracts & Activities simultaneously!
+    const [projectsRes, salesResult, allContracts, allActivities] = await Promise.all([
+        supabase
+            .from('projects')
+            .select('id, name')
+            .eq('tenant_id', tenantId)
+            .order('name'),
+        fetchCeoSalesData(supabase, {
+            tenantId,
+            selectedProjectId,
+            currentStart,
+            currentEnd,
+            prevStart,
+            prevEnd,
+            now
+        }),
+        fetchAllContracts(supabase, tenantId, selectedProjectId),
+        fetchAllActivities(supabase, tenantId, selectedProjectId)
+    ])
+
+    const projects: any[] = projectsRes.data || []
+    const allSales: any[] = salesResult.allSales
+    const currentPeriodSales: any[] = salesResult.currentPeriodSales
+    const exactCurrentLeadCount: number = salesResult.exactCurrentLeadCount
+    const exactPrevLeadCount: number = salesResult.exactPrevLeadCount
+    const monthlyLeadCounts: number[] = salesResult.monthlyLeadCounts
+
     // Helper to categorize sales status into standard pipeline stages
     const categorizeStatus = (status: string | null) => {
         const s = (status || '').toLowerCase().trim()
@@ -408,19 +536,6 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         const dep = Number(sale.deposit_amount || 0)
         return dep > 0 ? dep * 10 : 0 // fallback estimate if only deposit known
     }
-
-    // Filter by period
-    const filterByDateRange = (items: typeof allSales, start: Date | null, end: Date | null) => {
-        if (!start) return items
-        return items.filter(item => {
-            const itemDate = new Date(item.created_at)
-            if (end) return itemDate >= start && itemDate <= end
-            return itemDate >= start
-        })
-    }
-
-    const currentPeriodSales = filterByDateRange(allSales, currentStart, currentEnd)
-    const prevPeriodSales = prevStart ? filterByDateRange(allSales, prevStart, prevEnd) : []
 
     // 4. Calculate Stage Statistics
     const stageDataMap: Record<string, {
@@ -452,6 +567,10 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
             }
         }
     })
+
+    if (exactCurrentLeadCount > stageDataMap.lead.count) {
+        stageDataMap.lead.count = exactCurrentLeadCount
+    }
 
     // Stage Definitions with Win Probability Weights
     const stageDefs = [
@@ -526,60 +645,60 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
             weightedForecast,
             color: def.color,
             gradient: def.gradient,
-            conversionFromPrev: idx === 0 ? 100 : Math.min(conversionFromPrev, 100),
-            conversionFromTop: idx === 0 ? 100 : Math.min(conversionFromTop, 100)
+            conversionFromPrev,
+            conversionFromTop,
         }
     })
 
-    // 5. Total Pipeline Values & Revenue Forecasting
-    const totalPipelineCount = currentPeriodSales.length
-    const wonCount = stageDataMap.won.count
+    // 5. 3-Scenario Revenue Forecast Model (Gelir Projeksiyonu)
     const wonRevenue = stageDataMap.won.wonRevenue
-    const lostCount = stageDataMap.lost.count
-
-    // Total Kapora (Deposits) across all pipeline records
-    const totalDepositsCollected = currentPeriodSales.reduce((sum, s) => sum + Number(s.deposit_amount || 0), 0)
-    const activeReservationDeposits = stageDataMap.reservation.depositAmount
+    const wonCount = stageDataMap.won.count
     const wonDeposits = stageDataMap.won.depositAmount
 
-    // Active pipeline potential (in-progress stages)
-    const activePipelineValue =
-        stageDataMap.proposal.potentialValue +
-        stageDataMap.reservation.potentialValue +
-        stageDataMap.meeting.potentialValue
+    const activeReservationValue = stageDataMap.reservation.potentialValue
+    const activeReservationDeposits = stageDataMap.reservation.depositAmount
 
-    // Weighted Pipeline Forecast Total
-    const weightedForecastTotal =
-        wonRevenue +
-        Math.round(stageDataMap.reservation.potentialValue * 0.85) +
-        Math.round(stageDataMap.proposal.potentialValue * 0.60) +
-        Math.round(stageDataMap.meeting.potentialValue * 0.35) +
-        Math.round(stageDataMap.prospect.potentialValue * 0.15) +
-        Math.round(stageDataMap.lead.potentialValue * 0.05)
+    const activeProposalValue = stageDataMap.proposal.potentialValue
+    const activeProposalDeposits = stageDataMap.proposal.depositAmount
 
-    // 3 Scenarios Forecast
-    const conservativeScenario =
+    const activeMeetingValue = stageDataMap.meeting.potentialValue
+    const activeProspectValue = stageDataMap.prospect.potentialValue
+
+    const activePipelineValue = activeReservationValue + activeProposalValue + activeMeetingValue + activeProspectValue
+    const totalPipelineCount = exactCurrentLeadCount || (currentPeriodSales.length + stageDataMap.won.count)
+
+    const totalDepositsCollected = Object.values(stageDataMap).reduce((sum, d) => sum + d.depositAmount, 0)
+    const securedDeposits = wonDeposits + activeReservationDeposits
+
+    const weightedForecastTotal = Math.round(
         wonRevenue +
-        Math.round(stageDataMap.reservation.potentialValue * 0.70) +
-        Math.round(stageDataMap.proposal.potentialValue * 0.30)
+        (activeReservationValue * 0.85) +
+        (activeProposalValue * 0.60) +
+        (activeMeetingValue * 0.35) +
+        (activeProspectValue * 0.15)
+    )
+
+    const conservativeScenario = Math.round(
+        wonRevenue +
+        (activeReservationValue * 0.70) +
+        (activeProposalValue * 0.30)
+    )
 
     const baseScenario = weightedForecastTotal
 
-    const optimisticScenario =
+    const optimisticScenario = Math.round(
         wonRevenue +
-        Math.round(stageDataMap.reservation.potentialValue * 0.95) +
-        Math.round(stageDataMap.proposal.potentialValue * 0.80) +
-        Math.round(stageDataMap.meeting.potentialValue * 0.50)
+        (activeReservationValue * 0.95) +
+        (activeProposalValue * 0.80) +
+        (activeMeetingValue * 0.50) +
+        (activeProspectValue * 0.25)
+    )
 
-    const maxPotentialRevenue =
-        wonRevenue +
-        stageDataMap.reservation.potentialValue +
-        stageDataMap.proposal.potentialValue +
-        stageDataMap.meeting.potentialValue
+    const maxPotentialRevenue = wonRevenue + activePipelineValue
 
     const revenueForecast: RevenueForecast = {
         realizedRevenue: wonRevenue,
-        securedDeposits: totalDepositsCollected,
+        securedDeposits,
         activePipelineValue,
         weightedForecastTotal,
         conservativeScenario,
@@ -588,11 +707,12 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         maxPotentialRevenue
     }
 
-    // Win Rate & Velocity
-    const winRate = totalPipelineCount > 0 ? Math.round((wonCount / totalPipelineCount) * 1000) / 10 : 0
+    const wonDeals = currentPeriodSales.filter(s => categorizeStatus(s.status) === 'won')
+    const lostDeals = currentPeriodSales.filter(s => categorizeStatus(s.status) === 'lost')
+    const lostCount = lostDeals.length
+    const winRate = (wonCount + lostCount) > 0 ? Math.round((wonCount / (wonCount + lostCount)) * 1000) / 10 : 0
     const avgDealSize = wonCount > 0 ? Math.round(wonRevenue / wonCount) : 0
 
-    const wonDeals = currentPeriodSales.filter(s => categorizeStatus(s.status) === 'won')
     let totalCloseDays = 0
     let closeDaysCount = 0
     wonDeals.forEach(s => {
@@ -607,11 +727,21 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
     const avgDaysToClose = closeDaysCount > 0 ? Math.round(totalCloseDays / closeDaysCount) : 14
 
     // 6. Previous Period Comparison
-    const prevWonDeals = prevPeriodSales.filter(s => categorizeStatus(s.status) === 'won')
+    const prevWonDeals = allSales.filter(s => {
+        if (categorizeStatus(s.status) !== 'won') return false
+        if (!prevStart) return false
+        const d = new Date(s.created_at)
+        return prevEnd ? (d >= prevStart && d < prevEnd) : (d >= prevStart)
+    })
     const prevWonRevenue = prevWonDeals.reduce((sum, s) => sum + getDealValue(s), 0)
     const prevWonCount = prevWonDeals.length
-    const prevTotalCount = prevPeriodSales.length
+    const prevTotalCount = exactPrevLeadCount || prevWonCount
     const prevWinRate = prevTotalCount > 0 ? Math.round((prevWonCount / prevTotalCount) * 1000) / 10 : 0
+    const prevDeposits = allSales.filter(s => {
+        if (!prevStart) return false
+        const d = new Date(s.created_at)
+        return prevEnd ? (d >= prevStart && d < prevEnd) : (d >= prevStart)
+    }).reduce((sum, s) => sum + Number(s.deposit_amount || 0), 0)
 
     const calcChange = (curr: number, prev: number) => {
         if (prev === 0) return curr > 0 ? 100 : 0
@@ -641,11 +771,8 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         },
         deposits: {
             current: totalDepositsCollected,
-            prev: prevPeriodSales.reduce((sum, s) => sum + Number(s.deposit_amount || 0), 0),
-            change: calcChange(
-                totalDepositsCollected,
-                prevPeriodSales.reduce((sum, s) => sum + Number(s.deposit_amount || 0), 0)
-            )
+            prev: prevDeposits,
+            change: calcChange(totalDepositsCollected, prevDeposits)
         }
     }
 
@@ -666,10 +793,11 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         const monthWonRev = monthWon.reduce((sum, s) => sum + getDealValue(s), 0)
         const monthProposals = monthSales.filter(s => ['proposal', 'reservation'].includes(categorizeStatus(s.status)))
         const monthDeposits = monthSales.reduce((sum, s) => sum + Number(s.deposit_amount || 0), 0)
+        const leadsForMonth = monthlyLeadCounts[i] ?? monthSales.length
 
         sixMonthTrend.push({
             month: monthLabel,
-            totalLeads: monthSales.length,
+            totalLeads: leadsForMonth,
             wonCount: monthWon.length,
             proposalsCount: monthProposals.length,
             wonRevenueM: Math.round((monthWonRev / 1000000) * 100) / 100,
