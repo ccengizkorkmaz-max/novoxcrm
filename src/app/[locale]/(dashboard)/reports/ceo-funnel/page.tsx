@@ -4,8 +4,8 @@ import CeoFunnelDashboard from './CeoFunnelDashboard'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-    title: 'CEO Satış Hunisi & Pipeline Kokpiti | NovoXCRM',
-    description: 'Boru hattı dönüşüm oranları, aşama kaçakları ve dönemsel geçmiş analizi'
+    title: 'CEO Satış Hunisi & Gelir Projeksiyonu Kokpiti | NovoXCRM',
+    description: 'Satış hunisi dönüşüm oranları, aşama kaçakları ve dönemsel geçmiş analizi'
 }
 
 export default async function CeoFunnelPage() {

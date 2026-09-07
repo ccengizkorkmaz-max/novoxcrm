@@ -2,10 +2,18 @@
 
 import React, { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@/components/ui/dialog"
 import {
     Select,
     SelectContent,
@@ -83,6 +91,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
     const [period, setPeriod] = useState<PeriodType>(initialData?.period || 'this_month')
     const [projectId, setProjectId] = useState<string>(initialData?.selectedProjectId || 'all')
     const [activeTab, setActiveTab] = useState<string>('forecast')
+    const [isGuideOpen, setIsGuideOpen] = useState(false)
     const [lastSyncTime, setLastSyncTime] = useState<string>('')
     const [isRealtimePulse, setIsRealtimePulse] = useState(false)
 
@@ -114,7 +123,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                     if (isSilent) {
                         setIsRealtimePulse(true)
                         setTimeout(() => setIsRealtimePulse(false), 3000)
-                        toast.info('Boru hattı anlık olarak güncellendi', { duration: 2500 })
+                        toast.info('Satış hunisi anlık olarak güncellendi', { duration: 2500 })
                     } else {
                         toast.success('Huni verileri güncellendi')
                     }
@@ -249,7 +258,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                             isRealtimePulse ? 'bg-emerald-500/30 text-emerald-300 ring-2 ring-emerald-400' : 'bg-white/10 text-indigo-200'
                         }`}>
                             <span className={`h-2 w-2 rounded-full ${isRealtimePulse ? 'bg-emerald-300 animate-ping' : 'bg-emerald-400 animate-pulse'}`} />
-                            {isRealtimePulse ? 'Anlık Senkronize Edildi' : 'Canlı Realtime Boru Hattı'}
+                            {isRealtimePulse ? 'Anlık Senkronize Edildi' : 'Canlı Realtime Satış Hunisi'}
                         </span>
                         <span className="text-[11px] text-indigo-300/60 hidden sm:inline">
                             Son Güncelleme: {lastSyncTime}
@@ -259,7 +268,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                         CEO Satış Hunisi & Gelir Projeksiyonu Kokpiti
                     </h1>
                     <p className="text-indigo-200/80 text-sm max-w-2xl font-normal">
-                        Boru hattındaki anlık değişiklikler anında yansır. Potansiyel teklifler, toplanan kaporalar, kesinleşen ciro ve 3 senaryolu gelir projeksiyonu.
+                        Satış hunisindeki anlık değişiklikler anında yansır. Potansiyel teklifler, gerçekleşen tahsilatlar, kesinleşen ciro ve 3 senaryolu gelir projeksiyonu.
                     </p>
                 </div>
 
@@ -315,6 +324,82 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                     >
                         <Printer className="h-4 w-4" />
                     </Button>
+
+                    {/* Help / Executive Guide Button (?) */}
+                    <Dialog open={isGuideOpen} onOpenChange={setIsGuideOpen}>
+                        <DialogTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black border-none rounded-xl gap-1.5 shadow-md shadow-amber-400/20 px-3"
+                                title="CEO Kokpit Rehberi & Dokümantasyon"
+                            >
+                                <HelpCircle className="h-4 w-4" />
+                                <span>Rehber (?)</span>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto rounded-3xl p-6 md:p-8 space-y-4">
+                            <DialogHeader>
+                                <div className="flex items-center gap-2">
+                                    <Badge className="bg-indigo-100 text-indigo-700 font-bold text-xs">
+                                        CEO Kokpit Kılavuzu
+                                    </Badge>
+                                </div>
+                                <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-between">
+                                    <span>CEO Satış Hunisi & Gelir Projeksiyonu Rehberi</span>
+                                </DialogTitle>
+                            </DialogHeader>
+
+                            {/* Summary Quick Cards */}
+                            <div className="space-y-4 text-slate-700 text-xs leading-relaxed">
+                                <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-2">
+                                    <h4 className="font-black text-indigo-950 text-sm flex items-center gap-1.5">
+                                        <Sparkles className="h-4 w-4 text-indigo-600" />
+                                        Bu Ekran Şirket Yönetimi İçin Neyi Çözer?
+                                    </h4>
+                                    <p>
+                                        Bu kokpit, şirketin <strong>tüm potansiyel fırsatlarını</strong>, <strong>sözleşmeli alacaklarını</strong>, 
+                                        <strong>gelecek 12 aylık vadeli nakit projeksiyonunu</strong> ve <strong>satış ekibinin operasyonel eforunu</strong> tek ekranda toplar.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div className="p-3.5 rounded-xl border border-slate-200 bg-white space-y-1">
+                                        <div className="font-black text-slate-900 text-xs">1. Muhafazakar Senaryo</div>
+                                        <p className="text-[11px] text-slate-500">Piyasa dursa dahi kasaya asgari ne kadar ciro gireceğini gösterir. Nakit bütçenizi bu tabana göre yapın.</p>
+                                    </div>
+                                    <div className="p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-1">
+                                        <div className="font-black text-indigo-950 text-xs">2. Beklenen Ciro (Hedef)</div>
+                                        <p className="text-[11px] text-indigo-700">Aşama olasılıklarıyla (Opsiyon %85, Teklif %60 vb.) hesaplanmış en gerçekçi ay sonu ciro beklentisidir.</p>
+                                    </div>
+                                    <div className="p-3.5 rounded-xl border border-slate-200 bg-white space-y-1">
+                                        <div className="font-black text-slate-900 text-xs">3. İyimser Senaryo</div>
+                                        <p className="text-[11px] text-slate-500">Tüm teklifler başarıyla kapatılırsa ulaşılabilecek tavan ciroyu gösterir.</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 pt-1">
+                                    <h4 className="font-black text-slate-900 text-sm">Hangi Durumda Hangi Sekmeye Bakmalısınız?</h4>
+                                    <ul className="space-y-1.5 list-disc list-inside text-slate-600">
+                                        <li><strong>Sözleşmeli Nakit Akışı & Taksitler:</strong> Gelecek 12 ay boyunca vadesi gelecek taksitleri ve gecikmiş alacakları incelemek için.</li>
+                                        <li><strong>Satış Aktiviteleri & Ekip Nabzı:</strong> Danışmanların günlük/haftalık arama, randevu ve ziyaret performansını görmek için.</li>
+                                        <li><strong>Kritik Büyük Fırsatlar (Whale Deals):</strong> Şirket cirosunu sırtlayan en büyük 10 teklifi bizzat CEO olarak takip etmek için.</li>
+                                        <li><strong>Darboğaz & Kayıp Analizi:</strong> Satışların neden ve nerede kaçtığını tespit edip müdahale etmek için.</li>
+                                    </ul>
+                                </div>
+
+                                <div className="pt-2 flex items-center justify-between border-t border-slate-200">
+                                    <span className="text-[11px] text-slate-400">Detaylı yönetim stratejileri ve 5 dakikalık haftalık rutin kontrol listesi için:</span>
+                                    <Link href="/reports/ceo-funnel/guide" target="_blank">
+                                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl gap-1 text-xs">
+                                            Detaylı Rehber Sayfasını Aç
+                                            <ArrowRight className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 
@@ -324,14 +409,14 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                     <div>
                         <div className="flex items-center gap-2">
                             <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-black text-[10px] tracking-wider uppercase">
-                                PROJEKSİYON & KASA GÜVENCESİ
+                                3 SENARYOLU FİNANSAL PROJEKSİYON
                             </Badge>
                             <span className="text-xs text-indigo-300/80 font-medium">
                                 Aşama ağırlıklarına göre tahmini gelir simülasyonu
                             </span>
                         </div>
                         <h2 className="text-xl md:text-2xl font-black text-white tracking-tight mt-1">
-                            Finansal Gelir Projeksiyonu & Kapora Yönetimi
+                            Finansal Gelir Projeksiyonu
                         </h2>
                     </div>
 
@@ -483,11 +568,11 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                     </CardContent>
                 </Card>
 
-                {/* 2. Aktif Pipeline Değeri */}
+                {/* 2. Aktif Satış Hunisi Değeri */}
                 <Card className="rounded-2xl border-slate-200/80 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-indigo-50/50 to-purple-50/30">
                     <CardContent className="p-4 space-y-2">
                         <div className="flex items-center justify-between text-indigo-700">
-                            <span className="text-xs font-bold uppercase tracking-wider">Aktif Boru Hattı</span>
+                            <span className="text-xs font-bold uppercase tracking-wider">Aktif Satış Hunisi</span>
                             <div className="h-7 w-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
                                 <Layers className="h-4 w-4" />
                             </div>
@@ -606,10 +691,10 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                                 </span>
                             </div>
                             <CardTitle className="text-xl md:text-2xl font-black text-slate-900 tracking-tight mt-1">
-                                Aşamalar Bazında Potansiyel, Kapora ve Kesinleşen Ciro
+                                Aşamalar Bazında Potansiyel ve Kesinleşen Gelir Dağılımı
                             </CardTitle>
                             <CardDescription className="text-sm text-slate-500 mt-0.5">
-                                Her aşamada bekleyen potansiyel ünite değeri, toplanan kapora ve aşama kazanma olasılığına göre ağırlıklı gelir.
+                                Her aşamada bekleyen potansiyel ünite değeri ve aşama kazanma olasılığına göre ağırlıklı gelir projeksiyonu.
                             </CardDescription>
                         </div>
                         <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
@@ -753,7 +838,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                     <TabsList className="bg-slate-100 p-1 rounded-2xl flex-wrap">
                         <TabsTrigger value="forecast" className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">
                             <Coins className="h-4 w-4" />
-                            Gelir Projeksiyonu & Kapora
+                            Finansal Gelir Projeksiyonu
                         </TabsTrigger>
                         <TabsTrigger value="cashflow" className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm">
                             <CreditCard className="h-4 w-4 text-emerald-600" />
@@ -807,10 +892,10 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                             <CardHeader>
                                 <CardTitle className="text-base font-black text-slate-800 flex items-center gap-2">
                                     <Coins className="h-5 w-5 text-amber-500" />
-                                    Kapora Güvencesi & Kasa Durumu
+                                    Kasa Güvencesi & Gelir Durumu
                                 </CardTitle>
                                 <CardDescription className="text-xs text-slate-400">
-                                    Boru hattında toplanan ve kasaya intikal eden kapora analizi
+                                    Satış hunisinde kesinleşen ciro ve güvence altına alınan tahsilat analizi
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -842,7 +927,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center py-1">
-                                        <span className="text-slate-500">Maksimum Boru Hattı Tavanı:</span>
+                                        <span className="text-slate-500">Maksimum Satış Hunisi Potansiyeli:</span>
                                         <span className="font-black text-indigo-700">{formatCurrency(revenueForecast.maxPotentialRevenue)}</span>
                                     </div>
                                 </div>
@@ -1363,7 +1448,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                                         Kritik Büyük Fırsatlar Radarı (Top Whale Deals)
                                     </CardTitle>
                                     <CardDescription className="text-xs text-slate-400">
-                                        Boru hattındaki en yüksek tutarlı, şirket cirosunu doğrudan belirleyen ilk {topWhaleDeals?.length || 0} kritik teklif ve opsiyon
+                                        Satış hunisindeki en yüksek tutarlı, şirket cirosunu doğrudan belirleyen ilk {topWhaleDeals?.length || 0} kritik teklif ve opsiyon
                                     </CardDescription>
                                 </div>
                                 <Badge className="bg-amber-100 text-amber-900 border-amber-200 font-bold text-xs">
@@ -1675,7 +1760,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                                 Satış Temsilcisi & Danışman Performans Sıralaması
                             </CardTitle>
                             <CardDescription className="text-xs text-slate-400">
-                                Danışman bazında atanan lead sayısı, toplanan kapora ve kapanan satış ciroları
+                                Danışman bazında atanan lead sayısı, aktif fırsatlar ve kapanan satış ciroları
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -1800,7 +1885,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                                 {stagnantDeals?.length === 0 ? (
                                     <div className="flex items-center justify-center p-8 text-slate-400 text-xs font-medium">
                                         <CheckCircle2 className="h-5 w-5 text-emerald-500 mr-2" />
-                                        Tebrikler! Boru hattında 14 günden uzun süredir bekleyen tıkanmış teklif bulunmuyor.
+                                        Tebrikler! Satış hunisinde 14 günden uzun süredir bekleyen tıkanmış teklif bulunmuyor.
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
@@ -1861,7 +1946,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                                 Reklam & Pazarlama Kanal Dönüşüm Verimliliği
                             </CardTitle>
                             <CardDescription className="text-xs text-slate-400">
-                                Hangi lead kaynağı en yüksek kaliteli adayı, kapora miktarını ve satış cirosunu sağladı?
+                                Hangi lead kaynağı en yüksek kaliteli adayı ve satış cirosunu sağladı?
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
