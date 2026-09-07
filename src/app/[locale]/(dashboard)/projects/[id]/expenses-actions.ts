@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export interface ProjectExpense {
     id: string
@@ -22,9 +23,9 @@ export interface ProjectExpense {
 }
 
 export async function getProjectExpenses(projectId: string): Promise<ProjectExpense[]> {
-    const supabase = await createClient()
+    const adminSupabase = createAdminClient()
 
-    const { data, error } = await supabase
+    const { data, error } = await adminSupabase
         .from('project_expenses')
         .select('*, profiles:created_by(full_name)')
         .eq('project_id', projectId)
@@ -74,7 +75,8 @@ export async function createProjectExpense(formData: FormData) {
         return { error: 'Geçersiz harcama tutarı.' }
     }
 
-    const { error } = await supabase
+    const adminSupabase = createAdminClient()
+    const { error } = await adminSupabase
         .from('project_expenses')
         .insert({
             tenant_id: profile.tenant_id,
@@ -118,7 +120,8 @@ export async function deleteProjectExpense(expenseId: string, projectId: string)
         return { error: 'Harcama silmek için admin yetkisi gereklidir.' }
     }
 
-    const { error } = await supabase
+    const adminSupabase = createAdminClient()
+    const { error } = await adminSupabase
         .from('project_expenses')
         .delete()
         .eq('id', expenseId)
@@ -158,8 +161,10 @@ export async function syncExpensesToUnits(
         return { error: 'Ünite maliyetlerini dağıtmak için admin yetkisi gereklidir.' }
     }
 
+    const adminSupabase = createAdminClient()
+
     // 1. Projedeki tüm harcamaları topla
-    const { data: expenses, error: expError } = await supabase
+    const { data: expenses, error: expError } = await adminSupabase
         .from('project_expenses')
         .select('amount, currency')
         .eq('project_id', projectId)
@@ -175,7 +180,7 @@ export async function syncExpensesToUnits(
     }
 
     // 2. Projedeki üniteleri çek
-    const { data: units, error: unitsError } = await supabase
+    const { data: units, error: unitsError } = await adminSupabase
         .from('units')
         .select('id, unit_number, area_gross, area_net')
         .eq('project_id', projectId)
@@ -210,7 +215,7 @@ export async function syncExpensesToUnits(
         const area = Number(u[areaField]) || 0
         if (area > 0) {
             const calculatedCost = Math.round(area * unitCostPerM2)
-            await supabase
+            await adminSupabase
                 .from('units')
                 .update({ cost: calculatedCost })
                 .eq('id', u.id)
