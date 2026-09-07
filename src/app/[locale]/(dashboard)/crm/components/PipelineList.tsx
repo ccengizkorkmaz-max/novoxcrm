@@ -16,7 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Calculator, Sparkles, User, Info, Mail, Phone, PhoneCall, Flame, MessageSquareText, CalendarPlus, CalendarCheck, CheckCircle2, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle, Share2, MessageCircle } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, PhoneCall, Flame, MessageSquareText, CalendarPlus, CalendarCheck, CheckCircle2, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, ChevronDown, ChevronUp, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle, Share2, MessageCircle } from 'lucide-react'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
@@ -317,6 +317,7 @@ export default function PipelineList({
     const [isAssigning, setIsAssigning] = useState<string | null>(null)
     const [assignPopoverOpen, setAssignPopoverOpen] = useState<string | null>(null)
     const [viewingLead, setViewingLead] = useState<any | null>(null)
+    const [isPendingCallsCollapsed, setIsPendingCallsCollapsed] = useState(false)
 
     const [isActivityOpen, setIsActivityOpen] = useState(false)
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<any | null>(null)
@@ -931,96 +932,105 @@ export default function PipelineList({
 
     return (
         <div className="space-y-4">
-            {/* 🚨 Acil Arama Bekleyen Leadler (Beni Arayın Diyenler) */}
+            {/* 🚨 Acil Arama Bekleyen Leadler (Kompakt Bar) */}
             {pendingCallSales.length > 0 && (
-                <div className="p-4 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-orange-500/10 dark:from-amber-950/40 dark:via-rose-950/40 dark:to-orange-950/40 border border-amber-300/80 dark:border-amber-700/60 rounded-2xl shadow-xs space-y-3 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2.5">
-                            <span className="relative flex h-3.5 w-3.5">
+                <div className="p-2.5 px-3 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/5 dark:from-amber-950/40 dark:via-rose-950/40 dark:to-slate-900 border border-amber-300/80 dark:border-amber-700/60 rounded-xl shadow-xs space-y-2 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                            <span className="relative flex h-2.5 w-2.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-600"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
                             </span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
-                                    <PhoneCall className="w-4 h-4 text-rose-600 dark:text-rose-400 animate-bounce" />
-                                    Acil Arama Bekleyen Müşteriler ({pendingCallSales.length})
-                                </span>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                                    🔥 Sıcak Lead
-                                </span>
-                            </div>
+                            <span className="text-[11px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
+                                <PhoneCall className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-bounce" />
+                                Acil Arama Bekleyenler ({pendingCallSales.length})
+                            </span>
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                                🔥 Sıcak Lead
+                            </span>
+                            <span className="hidden sm:inline text-[11px] text-slate-500 dark:text-slate-400 font-medium ml-1">
+                                WhatsApp'tan "Beni Arayın" diyen müşteriler
+                            </span>
                         </div>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                            WhatsApp üzerinden "Beni Arayın" diyen leadler — İlk 15 dakikada arayarak dönüşümü artırın
-                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setIsPendingCallsCollapsed(prev => !prev)}
+                            className="text-[11px] text-slate-600 hover:text-slate-900 dark:text-slate-400 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                        >
+                            {isPendingCallsCollapsed ? (
+                                <>Göster ({pendingCallSales.length}) <ChevronDown className="w-3.5 h-3.5" /></>
+                            ) : (
+                                <>Daralt <ChevronUp className="w-3.5 h-3.5" /></>
+                            )}
+                        </button>
                     </div>
 
-                    {/* Quick Call Action Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
-                        {pendingCallSales.slice(0, 4).map((sale: any) => {
-                            const customerName = sale.customers?.full_name || 'Bilinmeyen Müşteri'
-                            const phone = sale.customers?.phone
-                            const projectName = sale.units?.projects?.name || sale.projects?.name || ''
-                            const unitNo = sale.units?.unit_number ? `No: ${sale.units.unit_number}` : ''
+                    {/* Kompakt Müşteri Aksiyon Çipleri */}
+                    {!isPendingCallsCollapsed && (
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                            {pendingCallSales.map((sale: any) => {
+                                const customerName = sale.customers?.full_name || 'Bilinmeyen Müşteri'
+                                const phone = sale.customers?.phone
+                                const projectName = sale.units?.projects?.name || sale.projects?.name || ''
+                                const unitNo = sale.units?.unit_number ? `No:${sale.units.unit_number}` : ''
 
-                            return (
-                                <div key={sale.id} className="p-3 bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-800/80 rounded-xl shadow-xs flex flex-col justify-between gap-2.5 hover:shadow-md transition-all">
-                                    <div className="space-y-0.5">
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate max-w-[150px]">
+                                return (
+                                    <div
+                                        key={sale.id}
+                                        className="inline-flex items-center gap-2 py-1 px-2.5 bg-white dark:bg-slate-900 border border-amber-300/80 dark:border-amber-800 rounded-lg shadow-2xs hover:border-amber-400 transition-all text-xs"
+                                    >
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">
                                                 {customerName}
                                             </span>
-                                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 uppercase">
-                                                Arama Talep Etti
-                                            </span>
+                                            {(projectName || unitNo) && (
+                                                <span className="text-[10px] text-muted-foreground max-w-[120px] truncate">
+                                                    • {projectName} {unitNo}
+                                                </span>
+                                            )}
                                         </div>
-                                        {(projectName || unitNo) && (
-                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                                                {projectName} {unitNo}
-                                            </p>
-                                        )}
-                                    </div>
 
-                                    <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
-                                        {phone ? (
-                                            <a
-                                                href={`tel:${phone}`}
-                                                className="flex-1 h-7 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center justify-center gap-1 shadow-xs transition-colors"
-                                                title="Telefonla Ara"
-                                            >
-                                                <Phone className="w-3 h-3" /> Ara
-                                            </a>
-                                        ) : null}
+                                        <div className="flex items-center gap-1">
+                                            {phone ? (
+                                                <a
+                                                    href={`tel:${phone}`}
+                                                    className="h-6 px-2 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-md inline-flex items-center gap-1 shadow-2xs transition-colors"
+                                                    title="Telefonla Ara"
+                                                >
+                                                    <Phone className="w-3 h-3" /> Ara
+                                                </a>
+                                            ) : null}
 
-                                        {phone ? (
+                                            {phone ? (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        const cleanPhone = phone.replace(/\D/g, '')
+                                                        window.open(`https://wa.me/${cleanPhone}`, '_blank')
+                                                    }}
+                                                    className="h-6 w-6 p-0 text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
+                                                    title="WhatsApp Sohbeti Aç"
+                                                >
+                                                    <MessageCircle className="w-3 h-3" />
+                                                </Button>
+                                            ) : null}
+
                                             <Button
                                                 size="sm"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    const cleanPhone = phone.replace(/\D/g, '')
-                                                    window.open(`https://wa.me/${cleanPhone}`, '_blank')
-                                                }}
-                                                className="h-7 px-2 text-[11px] font-bold text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
-                                                title="WhatsApp Sohbeti Aç"
+                                                variant="ghost"
+                                                onClick={() => openQuickNote(sale.id, sale.customer_id, sale.description)}
+                                                className="h-6 px-1.5 text-[10px] font-bold text-blue-600 hover:bg-blue-50 dark:text-blue-400"
+                                                title="Hızlı Not Gir"
                                             >
-                                                <MessageCircle className="w-3 h-3" />
+                                                Not Gir
                                             </Button>
-                                        ) : null}
-
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => openQuickNote(sale.id, sale.customer_id, sale.description)}
-                                            className="h-7 px-2 text-[10px] font-bold text-blue-600 hover:bg-blue-50 dark:text-blue-400"
-                                            title="İlk Temas Sonucu / Hızlı Not Gir"
-                                        >
-                                            Not Gir
-                                        </Button>
+                                        </div>
                                     </div>
-                                </div>
-                            )
-                        })}
-                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
                 </div>
             )}
 

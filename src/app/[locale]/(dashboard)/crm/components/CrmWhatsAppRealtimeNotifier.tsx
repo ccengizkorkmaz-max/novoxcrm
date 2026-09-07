@@ -65,13 +65,17 @@ export default function CrmWhatsAppRealtimeNotifier({
                         // Listeyi ve sayaçları yenile
                         router.refresh()
 
-                        // Canlı Toast bildirimi
+                        // Canlı Toast bildirimi (Temsilci görene/yanıtlayana kadar ekranda kalır)
                         toast(
                             `💬 Yeni WhatsApp Mesajı: ${customerName}`,
                             {
                                 description: newMsg.content ? `"${newMsg.content.substring(0, 90)}"` : 'Müşteriden yeni bir mesaj geldi',
                                 icon: <MessageCircle className="h-4 w-4 text-emerald-500 animate-pulse" />,
-                                duration: 12000,
+                                duration: Infinity,
+                                cancel: {
+                                    label: 'Kapat',
+                                    onClick: () => {}
+                                },
                                 action: {
                                     label: 'Yanıtla',
                                     onClick: () => {
