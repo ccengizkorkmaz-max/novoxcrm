@@ -1135,11 +1135,19 @@ export default function PipelineList({
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => {
-                                                        const cleanPhone = phone.replace(/\D/g, '')
-                                                        window.open(`https://wa.me/${cleanPhone}`, '_blank')
+                                                        setWhatsAppDrawerState({
+                                                            isOpen: true,
+                                                            customer: {
+                                                                id: sale.customers?.id,
+                                                                full_name: sale.customers?.full_name || 'Müşteri',
+                                                                phone: sale.customers?.phone || phone
+                                                            },
+                                                            saleId: sale.id,
+                                                            projectName: sale.units?.projects?.name || sale.projects?.name
+                                                        })
                                                     }}
                                                     className="h-6 w-6 p-0 text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
-                                                    title="WhatsApp Sohbeti Aç"
+                                                    title="Dahili WhatsApp Sohbetini Aç"
                                                 >
                                                     <MessageCircle className="w-3 h-3" />
                                                 </Button>

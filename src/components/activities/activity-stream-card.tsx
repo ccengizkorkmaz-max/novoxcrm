@@ -425,8 +425,24 @@ export function ActivityStreamCard({
                                                     href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors"
-                                                    title="WhatsApp Sohbeti Başlat"
+                                                    onClick={(e) => {
+                                                        if (typeof window !== 'undefined') {
+                                                            e.preventDefault()
+                                                            window.dispatchEvent(new CustomEvent('open-crm-whatsapp-chat', {
+                                                                detail: {
+                                                                    customer: {
+                                                                        id: activity.customer_id || activity.customers?.id,
+                                                                        full_name: customerName,
+                                                                        phone: customerPhone
+                                                                    },
+                                                                    saleId: null,
+                                                                    projectName
+                                                                }
+                                                            }))
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer"
+                                                    title="Dahili WhatsApp Sohbetini Aç"
                                                 >
                                                     <MessageSquare className="h-3 w-3" />
                                                     <span>WhatsApp</span>
