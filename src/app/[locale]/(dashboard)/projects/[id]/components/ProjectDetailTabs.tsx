@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { BackButton } from '@/components/back-button'
 import { ProjectSaveButton } from '@/components/projects/ProjectSaveButton'
-import { Home, FileText, Users, Building2 } from 'lucide-react'
+import { Home, FileText, Users, Building2, Receipt } from 'lucide-react'
 
 interface ProjectDetailTabsProps {
     projectId: string
@@ -14,6 +14,8 @@ interface ProjectDetailTabsProps {
     initialTab?: string
     unitsCount?: number
     documentsCount?: number
+    expensesCount?: number
+    isAdmin?: boolean
     children: React.ReactNode
 }
 
@@ -23,6 +25,8 @@ export function ProjectDetailTabs({
     initialTab = 'info',
     unitsCount = 0,
     documentsCount = 0,
+    expensesCount = 0,
+    isAdmin = false,
     children
 }: ProjectDetailTabsProps) {
     const router = useRouter()
@@ -110,6 +114,15 @@ export function ProjectDetailTabs({
                     <Building2 className="w-4 h-4 mr-2" />
                     Şantiye & İlerleme
                 </TabsTrigger>
+                {isAdmin && (
+                    <TabsTrigger value="expenses">
+                        <Receipt className="w-4 h-4 mr-2 text-amber-600" />
+                        Maliyet & Şantiye Giderleri
+                        {expensesCount !== undefined && expensesCount > 0 && (
+                            <Badge variant="secondary" className="ml-2 bg-amber-100 text-amber-900 border-amber-300">{expensesCount}</Badge>
+                        )}
+                    </TabsTrigger>
+                )}
             </TabsList>
 
             {children}

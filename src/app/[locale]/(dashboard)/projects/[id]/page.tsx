@@ -30,6 +30,8 @@ import { DeleteAllUnitsButton } from '@/components/projects/DeleteAllUnitsButton
 import { UnitListClient } from './components/UnitListClient'
 import { ProjectDetailTabs } from './components/ProjectDetailTabs'
 import { DynamicAmenities } from '@/components/projects/DynamicAmenities'
+import { ProjectExpensesTab } from './components/ProjectExpensesTab'
+import { getProjectExpenses } from './expenses-actions'
 
 const CATEGORY_LABELS: Record<string, string> = {
     'catalog': 'Proje Kataloğu',
@@ -161,6 +163,9 @@ export default async function ProjectDetailPage(props: {
 
     // Resolve uploader names for construction photos
     const constructionPhotos = constructionPhotosRaw || []
+
+    // Fetch project site expenses if user has admin/manager role
+    const expenses = isAdmin ? await getProjectExpenses(id) : []
     if (constructionPhotos.length > 0) {
         const uploaderIds = [...new Set(constructionPhotos.map((p: any) => p.uploaded_by).filter(Boolean))]
         if (uploaderIds.length > 0) {
@@ -208,6 +213,8 @@ export default async function ProjectDetailPage(props: {
                 initialTab={activeTab}
                 unitsCount={units?.length || 0}
                 documentsCount={documents?.length || 0}
+                expensesCount={expenses?.length || 0}
+                isAdmin={isAdmin}
             >
 
                 {/* Broker Access Tab */}
@@ -659,6 +666,19 @@ export default async function ProjectDetailPage(props: {
                         onUpdateUnitProgress={updateUnitProgress}
                     />
                 </TabsContent>
+
+                {/* Expenses Tab */}
+                {isAdmin && (
+                    <TabsContent value="expenses" className="space-y-6">
+                        <ProjectExpensesTab
+                            projectId={id}
+                            projectName={project.name}
+                            expenses={expenses || []}
+                            units={units || []}
+                            isAdmin={isAdmin}
+                        />
+                    </TabsContent>
+                )}
             </ProjectDetailTabs>
         </div >
     )

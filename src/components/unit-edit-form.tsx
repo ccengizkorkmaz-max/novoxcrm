@@ -204,6 +204,19 @@ export function UnitEditForm({ unit, disabled = false, isAdmin = false }: { unit
                                         </div>
                                     </div>
                                     <p className="text-[10px] text-muted-foreground">Bu bilgi satış temsilcilerine ve müşterilere gösterilmez.</p>
+                                    {unit.project_id && (
+                                        <div className="mt-1 pt-1.5 border-t border-amber-200/50 flex items-center justify-between text-[10px]">
+                                            <span className="text-amber-800 font-medium">Şantiye giderlerinden m² bazlı otomatik dağıtılabilir.</span>
+                                            <a 
+                                                href={`/projects/${unit.project_id}?tab=expenses`} 
+                                                className="text-blue-700 hover:underline font-bold"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                Şantiye Giderleri ↗
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {profit !== null && margin !== null && (
