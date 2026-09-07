@@ -82,24 +82,127 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { getCeoFunnelData, PeriodType } from './actions'
 
+// -------------------------------------------------------------
+// SWR Instant Client-Side Caching (LocalStorage)
+// -------------------------------------------------------------
+const CACHE_PREFIX = 'novocrm_ceo_funnel_cache_v2_'
+
+function getCachedData(projId: string, p: PeriodType): { data: any; timestamp: number } | null {
+    if (typeof window === 'undefined') return null
+    try {
+        const raw = localStorage.getItem(`${CACHE_PREFIX}${projId}_${p}`)
+        if (!raw) return null
+        return JSON.parse(raw)
+    } catch (e) {
+        console.warn('Failed to read CEO funnel cache:', e)
+        return null
+    }
+}
+
+function setCachedData(projId: string, p: PeriodType, data: any) {
+    if (typeof window === 'undefined' || !data || data.error) return
+    try {
+        localStorage.setItem(
+            `${CACHE_PREFIX}${projId}_${p}`,
+            JSON.stringify({
+                timestamp: Date.now(),
+                data
+            })
+        )
+    } catch (e) {
+        console.warn('Failed to write CEO funnel cache:', e)
+    }
+}
+
+function CeoFunnelSkeleton() {
+    return (
+        <div className="flex flex-col gap-8 pb-16 animate-pulse">
+            {/* Top Executive Header Skeleton */}
+            <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 p-6 md:p-8 rounded-3xl border border-indigo-500/20 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 shadow-2xl">
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-2xl bg-amber-500/30" />
+                        <div className="h-6 w-40 rounded-full bg-amber-500/20" />
+                        <div className="h-6 w-48 rounded-full bg-indigo-500/30" />
+                    </div>
+                    <div className="h-9 w-72 md:w-96 rounded-2xl bg-white/20" />
+                    <div className="h-4 w-60 md:w-80 rounded-lg bg-white/10" />
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="h-10 w-40 rounded-xl bg-white/10" />
+                    <div className="h-10 w-64 rounded-xl bg-white/10" />
+                    <div className="h-10 w-10 rounded-xl bg-white/10" />
+                </div>
+            </div>
+
+            {/* 4 KPI Cards Skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                        <div className="flex justify-between items-center">
+                            <div className="h-4 w-32 rounded bg-slate-200" />
+                            <div className="h-10 w-10 rounded-2xl bg-slate-100" />
+                        </div>
+                        <div className="h-8 w-36 rounded-lg bg-slate-200" />
+                        <div className="h-4 w-44 rounded bg-slate-100" />
+                    </div>
+                ))}
+            </div>
+
+            {/* 2 Main Chart Skeletons */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-200 space-y-4 shadow-sm">
+                    <div className="h-6 w-48 rounded bg-slate-200" />
+                    <div className="h-4 w-64 rounded bg-slate-100" />
+                    <div className="h-72 rounded-2xl bg-slate-50 flex items-end p-6 gap-4">
+                        {[45, 60, 85, 50, 95].map((h, idx) => (
+                            <div key={idx} className="flex-1 bg-slate-200 rounded-t-xl" style={{ height: `${h}%` }} />
+                        ))}
+                    </div>
+                </div>
+                <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-200 space-y-4 shadow-sm">
+                    <div className="h-6 w-48 rounded bg-slate-200" />
+                    <div className="h-4 w-64 rounded bg-slate-100" />
+                    <div className="h-72 rounded-2xl bg-slate-50 flex flex-col justify-center gap-4 p-6">
+                        <div className="h-12 w-full rounded-2xl bg-slate-200" />
+                        <div className="h-12 w-full rounded-2xl bg-slate-200" />
+                        <div className="h-12 w-full rounded-2xl bg-slate-200" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Cashflow & Activities Tabs Skeleton */}
+            <div className="bg-white rounded-3xl p-6 border border-slate-200 space-y-4 shadow-sm">
+                <div className="flex gap-3">
+                    <div className="h-10 w-48 rounded-xl bg-slate-200" />
+                    <div className="h-10 w-48 rounded-xl bg-slate-100" />
+                </div>
+                <div className="space-y-3 pt-2">
+                    {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="h-14 w-full rounded-2xl bg-slate-100" />
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
+}
+
 interface CeoFunnelDashboardProps {
-    initialData: any
+    initialData?: any
 }
 
 export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardProps) {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
-    const [data, setData] = useState<any>(initialData)
+    const [data, setData] = useState<any>(initialData || null)
     const [period, setPeriod] = useState<PeriodType>(initialData?.period || 'this_month')
     const [projectId, setProjectId] = useState<string>(initialData?.selectedProjectId || 'all')
     const [activeTab, setActiveTab] = useState<string>('forecast')
     const [isGuideOpen, setIsGuideOpen] = useState(false)
     const [lastSyncTime, setLastSyncTime] = useState<string>('')
     const [isRealtimePulse, setIsRealtimePulse] = useState(false)
-
-    useEffect(() => {
-        setLastSyncTime(new Date().toLocaleTimeString('tr-TR'))
-    }, [])
+    const [isFromCache, setIsFromCache] = useState(false)
+    const [isRevalidating, setIsRevalidating] = useState(false)
 
     // Currency Formatter Helper
     const formatCurrency = (val: number) => {
@@ -113,38 +216,69 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
         return `₺${val.toLocaleString('tr-TR')}`
     }
 
-    const reloadData = (newPeriod: PeriodType = period, newProject: string = projectId, isSilent = false) => {
+    const reloadData = (
+        newPeriod: PeriodType = period,
+        newProject: string = projectId,
+        options: { silent?: boolean; forceRefresh?: boolean } = {}
+    ) => {
+        const { silent = false, forceRefresh = false } = options
+        setIsRevalidating(true)
         startTransition(async () => {
             try {
-                const res = await getCeoFunnelData({ period: newPeriod, projectId: newProject })
+                const res = await getCeoFunnelData({
+                    period: newPeriod,
+                    projectId: newProject,
+                    forceRefresh
+                })
                 if ('error' in res) {
-                    if (!isSilent) toast.error(res.error || 'Veri yüklenemedi')
+                    if (!silent) toast.error(res.error || 'Veri yüklenemedi')
                 } else {
                     setData(res)
+                    setCachedData(newProject, newPeriod, res)
+                    setIsFromCache(false)
                     setLastSyncTime(new Date().toLocaleTimeString('tr-TR'))
-                    if (isSilent) {
+                    if (silent) {
                         setIsRealtimePulse(true)
                         setTimeout(() => setIsRealtimePulse(false), 3000)
-                        toast.info('Satış hunisi anlık olarak güncellendi', { duration: 2500 })
                     } else {
-                        toast.success('Huni verileri güncellendi')
+                        toast.success('Satış hunisi verileri güncellendi')
                     }
                 }
             } catch (err) {
-                if (!isSilent) toast.error('Beklenmedik bir hata oluştu')
+                if (!silent) toast.error('Beklenmedik bir hata oluştu')
+            } finally {
+                setIsRevalidating(false)
             }
         })
     }
+
+    // Instant SWR Cache Initialization on mount
+    useEffect(() => {
+        const cached = getCachedData(projectId, period)
+        if (cached?.data && !cached.data.error) {
+            setData(cached.data)
+            setIsFromCache(true)
+            setLastSyncTime(new Date(cached.timestamp).toLocaleTimeString('tr-TR'))
+            // Silently fetch freshest data in background
+            reloadData(period, projectId, { silent: true, forceRefresh: false })
+        } else if (initialData && !initialData.error) {
+            setCachedData(projectId, period, initialData)
+            setLastSyncTime(new Date().toLocaleTimeString('tr-TR'))
+        } else {
+            // First time load on this browser: fetch fresh
+            reloadData(period, projectId, { silent: false, forceRefresh: false })
+        }
+    }, [])
 
     // Supabase Realtime Subscription on sales, contracts, payment_plans & activities
     useEffect(() => {
         const supabase = createClient()
         const channel = supabase
             .channel('ceo-funnel-hub-realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => reloadData(period, projectId, true))
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, () => reloadData(period, projectId, true))
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_plans' }, () => reloadData(period, projectId, true))
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, () => reloadData(period, projectId, true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => reloadData(period, projectId, { silent: true, forceRefresh: true }))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, () => reloadData(period, projectId, { silent: true, forceRefresh: true }))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_plans' }, () => reloadData(period, projectId, { silent: true, forceRefresh: true }))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, () => reloadData(period, projectId, { silent: true, forceRefresh: true }))
             .subscribe()
 
         return () => {
@@ -154,15 +288,35 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
 
     const handlePeriodChange = (p: PeriodType) => {
         setPeriod(p)
-        reloadData(p, projectId)
+        const cached = getCachedData(projectId, p)
+        if (cached?.data && !cached.data.error) {
+            setData(cached.data)
+            setIsFromCache(true)
+            setLastSyncTime(new Date(cached.timestamp).toLocaleTimeString('tr-TR'))
+            reloadData(p, projectId, { silent: true })
+        } else {
+            reloadData(p, projectId, { silent: false })
+        }
     }
 
     const handleProjectChange = (pId: string) => {
         setProjectId(pId)
-        reloadData(period, pId)
+        const cached = getCachedData(pId, period)
+        if (cached?.data && !cached.data.error) {
+            setData(cached.data)
+            setIsFromCache(true)
+            setLastSyncTime(new Date(cached.timestamp).toLocaleTimeString('tr-TR'))
+            reloadData(period, pId, { silent: true })
+        } else {
+            reloadData(period, pId, { silent: false })
+        }
     }
 
-    if (!data || data.error || !data.kpi) {
+    if (!data) {
+        return <CeoFunnelSkeleton />
+    }
+
+    if (data.error || !data.kpi) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 p-8 bg-slate-50 rounded-3xl border border-slate-200 text-center">
                 <AlertCircle className="h-12 w-12 text-rose-500" />
@@ -172,7 +326,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                         {data?.error || 'Satış hunisi verileri şu anda alınamadı. Lütfen oturumunuzu kontrol edip tekrar deneyin.'}
                     </p>
                 </div>
-                <Button onClick={() => reloadData()} className="rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700">
+                <Button onClick={() => reloadData(period, projectId, { silent: false, forceRefresh: true })} className="rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700">
                     <RefreshCw className="h-4 w-4 mr-2" /> Tekrar Dene
                 </Button>
             </div>
@@ -256,14 +410,27 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                         <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs font-black px-3 py-1 uppercase tracking-wider">
                             Executive Command Center
                         </Badge>
-                        <span className={`text-xs font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors ${
-                            isRealtimePulse ? 'bg-emerald-500/30 text-emerald-300 ring-2 ring-emerald-400' : 'bg-white/10 text-indigo-200'
-                        }`}>
-                            <span className={`h-2 w-2 rounded-full ${isRealtimePulse ? 'bg-emerald-300 animate-ping' : 'bg-emerald-400 animate-pulse'}`} />
-                            {isRealtimePulse ? 'Anlık Senkronize Edildi' : 'Canlı Realtime Satış Hunisi'}
-                        </span>
-                        <span className="text-[11px] text-indigo-300/60 hidden sm:inline">
-                            Son Güncelleme: {lastSyncTime}
+                        {/* Realtime / SWR Cache Status Badge */}
+                        {isRevalidating && isFromCache ? (
+                            <span className="text-xs font-bold flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm animate-pulse">
+                                <Zap className="h-3.5 w-3.5 text-amber-400 animate-spin" />
+                                <span>⚡ Önbellekten Açıldı • Güncelleniyor...</span>
+                            </span>
+                        ) : isFromCache ? (
+                            <span className="text-xs font-bold flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                <Zap className="h-3 w-3 text-amber-400" />
+                                <span>Önbellek</span>
+                            </span>
+                        ) : (
+                            <span className={`text-xs font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors ${
+                                isRealtimePulse ? 'bg-emerald-500/30 text-emerald-300 ring-2 ring-emerald-400' : 'bg-white/10 text-indigo-200'
+                            }`}>
+                                <span className={`h-2 w-2 rounded-full ${isRealtimePulse ? 'bg-emerald-300 animate-ping' : 'bg-emerald-400'}`} />
+                                {isRealtimePulse ? 'Yeni Verilerle Güncellendi' : 'Canlı Realtime Satış Hunisi'}
+                            </span>
+                        )}
+                        <span className="text-[11px] text-indigo-300/70 hidden sm:inline">
+                            Son Senkron: {lastSyncTime || 'Senkronize ediliyor...'}
                         </span>
                     </div>
                     <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white">
@@ -309,12 +476,12 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => reloadData()}
-                        disabled={isPending}
+                        onClick={() => reloadData(period, projectId, { silent: false, forceRefresh: true })}
+                        disabled={isPending || isRevalidating}
                         className="bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-xl"
-                        title="Verileri Yenile"
+                        title="Zorla Yenile (En Son Verileri Çek)"
                     >
-                        <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin text-amber-400' : ''}`} />
+                        <RefreshCw className={`h-4 w-4 ${isPending || isRevalidating ? 'animate-spin text-amber-400' : ''}`} />
                     </Button>
 
                     <Button

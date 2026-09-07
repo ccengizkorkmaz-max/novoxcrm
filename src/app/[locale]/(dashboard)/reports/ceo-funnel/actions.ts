@@ -20,6 +20,183 @@ export type PeriodType = 'this_month' | 'last_month' | 'last_30_days' | 'last_90
 export interface CeoFunnelFilters {
     period?: PeriodType
     projectId?: string
+    forceRefresh?: boolean
+}
+
+// -------------------------------------------------------------
+// In-Memory Server Cache for High-Speed Executive Reporting
+// -------------------------------------------------------------
+interface ServerCeoCacheEntry {
+    timestamp: number
+    data: any
+}
+const serverCeoCache = new Map<string, ServerCeoCacheEntry>()
+const SERVER_CACHE_TTL_MS = 60 * 1000 // 60 seconds
+
+export async function clearCeoFunnelCache(tenantId?: string) {
+    if (tenantId) {
+        for (const key of serverCeoCache.keys()) {
+            if (key.startsWith(tenantId)) serverCeoCache.delete(key)
+        }
+    } else {
+        serverCeoCache.clear()
+    }
+}
+
+async function fetchAllSales(supabase: any, tenantId: string, selectedProjectId: string | null) {
+    const allSales: any[] = []
+    let salesPage = 0
+    const CHUNK_SIZE = 1000
+
+    while (true) {
+        let query = supabase
+            .from('sales')
+            .select(`
+                id,
+                tenant_id,
+                customer_id,
+                unit_id,
+                assigned_to,
+                status,
+                deposit_amount,
+                final_price,
+                currency,
+                created_at,
+                updated_at,
+                contract_date,
+                project_id,
+                lead_origin,
+                lost_reason,
+                projects:project_id ( id, name ),
+                profiles:assigned_to ( id, full_name, email ),
+                customers:customer_id ( id, full_name, phone, source, created_at ),
+                units:unit_id ( id, unit_number, price )
+            `)
+            .eq('tenant_id', tenantId)
+
+        if (selectedProjectId) {
+            query = query.eq('project_id', selectedProjectId)
+        }
+
+        const { data, error: salesErr } = await query
+            .order('id', { ascending: true })
+            .range(salesPage * CHUNK_SIZE, (salesPage + 1) * CHUNK_SIZE - 1)
+
+        if (salesErr) {
+            console.error('CeoFunnel sales fetch error:', salesErr)
+            break
+        }
+
+        if (!data || data.length === 0) break
+        allSales.push(...data)
+        if (data.length < CHUNK_SIZE) break
+        salesPage++
+    }
+    return allSales
+}
+
+async function fetchAllContracts(supabase: any, tenantId: string, selectedProjectId: string | null) {
+    const allContracts: any[] = []
+    let contractsPage = 0
+    const CHUNK_SIZE = 1000
+
+    while (true) {
+        let query = supabase
+            .from('contracts')
+            .select(`
+                id,
+                contract_number,
+                contract_date,
+                amount,
+                final_amount,
+                total_amount,
+                currency,
+                status,
+                project_id,
+                projects:project_id ( id, name ),
+                customers:contract_customers (
+                    customer:customers ( id, full_name, phone )
+                ),
+                payments:payment_plans (
+                    id,
+                    payment_type,
+                    due_date,
+                    amount,
+                    paid_amount,
+                    currency,
+                    status,
+                    paid_date,
+                    notes
+                )
+            `)
+            .eq('tenant_id', tenantId)
+            .neq('status', 'Cancelled')
+
+        if (selectedProjectId) {
+            query = query.eq('project_id', selectedProjectId)
+        }
+
+        const { data, error: contractsErr } = await query
+            .order('id', { ascending: true })
+            .range(contractsPage * CHUNK_SIZE, (contractsPage + 1) * CHUNK_SIZE - 1)
+
+        if (contractsErr) {
+            console.error('CeoFunnel contracts fetch error:', contractsErr)
+            break
+        }
+
+        if (!data || data.length === 0) break
+        allContracts.push(...data)
+        if (data.length < CHUNK_SIZE) break
+        contractsPage++
+    }
+    return allContracts
+}
+
+async function fetchAllActivities(supabase: any, tenantId: string, selectedProjectId: string | null) {
+    const allActivities: any[] = []
+    let activitiesPage = 0
+    const CHUNK_SIZE = 1000
+
+    while (true) {
+        let query = supabase
+            .from('activities')
+            .select(`
+                id,
+                type,
+                status,
+                due_date,
+                completed_at,
+                created_at,
+                owner_id,
+                customer_id,
+                project_id,
+                outcome,
+                summary,
+                profiles:owner_id ( id, full_name ),
+                customers:customer_id ( id, full_name, phone )
+            `)
+            .eq('tenant_id', tenantId)
+
+        if (selectedProjectId) {
+            query = query.eq('project_id', selectedProjectId)
+        }
+
+        const { data, error: activitiesErr } = await query
+            .order('id', { ascending: true })
+            .range(activitiesPage * CHUNK_SIZE, (activitiesPage + 1) * CHUNK_SIZE - 1)
+
+        if (activitiesErr) {
+            console.error('CeoFunnel activities fetch error:', activitiesErr)
+            break
+        }
+
+        if (!data || data.length === 0) break
+        allActivities.push(...data)
+        if (data.length < CHUNK_SIZE) break
+        activitiesPage++
+    }
+    return allActivities
 }
 
 export interface FunnelStageData {
@@ -149,18 +326,35 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
     const tenantId = profile.tenant_id
     const period = filters.period || 'this_month'
     const selectedProjectId = filters.projectId && filters.projectId !== 'all' ? filters.projectId : null
-
-    // 1. Fetch Projects for dropdown
-    const { data: projectsData } = await supabase
-        .from('projects')
-        .select('id, name')
-        .eq('tenant_id', tenantId)
-        .order('name')
-
-    const projects = projectsData || []
-
-    // 2. Determine Date Ranges
     const now = new Date()
+
+    // 1. Check Server In-Memory Cache for lightning-fast loads (<5ms)
+    const cacheKey = `${tenantId}_${period}_${selectedProjectId || 'all'}`
+    const cached = serverCeoCache.get(cacheKey)
+
+    if (!filters.forceRefresh && cached && (now.getTime() - cached.timestamp < SERVER_CACHE_TTL_MS)) {
+        return {
+            ...cached.data,
+            isFromCache: true,
+            cachedAt: new Date(cached.timestamp).toLocaleTimeString('tr-TR')
+        }
+    }
+
+    // 2. PARALLEL EXECUTION: Fetch Projects, Sales, Contracts & Activities simultaneously!
+    const [projectsRes, allSales, allContracts, allActivities] = await Promise.all([
+        supabase
+            .from('projects')
+            .select('id, name')
+            .eq('tenant_id', tenantId)
+            .order('name'),
+        fetchAllSales(supabase, tenantId, selectedProjectId),
+        fetchAllContracts(supabase, tenantId, selectedProjectId),
+        fetchAllActivities(supabase, tenantId, selectedProjectId)
+    ])
+
+    const projects = projectsRes.data || []
+
+    // 3. Determine Date Ranges
     let currentStart: Date | null = null
     let currentEnd: Date | null = now
     let prevStart: Date | null = null
@@ -191,60 +385,6 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         // all
         currentStart = null
         prevStart = null
-    }
-
-    // 3. Query all sales with units, projects, profiles, customers (Chunked Pagination to bypass 1000 row limit)
-    const allSales: any[] = []
-    let salesPage = 0
-    const CHUNK_SIZE = 1000
-
-    while (true) {
-        let query = supabase
-            .from('sales')
-            .select(`
-                id,
-                tenant_id,
-                customer_id,
-                unit_id,
-                assigned_to,
-                status,
-                deposit_amount,
-                final_price,
-                currency,
-                created_at,
-                updated_at,
-                contract_date,
-                project_id,
-                description,
-                lead_origin,
-                lost_reason,
-                projects:project_id ( id, name ),
-                profiles:assigned_to ( id, full_name, email ),
-                customers:customer_id ( id, full_name, phone, source, created_at ),
-                units:unit_id ( id, unit_number, price )
-            `)
-            .eq('tenant_id', tenantId)
-
-        if (selectedProjectId) {
-            query = query.eq('project_id', selectedProjectId)
-        }
-
-        const { data, error: salesErr } = await query
-            .order('id', { ascending: true })
-            .range(salesPage * CHUNK_SIZE, (salesPage + 1) * CHUNK_SIZE - 1)
-
-        if (salesErr) {
-            console.error('CeoFunnel sales fetch error:', salesErr)
-            if (salesPage === 0) {
-                return { error: 'Satış verileri alınırken hata oluştu.' }
-            }
-            break
-        }
-
-        if (!data || data.length === 0) break
-        allSales.push(...data)
-        if (data.length < CHUNK_SIZE) break
-        salesPage++
     }
 
     // Helper to categorize sales status into standard pipeline stages
@@ -729,61 +869,8 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         .slice(0, 10)
 
     // -------------------------------------------------------------
-    // 14. Contracted Cashflow & Payment Plan Projections (Chunked pagination to bypass 1000 limit)
+    // 14. Contracted Cashflow & Payment Plan Projections (Pre-fetched in parallel)
     // -------------------------------------------------------------
-    const allContracts: any[] = []
-    let contractsPage = 0
-
-    while (true) {
-        let query = supabase
-            .from('contracts')
-            .select(`
-                id,
-                contract_number,
-                contract_date,
-                amount,
-                final_amount,
-                total_amount,
-                currency,
-                status,
-                project_id,
-                projects:project_id ( id, name ),
-                customers:contract_customers (
-                    customer:customers ( id, full_name, phone )
-                ),
-                payments:payment_plans (
-                    id,
-                    payment_type,
-                    due_date,
-                    amount,
-                    paid_amount,
-                    currency,
-                    status,
-                    paid_date,
-                    notes
-                )
-            `)
-            .eq('tenant_id', tenantId)
-            .neq('status', 'Cancelled')
-
-        if (selectedProjectId) {
-            query = query.eq('project_id', selectedProjectId)
-        }
-
-        const { data, error: contractsErr } = await query
-            .order('id', { ascending: true })
-            .range(contractsPage * CHUNK_SIZE, (contractsPage + 1) * CHUNK_SIZE - 1)
-
-        if (contractsErr) {
-            console.error('CeoFunnel contracts fetch error:', contractsErr)
-            break
-        }
-
-        if (!data || data.length === 0) break
-        allContracts.push(...data)
-        if (data.length < CHUNK_SIZE) break
-        contractsPage++
-    }
     let totalContractedValue = 0
     let totalCollectedCash = 0
     const allPaymentItems: Array<{
@@ -934,49 +1021,8 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
     }
 
     // -------------------------------------------------------------
-    // 15. Sales Activities & Operational Pulse (Chunked pagination to bypass 1000 limit)
+    // 15. Sales Activities & Operational Pulse (Pre-fetched in parallel)
     // -------------------------------------------------------------
-    const allActivities: any[] = []
-    let activitiesPage = 0
-
-    while (true) {
-        let query = supabase
-            .from('activities')
-            .select(`
-                id,
-                type,
-                status,
-                due_date,
-                completed_at,
-                created_at,
-                owner_id,
-                customer_id,
-                project_id,
-                outcome,
-                summary,
-                profiles:owner_id ( id, full_name ),
-                customers:customer_id ( id, full_name, phone )
-            `)
-            .eq('tenant_id', tenantId)
-
-        if (selectedProjectId) {
-            query = query.eq('project_id', selectedProjectId)
-        }
-
-        const { data, error: activitiesErr } = await query
-            .order('id', { ascending: true })
-            .range(activitiesPage * CHUNK_SIZE, (activitiesPage + 1) * CHUNK_SIZE - 1)
-
-        if (activitiesErr) {
-            console.error('CeoFunnel activities fetch error:', activitiesErr)
-            break
-        }
-
-        if (!data || data.length === 0) break
-        allActivities.push(...data)
-        if (data.length < CHUNK_SIZE) break
-        activitiesPage++
-    }
 
     let todayTotal = 0
     let todayCompleted = 0
@@ -1119,7 +1165,7 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         neglectedHotDeals
     }
 
-    return {
+    const finalResult = {
         tenantName: profile.full_name,
         period,
         selectedProjectId,
@@ -1150,4 +1196,12 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         contractCashflow,
         salesActivities
     }
+
+    // Cache the completed calculation
+    serverCeoCache.set(cacheKey, {
+        timestamp: now.getTime(),
+        data: finalResult
+    })
+
+    return finalResult
 }
