@@ -119,7 +119,7 @@ export interface BrandConfig {
 
 // Default NovoCRM branding (used when tenant has no brand_config)
 export const DEFAULT_BRAND: BrandConfig = {
-    appName: 'Novo CRM',
+    appName: 'NovoXCRM',
     logoUrl: null,
     faviconUrl: null,
     sidebarBg: 'rgb(2 6 23)',           // slate-950

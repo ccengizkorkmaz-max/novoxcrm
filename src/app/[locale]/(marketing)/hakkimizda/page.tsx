@@ -79,10 +79,10 @@ export default async function HakkimizdaPage() {
                                 <section>
                                     <h2 className="text-xl font-bold text-slate-200 mb-4 flex items-center">
                                         <span className="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center mr-3 text-sm font-mono tracking-tighter">02</span>
-                                        Novo CRM Nedir?
+                                        NovoXCRM Nedir?
                                     </h2>
                                     <p className="pl-11 text-slate-400">
-                                        Novo CRM, inşaat firmaları, proje geliştiriciler ve büyük ölçekli gayrimenkul ofisleri için özel olarak tasarlanmış bulut tabanlı bir müşteri ilişkileri yönetimi (CRM) platformudur. Müşteri adayı (Lead) aşamasından, kapora ve senetli ödeme planlarına kadar tüm satış hunisini dijitalleştirir. İşletmelerin Excel tablolarından kurtulup tamamen entegre ve ölçülebilir bir yapıya geçmelerini sağlar.
+                                        NovoXCRM, inşaat firmaları, proje geliştiriciler ve büyük ölçekli gayrimenkul ofisleri için özel olarak tasarlanmış bulut tabanlı bir müşteri ilişkileri yönetimi (CRM) platformudur. Müşteri adayı (Lead) aşamasından, kapora ve senetli ödeme planlarına kadar tüm satış hunisini dijitalleştirir. İşletmelerin Excel tablolarından kurtulup tamamen entegre ve ölçülebilir bir yapıya geçmelerini sağlar.
                                     </p>
                                 </section>
                             </>

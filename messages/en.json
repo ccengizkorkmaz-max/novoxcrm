@@ -1,14 +1,14 @@
 {
     "Index": {
-        "title": "Novo CRM | Construction & Real Estate CRM – Sales Management for Residential Projects",
-        "description": "Novo CRM is a CRM software specifically developed for construction and real estate companies."
+        "title": "NovoXCRM | Construction & Real Estate CRM – Sales Management for Residential Projects",
+        "description": "NovoXCRM is a CRM software specifically developed for construction and real estate companies."
     },
     "Hero": {
         "badge": "35+ Modules • 5 AI Engines • 4 Channels",
         "title1": "Your Sales Office",
         "title2": "",
         "titleHighlight": "Never Closes.",
-        "description": "Use your marketing budget efficiently, strengthen customer acquisition tools. Novo CRM is designed to manage all dynamics of construction projects from a single center, from housing sales to stock tracking, broker network management to financial reporting, and to increase your sales volume.",
+        "description": "Use your marketing budget efficiently, strengthen customer acquisition tools. NovoXCRM is designed to manage all dynamics of construction projects from a single center, from housing sales to stock tracking, broker network management to financial reporting, and to increase your sales volume.",
         "ctaPrimary": "Digitize Now",
         "ctaSecondary": "Examine System Details",
         "demoTitle": "Free Introduction and Demo",
@@ -56,7 +56,7 @@
             ]
         },
         "newWay": {
-            "title": "Novo CRM Method",
+            "title": "NovoXCRM Method",
             "items": [
                 "Customer history and notes on one screen",
                 "AI Co-Pilot + Outreach proactive automation",
@@ -131,7 +131,7 @@
             },
             {
                 "question": "How long does the installation process take?",
-                "answer": "Novo CRM is a cloud-based system, it does not require installation. You can start using it as soon as your account is opened. Training your staff and full adaptation usually takes 1-2 business days."
+                "answer": "NovoXCRM is a cloud-based system, it does not require installation. You can start using it as soon as your account is opened. Training your staff and full adaptation usually takes 1-2 business days."
             },
             {
                 "question": "How secure is our data?",
@@ -260,13 +260,13 @@
             "placeholder": "Email",
             "button": "OK"
         },
-        "copyright": "© 2026 Novo CRM. All rights reserved.",
+        "copyright": "© 2026 NovoXCRM. All rights reserved.",
         "tagline1": "Real Estate CRM Software",
         "tagline2": "Construction Project Sales System"
     },
     "PainSection": {
         "title": "Why",
-        "titleHighlight": "Novo CRM?",
+        "titleHighlight": "NovoXCRM?",
         "description": "We solve chronic problems caused by traditional methods and remove obstacles to growth.",
         "cards": {
             "sales": {
@@ -324,7 +324,7 @@
     },
     "PersonaSection": {
         "title": "A Solution Where Everyone Wins",
-        "description": "Novo CRM offers customized tools for every role in your organization.",
+        "description": "NovoXCRM offers customized tools for every role in your organization.",
         "cta": "More Information",
         "personas": {
             "patron": {
@@ -391,8 +391,8 @@
         "loginButton": "Login",
         "brokerLink": "Become a Partner (Broker) →",
         "registerModalTitle": "Create New Account",
-        "registerModalDesc": "Leave your details to join the Novo CRM world, our team will contact you immediately.",
-        "registerLink": "Empower your company with Novo CRM",
+        "registerModalDesc": "Leave your details to join the NovoXCRM world, our team will contact you immediately.",
+        "registerLink": "Empower your company with NovoXCRM",
         "termsAgreement": "By logging in, you agree to our",
         "termsLink": "Terms of Use",
         "privacyLink": "Privacy Policy",
@@ -1412,7 +1412,7 @@
                 "delivery": "Est. Delivery",
                 "requests": "Active Requests",
                 "activePropertyCount": "Active Properties",
-                "guaranteedByNovoCrm": "Guaranteed by Novo CRM"
+                "guaranteedByNovoCrm": "Guaranteed by NovoXCRM"
             },
             "buttons": {
                 "makePayment": "Make Payment",
@@ -2313,7 +2313,7 @@
             "customerNotFound": "Customer not found.",
             "projectNotFound": "Project not found.",
             "unitNotFound": "Unit not found.",
-            "poweredBy": "Powered by Novo CRM",
+            "poweredBy": "Powered by NovoXCRM",
             "createdSuccess": "Sale created successfully."
         },
         "stats": {
@@ -2500,7 +2500,7 @@
         "badge": "NEXT-GEN INTELLIGENCE",
         "title": "More Than a Digital",
         "titleHighlight": "Sales Assistant",
-        "description": "Novo CRM doesn't just store data; it analyzes it, detects risks, and delivers custom strategies to your sales team every morning.",
+        "description": "NovoXCRM doesn't just store data; it analyzes it, detects risks, and delivers custom strategies to your sales team every morning.",
         "features": {
             "copilot": {
                 "title": "AI Co-Pilot & Daily Briefing",
@@ -2686,14 +2686,14 @@
         "backToHome": "Back to Home",
         "downloadPDF": "Download PDF",
         "badge": "COMPREHENSIVE GUIDE",
-        "title": "Novo CRM at a Glance",
-        "description": "Everything you need to know about Novo CRM in one page."
+        "title": "NovoXCRM at a Glance",
+        "description": "Everything you need to know about NovoXCRM in one page."
     },
     "PlatformPower": {
         "badge": "Platform Power",
         "title": "Not just a CRM.",
         "titleHighlight": "A Complete Sales Platform.",
-        "description": "Novo CRM is the most comprehensive digital sales platform designed for the construction and real estate industry. Uniquely positioned with AI-powered voice calls, WhatsApp automation, and broker network management.",
+        "description": "NovoXCRM is the most comprehensive digital sales platform designed for the construction and real estate industry. Uniquely positioned with AI-powered voice calls, WhatsApp automation, and broker network management.",
         "stats": {
             "modules": "Integrated Modules",
             "modulesDesc": "CRM, Finance, HR, Outreach, Brokerage...",

@@ -12,8 +12,8 @@ interface BrandContextType {
 }
 
 const BrandContext = createContext<BrandContextType>({
-    brandName: 'Novo CRM',
-    brandShort: 'Novo',
+    brandName: 'NovoXCRM',
+    brandShort: 'NovoX',
     brandDomain: 'novoxcrm.com',
 })
 
@@ -26,7 +26,7 @@ export function BrandProvider({
     brandDomain: string
     children: ReactNode
 }) {
-    // Extract short name: "Oikos CRM" -> "Oikos", "Novo CRM" -> "Novo"
+    // Extract short name: "Oikos CRM" -> "Oikos", "NovoXCRM" -> "NovoX", "Novo CRM" -> "Novo"
     const brandShort = brandName.replace(/\s*CRM\s*/i, '').trim() || brandName
 
     return (
@@ -51,8 +51,13 @@ export function useBrandedTranslations(namespace: string) {
 
     const replaceBrand = useCallback(
         (text: string): string => {
-            if (brandName === 'Novo CRM') return text
+            if (brandName === 'NovoXCRM' || brandName === 'Novo CRM') {
+                return text
+                    .replace(/Novo CRM/g, 'NovoXCRM')
+                    .replace(/NovoCRM/g, 'NovoXCRM')
+            }
             return text
+                .replace(/NovoXCRM/g, brandName)
                 .replace(/Novo CRM/g, brandName)
                 .replace(/NovoCRM/g, brandName.replace(' ', ''))
                 .replace(/\bNovo\b/g, brandShort)
@@ -63,7 +68,6 @@ export function useBrandedTranslations(namespace: string) {
     // Deep-replace brand in any JSON structure returned by t.raw()
     const deepReplace = useCallback(
         (value: any): any => {
-            if (brandName === 'Novo CRM') return value
             if (typeof value === 'string') return replaceBrand(value)
             if (Array.isArray(value)) return value.map(deepReplace)
             if (value && typeof value === 'object') {

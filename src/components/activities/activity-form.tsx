@@ -9,12 +9,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
+    Sheet,
+    SheetContent,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet"
 import { createActivity, updateActivity, outcomeActivity, deleteActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
 import { getSalesOffices, type SalesOfficeLocation } from '@/app/[locale]/(dashboard)/settings/sales-offices-actions'
 import { toast } from 'sonner'
@@ -406,27 +406,32 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] overflow-visible" key={open ? `activity-${activity?.id || activity?.customer_id || 'new'}` : 'closed'}>
-                <DialogHeader>
-                    <div className="flex items-center justify-between pr-8">
-                        <DialogTitle>
-                            {mode === 'create' ? t('form.createTitle') :
-                                mode === 'edit' ? t('form.editTitle') :
-                                    t('form.completeTitle')}
-                        </DialogTitle>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent
+                side="right"
+                className="w-full sm:max-w-[640px] md:max-w-[700px] p-0 flex flex-col h-full bg-white dark:bg-slate-950 border-l border-slate-200 shadow-2xl z-50 overflow-hidden"
+                key={open ? `activity-${activity?.id || activity?.customer_id || 'new'}` : 'closed'}
+            >
+                <form action={handleSubmit} className="flex flex-col h-full min-h-0">
+                    <SheetHeader className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/70 shrink-0">
+                        <div className="flex items-center justify-between pr-8">
+                            <SheetTitle className="text-lg font-bold text-slate-900">
+                                {mode === 'create' ? t('form.createTitle') :
+                                    mode === 'edit' ? t('form.editTitle') :
+                                        t('form.completeTitle')}
+                            </SheetTitle>
 
-                        {/* Voice Input Button - Visible in Header */}
-                        {!isReadOnly && (
-                            <VoiceInput
-                                onTranscriptionComplete={handleVoiceData}
-                                isProcessing={isProcessingVoice}
-                            />
-                        )}
-                    </div>
-                </DialogHeader>
-                <form action={handleSubmit}>
-                    <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
+                            {/* Voice Input Button - Visible in Header */}
+                            {!isReadOnly && (
+                                <VoiceInput
+                                    onTranscriptionComplete={handleVoiceData}
+                                    isProcessing={isProcessingVoice}
+                                />
+                            )}
+                        </div>
+                    </SheetHeader>
+
+                    <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
 
                         {/* Basic Info - Hidden only in specialized complete mode */}
                         {mode !== 'complete' && (
@@ -835,51 +840,66 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                             </div>
                         )}
                     </div>
-                    <DialogFooter className="flex items-center justify-between w-full sm:justify-between gap-2">
+
+                    <SheetFooter className="p-4 sm:p-5 border-t border-slate-100 bg-white/95 backdrop-blur-sm flex items-center justify-between gap-3 shrink-0 mt-auto">
                         {isReadOnly ? (
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => onOpenChange(false)}
-                                className="w-full"
+                                className="w-full h-10"
                             >
                                 Kapat
                             </Button>
                         ) : (
-                            <>
-                                {mode === 'edit' && (
+                            <div className="flex items-center justify-between w-full gap-3">
+                                {mode === 'edit' ? (
                                     <Button
                                         type="button"
                                         variant="destructive"
                                         onClick={handleDelete}
                                         disabled={isDeleting || isSubmitting}
+                                        className="h-10 px-4 font-semibold"
                                     >
                                         {isDeleting ? 'Siliniyor...' : 'Sil'}
                                     </Button>
+                                ) : (
+                                    <div />
                                 )}
-                                <Button 
-                                    type="submit" 
-                                    disabled={isSubmitting || isDeleting}
-                                    className={cn(
-                                        isCompleteMode && mode !== 'edit' && "bg-green-600 hover:bg-green-700 w-full",
-                                        isCompleteMode && mode === 'edit' && "bg-green-600 hover:bg-green-700",
-                                        mode === 'edit' && "ml-auto"
-                                    )}
-                                >
-                                    {isSubmitting ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Kaydediliyor...
-                                        </>
-                                    ) : (
-                                        isCompleteMode ? t('form.completeAndSave') : t('form.save')
-                                    )}
-                                </Button>
-                            </>
+
+                                <div className="flex items-center gap-2 ml-auto">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => onOpenChange(false)}
+                                        disabled={isSubmitting || isDeleting}
+                                        className="h-10 px-4"
+                                    >
+                                        Vazgeç
+                                    </Button>
+                                    <Button 
+                                        type="submit" 
+                                        disabled={isSubmitting || isDeleting}
+                                        className={cn(
+                                            "h-10 px-5 font-bold",
+                                            isCompleteMode ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                        )}
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Kaydediliyor...
+                                            </>
+                                        ) : (
+                                            isCompleteMode ? t('form.completeAndSave') : t('form.save')
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
                         )}
-                    </DialogFooter>
+                    </SheetFooter>
                 </form>
-            </DialogContent>
-        </Dialog>
+            </SheetContent>
+        </Sheet>
     )
 }

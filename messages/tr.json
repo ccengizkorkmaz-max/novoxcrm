@@ -1,14 +1,14 @@
 {
     "Index": {
-        "title": "Novo CRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
-        "description": "Novo CRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır."
+        "title": "NovoXCRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
+        "description": "NovoXCRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır."
     },
     "Hero": {
         "badge": "35+ Modül • 5 AI Motor • 4 Kanal",
         "title1": "Satış Ofisiniz Artık",
         "title2": "",
         "titleHighlight": "7/24 Çalışıyor.",
-        "description": "Pazarlama bütçenizi verimli kullanın, müşteri kazanma araçlarını güçlendirin. Novo CRM; konut satışından stok takibine, broker ağ yönetiminden finansal raporlamaya kadar inşaat projelerinin tüm dinamiklerini tek merkezden yönetmek ve satış hacminizi artırmak için tasarlandı.",
+        "description": "Pazarlama bütçenizi verimli kullanın, müşteri kazanma araçlarını güçlendirin. NovoXCRM; konut satışından stok takibine, broker ağ yönetiminden finansal raporlamaya kadar inşaat projelerinin tüm dinamiklerini tek merkezden yönetmek ve satış hacminizi artırmak için tasarlandı.",
         "ctaPrimary": "Hemen Dijitalleşin",
         "ctaSecondary": "Sistem Detaylarını İncele",
         "demoTitle": "Ücretsiz Tanıtım ve Demo",
@@ -18,7 +18,7 @@
         "badge": "YENİ NESİL ZEKA",
         "title": "Dijital Bir Satış Asistanından",
         "titleHighlight": "Daha Fazlası",
-        "description": "Novo CRM sadece veri tutmaz; veriyi analiz eder, riskleri fark eder ve satış ekibinize her sabah özel stratejiler sunar.",
+        "description": "NovoXCRM sadece veri tutmaz; veriyi analiz eder, riskleri fark eder ve satış ekibinize her sabah özel stratejiler sunar.",
         "features": {
             "copilot": {
                 "title": "AI Co-Pilot & Günlük Briefing",
@@ -81,7 +81,7 @@
             ]
         },
         "newWay": {
-            "title": "Novo CRM Yöntemi",
+            "title": "NovoXCRM Yöntemi",
             "items": [
                 "Müşteri geçmişi ve notları tek ekranda",
                 "AI Co-Pilot + Outreach ile proaktif otomasyon",
@@ -157,7 +157,7 @@
             },
             {
                 "question": "Kurulum süreci ne kadar sürer?",
-                "answer": "Novo CRM bulut tabanlı bir sistemdir, kurulum gerektirmez. Hesabınız açıldığı an kullanmaya başlayabilirsiniz. Personelinizin eğitimi ve tam adaptasyon genellikle 1-2 iş günü sürer."
+                "answer": "NovoXCRM bulut tabanlı bir sistemdir, kurulum gerektirmez. Hesabınız açıldığı an kullanmaya başlayabilirsiniz. Personelinizin eğitimi ve tam adaptasyon genellikle 1-2 iş günü sürer."
             },
             {
                 "question": "Verilerimiz ne kadar güvende?",
@@ -286,13 +286,13 @@
             "placeholder": "E-posta",
             "button": "OK"
         },
-        "copyright": "© 2026 Novo CRM. Tüm hakları saklıdır.",
+        "copyright": "© 2026 NovoXCRM. Tüm hakları saklıdır.",
         "tagline1": "Gayrimenkul CRM Yazılımı",
         "tagline2": "İnşaat Proje Satış Sistemi"
     },
     "PainSection": {
         "title": "Neden",
-        "titleHighlight": "Novo CRM?",
+        "titleHighlight": "NovoXCRM?",
         "description": "Geleneksel yöntemlerin yarattığı kronik sorunları çözüyor, büyümenin önündeki engelleri kaldırıyoruz.",
         "cards": {
             "sales": {
@@ -350,7 +350,7 @@
     },
     "PersonaSection": {
         "title": "Herkese Kazandıran Çözüm",
-        "description": "Novo CRM organizasyonunuzdaki her rol için özelleştirilmiş araçlar sunar.",
+        "description": "NovoXCRM organizasyonunuzdaki her rol için özelleştirilmiş araçlar sunar.",
         "cta": "Daha Fazla Bilgi",
         "personas": {
             "patron": {
@@ -417,8 +417,8 @@
         "loginButton": "Giriş Yap",
         "brokerLink": "Satış Ortağımız (Broker) Olun →",
         "registerModalTitle": "Yeni Hesap Oluştur",
-        "registerModalDesc": "Novo CRM dünyasına katılmak için bilgilerinizi bırakın, ekibimiz size hemen ulaşsın.",
-        "registerLink": "Şirketinizi Novo CRM ile güçlendirin",
+        "registerModalDesc": "NovoXCRM dünyasına katılmak için bilgilerinizi bırakın, ekibimiz size hemen ulaşsın.",
+        "registerLink": "Şirketinizi NovoXCRM ile güçlendirin",
         "termsAgreement": "Giriş yaparak",
         "termsLink": "Kullanım Şartları",
         "privacyLink": "Gizlilik Politikası",
@@ -1427,7 +1427,7 @@
                 "delivery": "Tahmini Teslim",
                 "requests": "Aktif Talepler",
                 "activePropertyCount": "Aktif Mülk Sayısı",
-                "guaranteedByNovoCrm": "Novo CRM Güvencesiyle"
+                "guaranteedByNovoCrm": "NovoXCRM Güvencesiyle"
             },
             "buttons": {
                 "makePayment": "Ödeme Yap",
@@ -2334,7 +2334,7 @@
             "customerNotFound": "Müşteri bulunamadı.",
             "projectNotFound": "Proje bulunamadı.",
             "unitNotFound": "Ünite bulunamadı.",
-            "poweredBy": "Novo CRM tarafından desteklenmektedir",
+            "poweredBy": "NovoXCRM tarafından desteklenmektedir",
             "createdSuccess": "Satış başarıyla oluşturuldu."
         },
         "stats": {
@@ -2680,14 +2680,14 @@
         "backToHome": "Ana Sayfaya Dön",
         "downloadPDF": "PDF İndir",
         "badge": "KAPSAMLI REHBER",
-        "title": "Bir Bakışta Novo CRM",
-        "description": "Novo CRM hakkında bilmeniz gereken her şey tek sayfada."
+        "title": "Bir Bakışta NovoXCRM",
+        "description": "NovoXCRM hakkında bilmeniz gereken her şey tek sayfada."
     },
     "PlatformPower": {
         "badge": "Platform Gücü",
         "title": "Sadece bir CRM değil.",
         "titleHighlight": "Eksiksiz Satış Platformu.",
-        "description": "Novo CRM, inşaat ve gayrimenkul sektörü için tasarlanmış en kapsamlı dijital satış platformudur. AI destekli sesli arama, WhatsApp otomasyonu ve broker ağı yönetimi ile sektörde benzersiz bir konumdadır.",
+        "description": "NovoXCRM, inşaat ve gayrimenkul sektörü için tasarlanmış en kapsamlı dijital satış platformudur. AI destekli sesli arama, WhatsApp otomasyonu ve broker ağı yönetimi ile sektörde benzersiz bir konumdadır.",
         "stats": {
             "modules": "Entegre Modül",
             "modulesDesc": "CRM, Finans, HR, Outreach, Brokerage...",

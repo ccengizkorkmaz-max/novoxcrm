@@ -82,7 +82,7 @@ export async function getBrandNameFromHost(hostname: string): Promise<string> {
     }
 
     // Default for all other domains
-    return 'Novo CRM'
+    return 'NovoXCRM'
 }
 
 export { adjustBranding } from './adjust-branding'
