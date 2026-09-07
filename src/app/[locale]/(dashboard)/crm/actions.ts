@@ -11,6 +11,7 @@ import { logSystemAction } from '@/lib/actions/system-logs'
 import { sendWhatsAppTemplate } from '@/lib/whatsapp'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getLocale } from 'next-intl/server'
+import { formatTurkeyDateTime, fromTurkeyDateTimeLocal } from '@/lib/utils'
 
 export async function getCustomerFullProfile(customerId: string) {
     const supabase = await createClient()
@@ -4342,7 +4343,7 @@ export async function createQuickAppointment(params: {
             summary: fullSummary,
             notes: fullNotes,
             description: `Yer: ${locationDisplay}`,
-            due_date: new Date(params.dueDate).toISOString(),
+            due_date: fromTurkeyDateTimeLocal(params.dueDate) || new Date(params.dueDate).toISOString(),
             status: 'Planned',
             priority: 'High'
         })
@@ -4378,14 +4379,7 @@ export async function createQuickAppointment(params: {
                 .eq('id', params.customerId)
                 .single()
 
-            const formattedDate = new Date(params.dueDate).toLocaleString('tr-TR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                weekday: 'long',
-                hour: '2-digit',
-                minute: '2-digit'
-            })
+            const formattedDate = formatTurkeyDateTime(params.dueDate, 'long')
 
             const customerName = customer?.full_name || 'Müşteri'
             const customerPhone = customer?.phone || '-'

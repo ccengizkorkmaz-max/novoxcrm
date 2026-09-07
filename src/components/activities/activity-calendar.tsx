@@ -25,7 +25,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { cn, formatTurkeyDateTime } from '@/lib/utils'
+import { cn, formatTurkeyDateTime, isSameDayTurkey } from '@/lib/utils'
 import { useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { ActivityForm } from './activity-form'
@@ -118,7 +118,7 @@ export function ActivityCalendar({ activities, customers, profiles, projects, on
         let days: React.ReactNode[] = []
 
         calendarDays.forEach((day, i) => {
-            const dayActivities = activities.filter(a => a.due_date && isSameDay(parseISO(a.due_date), day))
+            const dayActivities = activities.filter(a => a.due_date && isSameDayTurkey(a.due_date, day))
             const isCurDay = isToday(day)
             const isThisMonth = isSameMonth(day, monthStart)
 

@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { ActivityItem } from './activity-stream-card'
 import { ActivityForm } from './activity-form'
 import { useLocale } from 'next-intl'
-import { cn, formatTurkeyDateTime } from '@/lib/utils'
+import { cn, formatTurkeyDateTime, isSameDayTurkey } from '@/lib/utils'
 
 interface ActivityWeeklyViewProps {
     activities: ActivityItem[]
@@ -74,8 +74,7 @@ export function ActivityWeeklyView({
 
     const totalWeekActivities = activities.filter(a => {
         if (!a.due_date) return false
-        const d = parseISO(a.due_date)
-        return d >= weekStart && d <= weekEnd
+        return weekDays.some(day => isSameDayTurkey(a.due_date, day))
     }).length
 
     return (
@@ -129,7 +128,7 @@ export function ActivityWeeklyView({
                     const dayActivities = activities.filter(a => {
                         if (!a.due_date) return false
                         try {
-                            return isSameDay(parseISO(a.due_date), day)
+                            return isSameDayTurkey(a.due_date, day)
                         } catch {
                             return false
                         }

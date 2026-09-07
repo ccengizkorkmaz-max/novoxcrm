@@ -26,6 +26,7 @@ import { Combobox } from '@/components/ui/combobox'
 import { VoiceInput } from '@/components/ui/voice-input'
 import { toast } from 'sonner'
 import { Textarea } from '@/components/ui/textarea'
+import { formatTurkeyDateTime } from '@/lib/utils'
 
 export default function ActivitiesTab({ activities, customers }: { activities: any[], customers?: any[] }) {
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -196,7 +197,7 @@ export default function ActivitiesTab({ activities, customers }: { activities: a
                             activities.map((act: any) => (
                                 <TableRow key={act.id}>
                                     <TableCell className="font-medium">
-                                        {act.due_date ? new Date(act.due_date).toLocaleString('tr-TR') : '-'}
+                                        {formatTurkeyDateTime(act.due_date, 'dateTime') || '-'}
                                     </TableCell>
                                     <TableCell>{act.customers?.full_name}</TableCell>
                                     <TableCell>{act.type}</TableCell>

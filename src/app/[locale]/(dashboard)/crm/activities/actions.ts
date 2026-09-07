@@ -113,7 +113,7 @@ export async function createActivity(formData: FormData) {
                     assigned_by_id: user.id,
                     type: next_action_type,
                     summary: next_action_summary || `Follow up: ${next_action_type}`,
-                    due_date: new Date(next_action_date).toISOString(),
+                    due_date: fromTurkeyDateTimeLocal(next_action_date) || new Date(next_action_date).toISOString(),
                     project_id: project_id || null,
                     unit_id: unit_id || null,
                     previous_activity_id: newAct.id,
@@ -291,7 +291,7 @@ export async function updateActivity(formData: FormData) {
     const updatePayload: Record<string, any> = {
         summary: formData.get('summary') as string,
         description: formData.get('description') as string,
-        due_date: safeDateISO(formData.get('due_date')),
+        due_date: fromTurkeyDateTimeLocal(formData.get('due_date') as string),
         type: formData.get('type') as string,
         topic: formData.get('topic') as string,
         notes: formData.get('notes') as string,
@@ -299,10 +299,10 @@ export async function updateActivity(formData: FormData) {
         project_id: (formData.get('project_id') as string)?.trim() !== '' ? formData.get('project_id') as string : null,
         priority: formData.get('priority') as string,
         status: status || undefined,
-        reminder_at: safeDateISO(formData.get('reminder_at')),
+        reminder_at: fromTurkeyDateTimeLocal(formData.get('reminder_at') as string),
         outcome: formData.get('outcome') as string || null,
         next_action_type: formData.get('next_action_type') as string || null,
-        next_action_date: safeDateISO(formData.get('next_action_date')),
+        next_action_date: fromTurkeyDateTimeLocal(formData.get('next_action_date') as string),
     }
 
     if (isNowCompleted) {
@@ -444,7 +444,7 @@ export async function outcomeActivity(formData: FormData) {
                 assigned_by_id: user.id,
                 type: next_action_type,
                 summary: next_action_summary || `Follow up: ${next_action_type}`,
-                due_date: safeDateISO(next_action_date),
+                due_date: fromTurkeyDateTimeLocal(next_action_date),
                 project_id: original.project_id,
                 unit_id: original.unit_id,
                 previous_activity_id: id, // Link to original
@@ -609,7 +609,7 @@ export async function logCallActivityOutcome(input: LogCallOutcomeInput) {
 
     // If next action is scheduled (e.g. Tekrar Aranacak or Ulaşılamadı with next date)
     if (input.nextActionDate && input.nextActionDate.trim() !== '') {
-        const nextDateISO = safeDateISO(input.nextActionDate)
+        const nextDateISO = fromTurkeyDateTimeLocal(input.nextActionDate)
         if (nextDateISO) {
             await adminSupabase.from('activities').insert({
                 tenant_id: profile?.tenant_id || currentAct.tenant_id,

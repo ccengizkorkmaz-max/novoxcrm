@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { getWhatsAppLink, MessageTemplates, sendWhatsAppMessage } from '@/lib/whatsapp'
 import { Resend } from 'resend'
 import crypto from 'crypto'
+import { fromTurkeyDateTimeLocal } from '@/lib/utils'
 
 /**
  * Broker Lead Submission with Ownership Lock
@@ -145,7 +146,7 @@ export async function submitBrokerLead(formData: FormData) {
             property_type,
             location_interest,
             project_id: project_id || null,
-            preferred_visit_date: preferred_visit_date || null,
+            preferred_visit_date: preferred_visit_date ? (fromTurkeyDateTimeLocal(preferred_visit_date) || preferred_visit_date) : null,
             credit_interest,
             notes: unitInfoText ? `${notes || ''}${unitInfoText}`.trim() : notes,
             status: 'Submitted',

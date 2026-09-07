@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createQuickAppointment, getTenantSalesOfficesAction, getTenantSalesRepsAction } from '../actions'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { toTurkeyDateTimeLocal } from '@/lib/utils'
 import {
     CalendarPlus,
     Calendar,
@@ -75,13 +76,12 @@ export default function QuickAppointmentModal({
     const [open, setOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
 
-    // Default due date: Tomorrow 10:00
+    // Default due date: Tomorrow 10:00 in Turkey Time
     const getDefaultDateTime = () => {
         const tomorrow = new Date()
         tomorrow.setDate(tomorrow.getDate() + 1)
         tomorrow.setHours(10, 0, 0, 0)
-        const pad = (n: number) => n.toString().padStart(2, '0')
-        return `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`
+        return toTurkeyDateTimeLocal(tomorrow)
     }
 
     const [dateTime, setDateTime] = useState(getDefaultDateTime())

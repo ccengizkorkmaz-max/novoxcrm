@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { fromTurkeyDateTimeLocal, formatTurkeyDateTime } from '@/lib/utils'
 
 // ==========================================
 // 1. SUBCONTRACTORS ACTIONS
@@ -247,7 +248,7 @@ export async function scheduleDeliveryAppointment(formData: FormData) {
             tenant_id: profile.tenant_id,
             unit_id: unitId,
             customer_id: customerId,
-            appointment_date: appointmentDate,
+            appointment_date: fromTurkeyDateTimeLocal(appointmentDate) || appointmentDate,
             notes,
             status: 'Scheduled'
         })
@@ -306,7 +307,7 @@ export async function completeDeliveryChecklist(formData: FormData) {
     }
 
     if (appointmentDate) {
-        updateData.appointment_date = appointmentDate
+        updateData.appointment_date = fromTurkeyDateTimeLocal(appointmentDate) || appointmentDate
     }
 
     if (status === 'Cancelled') {

@@ -16,7 +16,21 @@ export function formatTurkeyDateTime(
     formatType: TurkeyDateFormat = 'compact'
 ): string {
     if (!date) return ''
-    const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
+    let d: Date
+    if (typeof date === 'string') {
+        const trimmed = date.trim()
+        if (/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+            const normalized = trimmed.replace(' ', 'T')
+            const withOffset = normalized.length === 16 ? `${normalized}:00+03:00` : `${normalized}+03:00`
+            d = new Date(withOffset)
+        } else {
+            d = new Date(trimmed)
+        }
+    } else if (typeof date === 'number') {
+        d = new Date(date)
+    } else {
+        d = date
+    }
     if (isNaN(d.getTime())) return ''
 
     switch (formatType) {
@@ -151,3 +165,48 @@ export function isPastTurkey(date: string | Date | null | undefined): boolean {
     if (isNaN(d.getTime())) return false
     return d.getTime() < Date.now()
 }
+
+/**
+ * Returns YYYY-MM-DD in Turkey Timezone (Europe/Istanbul)
+ */
+export function getTurkeyDateISO(date: string | number | Date | null | undefined): string {
+    if (!date) return ''
+    let d: Date
+    if (typeof date === 'string') {
+        const trimmed = date.trim()
+        if (/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+            const normalized = trimmed.replace(' ', 'T')
+            const withOffset = normalized.length === 16 ? `${normalized}:00+03:00` : `${normalized}+03:00`
+            d = new Date(withOffset)
+        } else {
+            d = new Date(trimmed)
+        }
+    } else if (typeof date === 'number') {
+        d = new Date(date)
+    } else {
+        d = date
+    }
+    if (isNaN(d.getTime())) return ''
+
+    return new Intl.DateTimeFormat('sv-SE', {
+        timeZone: TURKEY_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(d)
+}
+
+/**
+ * Checks if an ISO date string or Date object represents the same calendar day in Turkey (Europe/Istanbul)
+ * as another target Date or date string.
+ */
+export function isSameDayTurkey(
+    dateLeft: string | number | Date | null | undefined,
+    dateRight: string | number | Date | null | undefined
+): boolean {
+    if (!dateLeft || !dateRight) return false
+    const leftStr = getTurkeyDateISO(dateLeft)
+    const rightStr = getTurkeyDateISO(dateRight)
+    return Boolean(leftStr && rightStr && leftStr === rightStr)
+}
+
