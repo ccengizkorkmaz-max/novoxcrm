@@ -8,6 +8,7 @@ import { ContractStats } from '@/components/contracts/contract-stats'
 import { getTranslations } from 'next-intl/server'
 import GeneralSearch from '@/components/dashboard/GeneralSearch'
 import { Suspense } from 'react'
+import { PastSalesImportDialog } from '@/components/contracts/PastSalesImportDialog'
 
 // Deferred component: fetches payment stats in background
 async function DeferredContractStats({ tenantId, contracts }: { tenantId: string, contracts: any[] }) {
@@ -111,9 +112,10 @@ export default async function ContractsPage(props: {
                         <p className="text-sm text-slate-400 font-medium">{t('description')}</p>
                     </div>
                 </div>
-                <div className="flex flex-col md:flex-row items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-center gap-3">
                     <GeneralSearch namespace="Contracts" placeholderKey="table.search" />
-                    <Button asChild className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-200 font-bold">
+                    <PastSalesImportDialog />
+                    <Button asChild className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-200 font-bold">
                         <Link href="/contracts/new">
                             <Plus className="mr-2 h-4 w-4" /> {t('newContract')}
                         </Link>

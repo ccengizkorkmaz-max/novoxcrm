@@ -58,6 +58,8 @@ import {
     CalendarClock,
     AlertTriangle,
     FileText,
+    FileSpreadsheet,
+    Download,
     Check,
     ShieldCheck
 } from 'lucide-react'
@@ -1006,6 +1008,33 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
 
                 {/* TAB: SÖZLEŞMELİ NAKİT AKIŞI & VADELİ TAHSİLAT PROJEKSİYONU */}
                 <TabsContent value="cashflow" className="space-y-6 mt-0">
+                    {/* Past Sales Excel Import Callout */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100">
+                        <div className="space-y-0.5">
+                            <div className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                                <Sparkles className="h-4 w-4 text-indigo-600" />
+                                CRM Dışında Kapanmış Geçmiş Satışlarınız mı Var?
+                            </div>
+                            <p className="text-[11px] text-indigo-700/80">
+                                Daha önce Excel&apos;de tutulan peşin veya vadeli satışları, müşterileri ve taksit takvimlerini topluca içeri aktarabilirsiniz.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <a href="/templates/NovoCRM_Gecmis_Satislar_Yukleme_Sablonu.xlsx" download="NovoCRM_Gecmis_Satislar_Yukleme_Sablonu.xlsx">
+                                <Button size="sm" variant="outline" className="bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold rounded-xl text-xs gap-1.5 shadow-2xs">
+                                    <Download className="h-3.5 w-3.5" />
+                                    Şablonu İndir (.xlsx)
+                                </Button>
+                            </a>
+                            <Link href="/contracts">
+                                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs gap-1.5 shadow-sm">
+                                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                                    İçe Aktarma Ekranına Git
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+
                     {/* Top 4 Cashflow Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* 1. Toplam Sözleşmeli Satış Hacmi */}
