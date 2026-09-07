@@ -748,6 +748,7 @@ export default function PipelineList({
         const s = searchParams.get('s')
         const r = searchParams.get('r')
         const df = searchParams.get('df')
+        const dt = searchParams.get('dt')
         const ls = searchParams.get('ls')
         const fc = searchParams.get('fc')
         const u = searchParams.get('u')
@@ -756,7 +757,7 @@ export default function PipelineList({
         
         if (q) filters['customer'] = q
         if (s) filters['status'] = s
-        if (df) filters['date'] = df
+        if (df || dt) filters['date'] = `${df || ''}:${dt || ''}`
         if (ls) filters['lead_score'] = ls
         if (fc) filters['first_contact'] = fc
         if (u) filters['unit'] = u
@@ -815,8 +816,16 @@ export default function PipelineList({
             }
         } else if (colId === 'date') {
             if (value) {
-                params.set('df', value)
-                params.set('dt', value)
+                if (value.includes(':')) {
+                    const [dfVal, dtVal] = value.split(':')
+                    if (dfVal) params.set('df', dfVal)
+                    else params.delete('df')
+                    if (dtVal) params.set('dt', dtVal)
+                    else params.delete('dt')
+                } else {
+                    params.set('df', value)
+                    params.set('dt', value)
+                }
             } else {
                 params.delete('df')
                 params.delete('dt')
@@ -909,7 +918,13 @@ export default function PipelineList({
                 const month = String(saleDate.getMonth() + 1).padStart(2, '0')
                 const day = String(saleDate.getDate()).padStart(2, '0')
                 const localDateStr = `${year}-${month}-${day}`
-                if (localDateStr !== filterVal) return false
+                if (filterVal.includes(':')) {
+                    const [from, to] = filterVal.split(':')
+                    if (from && localDateStr < from) return false
+                    if (to && localDateStr > to) return false
+                } else {
+                    if (localDateStr !== filterVal) return false
+                }
             } else if (colId === 'amount') {
                 const amt = String(sale.deposit_amount || sale.final_price || '')
                 if (!amt.includes(q)) return false

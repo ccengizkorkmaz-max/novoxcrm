@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { updateFirstContact, updateProcessNote, fetchTrackingSales } from '../actions'
+import { DateRangeDropdown } from '@/components/ui/column-filter-row'
 
 export default function RepTrackingTab({
     sales: initialSales,
@@ -123,7 +124,14 @@ export default function RepTrackingTab({
             const y = saleDate.getFullYear()
             const m = String(saleDate.getMonth() + 1).padStart(2, '0')
             const d = String(saleDate.getDate()).padStart(2, '0')
-            if (`${y}-${m}-${d}` !== filterDate) return false
+            const localDate = `${y}-${m}-${d}`
+            if (filterDate.includes(':')) {
+                const [from, to] = filterDate.split(':')
+                if (from && localDate < from) return false
+                if (to && localDate > to) return false
+            } else {
+                if (localDate !== filterDate) return false
+            }
         }
         if (filterCustomer) {
             const name = (s.customers?.full_name || '').toLowerCase()
@@ -565,7 +573,7 @@ function TrackingTable({
 
     const renderFilter = (colId: string) => {
         switch (colId) {
-            case 'tarih': return <Input type="date" value={filterDate} onChange={(e: any) => setFilterDate(e.target.value)} className="h-7 text-[11px] bg-white" />
+            case 'tarih': return <DateRangeDropdown value={filterDate} onChange={setFilterDate} placeholder="Tarih Aralığı" />
             case 'musteri': return <Input placeholder="Filtre..." value={filterCustomer} onChange={(e: any) => setFilterCustomer(e.target.value)} className="h-7 text-[11px] bg-white" />
             case 'proje': return (
                 <Select value={filterProject || '__all__'} onValueChange={(v: string) => setFilterProject(v === '__all__' ? '' : v)}>
