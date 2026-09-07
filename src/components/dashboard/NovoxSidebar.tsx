@@ -39,7 +39,8 @@ import {
     ClipboardList,
     Video,
     PhoneOff,
-    Headphones
+    Headphones,
+    Calculator
 } from 'lucide-react'
 import {
     Accordion,
@@ -285,6 +286,10 @@ export function NovoxSidebar({
                                 {labels.salesManagement || 'Sales Management'}
                             </NavItem>
 
+                            <NavItem href="/crm/pricing" icon={Calculator} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                Fiyat & Teklif Masası
+                            </NavItem>
+
                             {isManager && (
                                 <NavItem href="/crm/rep-tracking" icon={Headphones} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                                     Temsilci Takip
@@ -361,6 +366,10 @@ export function NovoxSidebar({
                                         <>
                                             <NavItem href="/crm" icon={Activity} onClick={onElementClick} isSubItem>
                                                 {labels.salesManagement || 'Sales Management'}
+                                            </NavItem>
+
+                                            <NavItem href="/crm/pricing" icon={Calculator} onClick={onElementClick} isSubItem>
+                                                Fiyat & Teklif Masası
                                             </NavItem>
 
                                             {isManager && (
