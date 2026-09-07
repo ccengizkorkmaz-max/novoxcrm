@@ -159,18 +159,26 @@ const getLeadSourceBadge = (sale: any) => {
     return { src, srcLabel, srcColor }
 }
 
-export const isCallRequested = (sale: any): boolean => {
+export const isCallRequested = (sale: any, unreadPreview?: string): boolean => {
     // 1. lead_qualifications interest level / status
     const lqs = sale.customers?.lead_qualifications
     if (Array.isArray(lqs) && lqs.length > 0) {
         const lvl = (lqs[0]?.interest_level || lqs[0]?.status || '').toLowerCase()
-        if (lvl === 'call_requested' || lvl.includes('arama')) return true
+        if (lvl === 'call_requested' || lvl.includes('arama') || lvl.includes('call')) return true
     }
 
-    // 2. description or notes or campaign info
+    // 2. campaign_info checks
+    const campInfo = sale.campaign_info
+    if (campInfo) {
+        const respType = (campInfo.responseType || '').toLowerCase()
+        if (respType === 'call_requested') return true
+        const btnText = (campInfo.buttonText || '').toLowerCase()
+        if (btnText.includes('ara') || btnText.includes('beni') || btnText.includes('evet')) return true
+    }
+
+    // 3. description or notes
     const desc = (sale.description || '').toLowerCase()
     const notes = (sale.notes || '').toLowerCase()
-    const btnText = (sale.campaign_info?.buttonText || '').toLowerCase()
     if (
         desc.includes('beni arayın') || 
         desc.includes('beni arayin') || 
@@ -178,18 +186,33 @@ export const isCallRequested = (sale: any): boolean => {
         desc.includes('call_requested') || 
         notes.includes('beni arayın') || 
         notes.includes('beni arayin') ||
-        btnText.includes('beni arayın') ||
-        btnText.includes('beni arayin') ||
-        btnText.includes('evet arayın')
+        notes.includes('arama talebi')
     ) {
         return true
+    }
+
+    // 4. unread WhatsApp message preview check (müşteri mesajında "beni arayın" dediyse)
+    if (unreadPreview) {
+        const lowerPrev = unreadPreview.toLowerCase()
+        if (
+            lowerPrev.includes('beni arayın') || 
+            lowerPrev.includes('beni arayin') || 
+            lowerPrev.includes('arar mısınız') || 
+            lowerPrev.includes('ararmısınız') || 
+            lowerPrev.includes('lütfen arayın') || 
+            lowerPrev.includes('arama talebi') ||
+            lowerPrev.includes('arayın') ||
+            lowerPrev.includes('arayin')
+        ) {
+            return true
+        }
     }
 
     return false
 }
 
-export const isPendingCall = (sale: any): boolean => {
-    if (!isCallRequested(sale)) return false
+export const isPendingCall = (sale: any, unreadPreview?: string): boolean => {
+    if (!isCallRequested(sale, unreadPreview)) return false
     // Eğer ilk temas henüz girilmediyse veya tekrar aranacaksa acil çağrı statüsündedir
     const fc = sale.first_contact
     if (!fc || fc === 'none' || fc === 'Tekrar Aranacak') {
@@ -384,6 +407,40 @@ export default function PipelineList({
         window.addEventListener('open-crm-whatsapp-chat', handleOpenChat)
         return () => window.removeEventListener('open-crm-whatsapp-chat', handleOpenChat)
     }, [])
+
+    const [liveInboundBanner, setLiveInboundBanner] = useState<{
+        customerName: string;
+        content: string;
+        phone?: string;
+        customerData?: any;
+        at: string;
+    } | null>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('crm_last_inbound_wp')
+                if (saved) return JSON.parse(saved)
+            } catch {}
+        }
+        return null
+    })
+
+    useEffect(() => {
+        const handleInboundBanner = (e: Event) => {
+            const ce = e as CustomEvent
+            if (ce.detail) {
+                setLiveInboundBanner(ce.detail)
+            }
+        }
+        window.addEventListener('new-inbound-whatsapp-banner', handleInboundBanner)
+        return () => window.removeEventListener('new-inbound-whatsapp-banner', handleInboundBanner)
+    }, [])
+
+    const handleDismissLiveBanner = () => {
+        setLiveInboundBanner(null)
+        try {
+            localStorage.removeItem('crm_last_inbound_wp')
+        } catch {}
+    }
 
     // Real-time updates
     useSupabaseRealtime({ table: 'sales' })
@@ -878,14 +935,14 @@ export default function PipelineList({
 
     // "Beni Arayın" diyen ve henüz ilk temas girilmemiş sıcak leadler
     const pendingCallSales = useMemo(() => {
-        return sales.filter(isPendingCall)
-    }, [sales])
+        return sales.filter(s => isPendingCall(s, unreadWpMap[s.customer_id]?.preview))
+    }, [sales, unreadWpMap])
 
     // Öncelikli Sıralama: 1. Arama Bekleyenler, 2. Okunmamış WhatsApp Mesajı Olanlar, 3. Normal Sıralama
     const sortedSales = useMemo(() => {
         return [...currentSales].sort((a, b) => {
-            const aPending = isPendingCall(a)
-            const bPending = isPendingCall(b)
+            const aPending = isPendingCall(a, unreadWpMap[a.customer_id]?.preview)
+            const bPending = isPendingCall(b, unreadWpMap[b.customer_id]?.preview)
             if (aPending && !bPending) return -1
             if (!aPending && bPending) return 1
 
@@ -897,6 +954,24 @@ export default function PipelineList({
             return 0
         })
     }, [currentSales, unreadWpMap])
+
+    // WhatsApp'tan gelen en son okunmamış mesaj
+    const latestUnreadMsg = useMemo(() => {
+        const entries = Object.entries(unreadWpMap || {})
+        if (entries.length === 0) return null
+        entries.sort((a, b) => new Date(b[1].at || 0).getTime() - new Date(a[1].at || 0).getTime())
+        const [customerId, info] = entries[0]
+        const matchedSale = sales.find(s => s.customer_id === customerId)
+        return {
+            customerId,
+            customerName: matchedSale?.customers?.full_name || 'Müşteri',
+            phone: matchedSale?.customers?.phone,
+            preview: info.preview,
+            count: info.count,
+            at: info.at,
+            customerData: matchedSale?.customers
+        }
+    }, [unreadWpMap, sales])
 
     const handlePageChange = (newPage: number) => {
         const params = new URLSearchParams(searchParams.toString())
@@ -930,8 +1005,62 @@ export default function PipelineList({
         }
     }
 
+    const bannerMsg = liveInboundBanner || (latestUnreadMsg ? {
+        customerName: latestUnreadMsg.customerName,
+        content: latestUnreadMsg.preview || 'Yeni bir mesaj gönderdi',
+        phone: latestUnreadMsg.phone,
+        customerData: latestUnreadMsg.customerData,
+        at: latestUnreadMsg.at
+    } : null)
+
     return (
         <div className="space-y-4">
+            {/* 💬 Son Gelen / Kaybolan WhatsApp Mesajı Kalıcı Bandı */}
+            {bannerMsg && (
+                <div className="flex items-center justify-between p-2 px-3 bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-xl shadow-xs animate-in fade-in slide-in-from-top-1 text-xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+                        </span>
+                        <span className="font-extrabold text-emerald-900 dark:text-emerald-200 flex items-center gap-1">
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                            Son Gelen WhatsApp Mesajı:
+                        </span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100">
+                            {bannerMsg.customerName}
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-300 italic max-w-md truncate">
+                            "{bannerMsg.content}"
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 ml-2">
+                        <Button
+                            size="sm"
+                            onClick={() => {
+                                window.dispatchEvent(new CustomEvent('open-crm-whatsapp-chat', {
+                                    detail: {
+                                        customer: bannerMsg.customerData || { full_name: bannerMsg.customerName, phone: bannerMsg.phone },
+                                        saleId: null
+                                    }
+                                }))
+                            }}
+                            className="h-6 px-2.5 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-md shadow-2xs cursor-pointer"
+                        >
+                            Yanıtla
+                        </Button>
+                        <button
+                            type="button"
+                            onClick={handleDismissLiveBanner}
+                            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-md transition-colors cursor-pointer"
+                            title="Kapat"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* 🚨 Acil Arama Bekleyen Leadler (Kompakt Bar) */}
             {pendingCallSales.length > 0 && (
                 <div className="p-2.5 px-3 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/5 dark:from-amber-950/40 dark:via-rose-950/40 dark:to-slate-900 border border-amber-300/80 dark:border-amber-700/60 rounded-xl shadow-xs space-y-2 animate-in fade-in slide-in-from-top-1">
@@ -1235,7 +1364,7 @@ export default function PipelineList({
                                     const activeAppointment = activitiesState.find(a => a.customer_id === sale.customer_id && (a.status === 'Planned' || a.status === 'Pending'))
                                     const unreadWp = sale.customer_id ? unreadWpMap[sale.customer_id] : null
                                     const hasUnreadWp = Boolean(unreadWp && unreadWp.count > 0)
-                                    const callRequested = isPendingCall(sale)
+                                    const callRequested = isPendingCall(sale, unreadWp?.preview)
 
                                     return (
                                         <TableRow
@@ -1912,7 +2041,9 @@ export default function PipelineList({
                     sortedSales.map((sale: any) => {
                         const isCompleted = sale.status === 'Completed' || sale.status === 'Sold'
                         const isLost = sale.status === 'Lost'
-                        const callRequested = isPendingCall(sale)
+                        const unreadWp = sale.customer_id ? unreadWpMap[sale.customer_id] : null
+                        const hasUnreadWp = Boolean(unreadWp && unreadWp.count > 0)
+                        const callRequested = isPendingCall(sale, unreadWp?.preview)
 
                         const getStatusColor = (status: string) => {
                             switch (status) {
@@ -1929,9 +2060,6 @@ export default function PipelineList({
                                 default: return 'bg-slate-100 text-slate-900 font-bold border-slate-300'
                             }
                         }
-
-                        const unreadWp = sale.customer_id ? unreadWpMap[sale.customer_id] : null
-                        const hasUnreadWp = Boolean(unreadWp && unreadWp.count > 0)
 
                         return (
                             <div key={sale.id} className={cn(

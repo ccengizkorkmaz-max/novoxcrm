@@ -65,6 +65,19 @@ export default function CrmWhatsAppRealtimeNotifier({
                         // Listeyi ve sayaçları yenile
                         router.refresh()
 
+                        // Üst Bar için Canlı Mesaj Bilgisi Yayınla ve Sakla
+                        const bannerPayload = {
+                            customerName,
+                            content: newMsg.content || 'Yeni mesaj geldi',
+                            phone: customerData.phone,
+                            customerData,
+                            at: new Date().toISOString()
+                        }
+                        try {
+                            localStorage.setItem('crm_last_inbound_wp', JSON.stringify(bannerPayload))
+                        } catch {}
+                        window.dispatchEvent(new CustomEvent('new-inbound-whatsapp-banner', { detail: bannerPayload }))
+
                         // Canlı Toast bildirimi (Temsilci görene/yanıtlayana kadar ekranda kalır)
                         toast(
                             `💬 Yeni WhatsApp Mesajı: ${customerName}`,
