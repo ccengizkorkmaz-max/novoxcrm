@@ -40,7 +40,8 @@ import {
     Video,
     PhoneOff,
     Headphones,
-    Calculator
+    Calculator,
+    Crown
 } from 'lucide-react'
 import {
     Accordion,
@@ -564,6 +565,9 @@ export function NovoxSidebar({
                                 </NavItem>
                             </>
                         )}
+                        <NavItem href="/reports/ceo-funnel" icon={Crown} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                            {'CEO Satış Hunisi'}
+                        </NavItem>
                         <NavItem href="/reports/call-center-performance" icon={Phone} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {'Çağrı Merkezi & Arama'}
                         </NavItem>
@@ -655,6 +659,9 @@ export function NovoxSidebar({
                                 <span>{labels.reports?.title || 'Reports'}</span>
                             </AccordionTrigger>
                             <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
+                                <NavItem href="/reports/ceo-funnel" icon={Crown} onClick={onElementClick} isSubItem>
+                                    {'👑 CEO Satış Hunisi'}
+                                </NavItem>
                                 <NavItem href="/reports/call-center-performance" icon={Phone} onClick={onElementClick} isSubItem>
                                     {'Çağrı Merkezi & Arama'}
                                 </NavItem>

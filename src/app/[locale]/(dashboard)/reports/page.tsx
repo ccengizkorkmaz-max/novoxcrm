@@ -26,12 +26,22 @@ import {
     Target,
     Clock,
     Brain,
-    Headphones
+    Headphones,
+    Crown
 } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from 'next-intl/server'
 
 const reportCards = [
+    {
+        id: "ceo-funnel",
+        href: "/reports/ceo-funnel",
+        icon: Crown,
+        color: "text-amber-600",
+        bgColor: "bg-amber-100",
+        customTitle: "👑 CEO Satış Hunisi & Gelir Projeksiyonu",
+        customDesc: "Aşamalar bazında potansiyel değerler, toplanan kaporalar, anlık boru hattı ve 3 senaryolu gelir projeksiyonu kokpiti."
+    },
     {
         id: "call-center-performance",
         href: "/reports/call-center-performance",
