@@ -251,6 +251,70 @@ export async function updateDocument(documentId: string, projectId: string, data
 // Construction Site Photos
 // ========================
 
+export interface ConstructionMediaPayload {
+    fileName: string
+    fileUrl: string
+    fileType: string
+    fileSize: number
+    documentName: string
+    description?: string
+    folderName: string
+    progressDate?: string | null
+    progressPercentage?: number | null
+}
+
+export async function saveConstructionMediaBatch(projectId: string, items: ConstructionMediaPayload[]) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+
+    if (!items || items.length === 0) {
+        return { error: 'Kayıt edilecek medya bulunamadı.' }
+    }
+
+    const records = items.map(item => ({
+        tenant_id: profile.tenant_id,
+        project_id: projectId,
+        file_name: item.fileName,
+        file_url: item.fileUrl,
+        file_type: item.fileType,
+        file_size: item.fileSize,
+        document_name: item.documentName || item.fileName,
+        description: item.description || null,
+        category: 'construction_photo',
+        folder_name: (item.folderName || 'Genel İlerlemeler').trim(),
+        progress_date: item.progressDate || new Date().toISOString().split('T')[0],
+        progress_percentage: typeof item.progressPercentage === 'number' && !isNaN(item.progressPercentage)
+            ? item.progressPercentage
+            : null,
+        permissions: 'internal',
+        is_customer_shareable: false,
+        uploaded_by: user.id
+    }))
+
+    const { data: inserted, error: dbError } = await supabase
+        .from('project_documents')
+        .insert(records)
+        .select()
+
+    if (dbError) {
+        console.error('saveConstructionMediaBatch DB error:', dbError)
+        return { error: 'Veritabanı kaydı sırasında hata oluştu: ' + dbError.message }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true, count: inserted?.length || records.length }
+}
+
 export async function uploadConstructionPhotos(projectId: string, formData: FormData) {
     const supabase = await createClient()
 

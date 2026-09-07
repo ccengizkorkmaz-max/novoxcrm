@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter
+} from '@/components/ui/dialog'
+import {
     Camera,
     Upload,
     X,
@@ -26,12 +33,12 @@ import {
     ExternalLink,
     Filter,
     Layers,
-    CheckCircle2,
-    Percent
+    CheckCircle2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import {
+    saveConstructionMediaBatch,
     uploadConstructionPhotos,
     deleteConstructionPhoto,
     deleteConstructionFolder
@@ -62,14 +69,14 @@ interface ConstructionGalleryProps {
 export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }: ConstructionGalleryProps) {
     const [items, setItems] = useState<ConstructionMediaItem[]>(initialItems)
     const [isUploading, setIsUploading] = useState(false)
+    const [uploadProgressText, setUploadProgressText] = useState('')
     const [selectedFiles, setSelectedFiles] = useState<File[]>([])
     const [previewUrls, setPreviewUrls] = useState<string[]>([])
     const [caption, setCaption] = useState('')
     const [selectedFolder, setSelectedFolder] = useState<string>('all')
-    const [newFolderName, setNewFolderName] = useState('')
-    const [isCreatingNewFolder, setIsCreatingNewFolder] = useState(false)
-    const [progressDate, setProgressDate] = useState<string>(new Date().toISOString().split('T')[0])
-    const [progressPercentage, setProgressPercentage] = useState<string>('')
+    const [customFolders, setCustomFolders] = useState<string[]>([])
+    const [isNewFolderOpen, setIsNewFolderOpen] = useState(false)
+    const [newFolderNameInput, setNewFolderNameInput] = useState('')
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
     const [showUploadArea, setShowUploadArea] = useState(false)
     const [isDragOver, setIsDragOver] = useState(false)
@@ -94,12 +101,23 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
         const map = new Map<string, {
             name: string
             items: ConstructionMediaItem[]
-            progressDate?: string
-            progressPercentage?: number | null
             imageCount: number
             videoCount: number
             docCount: number
         }>()
+
+        // Include any empty custom folders created during this session
+        customFolders.forEach(name => {
+            if (name && !map.has(name)) {
+                map.set(name, {
+                    name,
+                    items: [],
+                    imageCount: 0,
+                    videoCount: 0,
+                    docCount: 0
+                })
+            }
+        })
 
         items.forEach(item => {
             const folder = (item.folder_name && item.folder_name.trim()) || 'Genel İlerlemeler'
@@ -107,8 +125,6 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                 map.set(folder, {
                     name: folder,
                     items: [],
-                    progressDate: item.progress_date || undefined,
-                    progressPercentage: item.progress_percentage,
                     imageCount: 0,
                     videoCount: 0,
                     docCount: 0
@@ -116,10 +132,6 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
             }
             const f = map.get(folder)!
             f.items.push(item)
-            if (item.progress_date && !f.progressDate) f.progressDate = item.progress_date
-            if (item.progress_percentage !== undefined && item.progress_percentage !== null) {
-                f.progressPercentage = item.progress_percentage
-            }
 
             if (isVideo(item)) f.videoCount++
             else if (isDoc(item)) f.docCount++
@@ -127,9 +139,26 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
         })
 
         return map
-    }, [items])
+    }, [items, customFolders])
 
     const availableFolders = useMemo(() => Array.from(folderMap.values()), [folderMap])
+
+    const handleCreateFolder = (e?: React.FormEvent) => {
+        if (e) e.preventDefault()
+        const trimmed = newFolderNameInput.trim()
+        if (!trimmed) {
+            toast.error('Lütfen bir klasör adı girin.')
+            return
+        }
+        if (!customFolders.includes(trimmed)) {
+            setCustomFolders(prev => [...prev, trimmed])
+        }
+        setSelectedFolder(trimmed)
+        setNewFolderNameInput('')
+        setIsNewFolderOpen(false)
+        setShowUploadArea(true)
+        toast.success(`"${trimmed}" klasörü oluşturuldu. Artık içine dosya yükleyebilirsiniz.`)
+    }
 
     // Filtered items
     const filteredItems = useMemo(() => {
@@ -191,32 +220,38 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
     }
 
     const handleUpload = async () => {
-        if (selectedFiles.length === 0) return
+        if (selectedFiles.length === 0) {
+            toast.error('Lütfen yüklenecek en az bir dosya seçin.')
+            return
+        }
 
-        const activeFolder = isCreatingNewFolder
-            ? (newFolderName.trim() || 'Yeni Aşama')
-            : (selectedFolder !== 'all' ? selectedFolder : (availableFolders[0]?.name || 'Genel İlerlemeler'))
+        const targetFolder = selectedFolder !== 'all' ? selectedFolder : (availableFolders[0]?.name || 'Genel İlerlemeler')
 
         setIsUploading(true)
+        setUploadProgressText('Dosyalar yükleniyor...')
+
         try {
             const supabase = createClient()
-            const uploadedItems: ConstructionMediaItem[] = []
+            const payloadItems = []
 
-            for (const file of selectedFiles) {
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i]
+                setUploadProgressText(`Dosya ${i + 1}/${selectedFiles.length} yükleniyor (${file.name})...`)
+
                 const isVid = file.type.startsWith('video/')
-                const isDc = file.type === 'application/pdf' || /\.(pdf|doc|docx)$/i.test(file.name)
+                const isDc = file.type === 'application/pdf' || /\.(pdf|doc|docx|xls|xlsx)$/i.test(file.name)
                 const prefix = isVid ? 'video' : isDc ? 'doc' : 'img'
-                const fileExt = file.name.split('.').pop()
+                const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase()
                 const fileName = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
                 const filePath = `construction-media/${projectId}/${fileName}`
 
                 const { error: uploadError } = await supabase.storage
                     .from('crm-images')
-                    .upload(filePath, file)
+                    .upload(filePath, file, { upsert: true })
 
                 if (uploadError) {
-                    console.error('Upload error:', uploadError)
-                    toast.error(`${file.name} yüklenemedi`)
+                    console.error('Storage upload error for', file.name, uploadError)
+                    toast.error(`${file.name} yüklenemedi: ${uploadError.message}`)
                     continue
                 }
 
@@ -224,40 +259,41 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                     .from('crm-images')
                     .getPublicUrl(filePath)
 
-                uploadedItems.push({
-                    id: `temp-${Date.now()}-${Math.random()}`,
-                    file_url: urlData.publicUrl,
-                    file_name: file.name,
-                    file_type: file.type || (isVid ? 'video/mp4' : isDc ? 'application/pdf' : 'image/jpeg'),
-                    file_size: file.size,
-                    document_name: caption || file.name,
-                    description: caption,
-                    folder_name: activeFolder,
-                    progress_date: progressDate,
-                    progress_percentage: progressPercentage ? parseInt(progressPercentage, 10) : null,
-                    created_at: new Date().toISOString(),
-                    uploader_name: 'Siz'
+                const defaultTitle = isVid
+                    ? `Şantiye Videosu - ${new Date().toLocaleDateString('tr-TR')}`
+                    : isDc
+                        ? file.name
+                        : `Şantiye Fotoğrafı - ${new Date().toLocaleDateString('tr-TR')}`
+
+                payloadItems.push({
+                    fileName: file.name,
+                    fileUrl: urlData.publicUrl,
+                    fileType: file.type || (isVid ? 'video/mp4' : isDc ? 'application/pdf' : 'image/jpeg'),
+                    fileSize: file.size,
+                    documentName: caption || defaultTitle,
+                    description: caption || undefined,
+                    folderName: targetFolder,
+                    progressDate: new Date().toISOString().split('T')[0],
+                    progressPercentage: null
                 })
             }
 
-            // Save metadata via server action
-            const formData = new FormData()
-            selectedFiles.forEach(f => formData.append('files', f))
-            if (caption) formData.set('caption', caption)
-            formData.set('folder_name', activeFolder)
-            if (progressDate) formData.set('progress_date', progressDate)
-            if (progressPercentage) formData.set('progress_percentage', progressPercentage)
+            if (payloadItems.length === 0) {
+                toast.error('Hiçbir dosya yüklenemedi.')
+                setIsUploading(false)
+                setUploadProgressText('')
+                return
+            }
 
-            const result = await uploadConstructionPhotos(projectId, formData)
+            setUploadProgressText('Kayıt tamamlanıyor...')
+            const result = await saveConstructionMediaBatch(projectId, payloadItems)
 
             if (result?.success) {
-                toast.success(`${result.uploaded}/${result.total} dosya başarıyla eklendi!`)
+                toast.success(`${payloadItems.length} dosya "${targetFolder}" klasörüne başarıyla eklendi!`)
                 previewUrls.forEach(url => { if (url) URL.revokeObjectURL(url) })
                 setSelectedFiles([])
                 setPreviewUrls([])
                 setCaption('')
-                setIsCreatingNewFolder(false)
-                setNewFolderName('')
                 setShowUploadArea(false)
 
                 if (typeof window !== 'undefined') {
@@ -269,13 +305,14 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                     }
                 }
             } else {
-                toast.error(result?.error || 'Yükleme başarısız.')
+                toast.error(result?.error || 'Kayıt sırasında hata oluştu.')
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Upload error:', err)
-            toast.error('Bir hata oluştu.')
+            toast.error(err?.message || 'Yükleme sırasında bir hata oluştu.')
         } finally {
             setIsUploading(false)
+            setUploadProgressText('')
         }
     }
 
@@ -341,10 +378,7 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                     <div className="flex items-center gap-2 shrink-0">
                         {isAdmin && (
                             <Button
-                                onClick={() => {
-                                    setShowUploadArea(!showUploadArea)
-                                    if (!showUploadArea) setIsCreatingNewFolder(false)
-                                }}
+                                onClick={() => setShowUploadArea(!showUploadArea)}
                                 variant={showUploadArea ? "secondary" : "default"}
                                 className={cn(
                                     "text-xs font-bold gap-1.5",
@@ -367,20 +401,17 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                                 <Folder className="w-3.5 h-3.5 text-indigo-500" />
-                                İlerleme Klasörleri / Fazlar
+                                İlerleme Klasörleri
                             </span>
 
                             {isAdmin && (
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setShowUploadArea(true)
-                                        setIsCreatingNewFolder(true)
-                                    }}
+                                    onClick={() => setIsNewFolderOpen(true)}
                                     className="text-xs text-indigo-600 hover:text-indigo-800 font-bold inline-flex items-center gap-1 hover:underline"
                                 >
                                     <FolderPlus className="w-3.5 h-3.5" />
-                                    Yeni Klasör / Faz Aç
+                                    + Yeni Klasör Aç
                                 </button>
                             )}
                         </div>
@@ -420,15 +451,6 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                                         <Folder className={cn("w-3.5 h-3.5", isSelected ? "text-white" : "text-indigo-500")} />
                                         <span>{folder.name}</span>
 
-                                        {folder.progressPercentage !== null && folder.progressPercentage !== undefined && (
-                                            <span className={cn(
-                                                "text-[10px] px-1.5 py-0.2 font-black rounded-md",
-                                                isSelected ? "bg-indigo-800 text-indigo-100" : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                            )}>
-                                                %{folder.progressPercentage}
-                                            </span>
-                                        )}
-
                                         <span className={cn(
                                             "text-[10px] px-1.5 py-0.2 rounded-full",
                                             isSelected ? "bg-indigo-700 text-white" : "bg-slate-100 text-slate-600"
@@ -452,6 +474,17 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                                     </div>
                                 )
                             })}
+
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsNewFolderOpen(true)}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 border border-dashed border-indigo-300 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100"
+                                >
+                                    <FolderPlus className="w-3.5 h-3.5" />
+                                    <span>+ Yeni Klasör</span>
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -497,10 +530,10 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                                 <div>
                                     <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                                         <Upload className="w-4 h-4 text-indigo-600" />
-                                        Şantiye İlerleme Dosyası Yükle
+                                        Şantiye Dosyası Yükle
                                     </h4>
                                     <p className="text-xs text-slate-500">
-                                        Fotoğraf, video ve teknik inşaat belgelerini klasörleyerek yükleyin.
+                                        Seçilen klasöre fotoğraf, video ve teknik inşaat belgelerini yükleyin.
                                     </p>
                                 </div>
                                 <Button
@@ -513,71 +546,39 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                                 </Button>
                             </div>
 
-                            {/* Folder & Milestone Settings */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {/* Folder Select / Create */}
+                            {/* Folder & Caption Selection */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                     <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                                        <span>Klasör / İlerleme Fazı</span>
+                                        <span>Yüklenecek Klasör</span>
                                         <button
                                             type="button"
-                                            onClick={() => setIsCreatingNewFolder(!isCreatingNewFolder)}
-                                            className="text-[10px] text-indigo-600 hover:underline font-semibold"
+                                            onClick={() => setIsNewFolderOpen(true)}
+                                            className="text-[11px] text-indigo-600 hover:text-indigo-800 hover:underline font-bold flex items-center gap-1"
                                         >
-                                            {isCreatingNewFolder ? 'Mevcut Klasör Seç' : '+ Yeni Klasör Aç'}
+                                            <FolderPlus className="w-3 h-3" /> + Yeni Klasör Aç
                                         </button>
                                     </Label>
-
-                                    {isCreatingNewFolder ? (
-                                        <Input
-                                            placeholder="Örn: Eylül 2026 - Kaba İnşaat"
-                                            value={newFolderName}
-                                            onChange={(e) => setNewFolderName(e.target.value)}
-                                            className="h-9 text-xs font-semibold bg-white border-indigo-300 focus-visible:ring-indigo-500"
-                                        />
-                                    ) : (
-                                        <select
-                                            value={selectedFolder === 'all' ? (availableFolders[0]?.name || 'Genel İlerlemeler') : selectedFolder}
-                                            onChange={(e) => setSelectedFolder(e.target.value)}
-                                            className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        >
-                                            {availableFolders.map(f => (
-                                                <option key={f.name} value={f.name}>{f.name}</option>
-                                            ))}
-                                            {availableFolders.length === 0 && (
-                                                <option value="Genel İlerlemeler">Genel İlerlemeler</option>
-                                            )}
-                                        </select>
-                                    )}
+                                    <select
+                                        value={selectedFolder === 'all' ? (availableFolders[0]?.name || 'Genel İlerlemeler') : selectedFolder}
+                                        onChange={(e) => setSelectedFolder(e.target.value)}
+                                        className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    >
+                                        {availableFolders.map(f => (
+                                            <option key={f.name} value={f.name}>{f.name}</option>
+                                        ))}
+                                        {availableFolders.length === 0 && (
+                                            <option value="Genel İlerlemeler">Genel İlerlemeler</option>
+                                        )}
+                                    </select>
                                 </div>
 
-                                {/* Milestone Date */}
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                                        <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
-                                        <span>İlerleme / Çekim Tarihi</span>
-                                    </Label>
+                                    <Label className="text-xs font-bold text-slate-700">Açıklama / Not (Opsiyonel)</Label>
                                     <Input
-                                        type="date"
-                                        value={progressDate}
-                                        onChange={(e) => setProgressDate(e.target.value)}
-                                        className="h-9 text-xs bg-white border-slate-200"
-                                    />
-                                </div>
-
-                                {/* Progress Percentage */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                                        <Percent className="w-3.5 h-3.5 text-slate-400" />
-                                        <span>Tamamlanma Oranı (%)</span>
-                                    </Label>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        placeholder="Örn: 45"
-                                        value={progressPercentage}
-                                        onChange={(e) => setProgressPercentage(e.target.value)}
+                                        placeholder="Örn: Blok A beton dökümü..."
+                                        value={caption}
+                                        onChange={(e) => setCaption(e.target.value)}
                                         className="h-9 text-xs bg-white border-slate-200"
                                     />
                                 </div>
@@ -609,7 +610,7 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                                     Fotoğraf, video veya belgeleri buraya sürükleyin ya da <span className="text-indigo-600 underline">seçin</span>
                                 </p>
                                 <p className="text-[11px] text-slate-500 mt-1">
-                                    Desteklenenler: JPG, PNG, WebP · MP4, MOV, WebM · PDF, DOC, DOCX
+                                    JPG, PNG, WebP · MP4, MOV, WebM · PDF, DOC, DOCX
                                 </p>
                                 <input
                                     ref={fileInputRef}
@@ -644,7 +645,6 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
                                         {selectedFiles.map((file, i) => {
                                             const isVid = file.type.startsWith('video/')
-                                            const isDocFile = file.type === 'application/pdf' || /\.(pdf|doc|docx)$/i.test(file.name)
                                             const imgUrl = previewUrls[i]
 
                                             return (
@@ -678,17 +678,6 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                                         })}
                                     </div>
 
-                                    {/* Caption */}
-                                    <div className="space-y-1 pt-1">
-                                        <Label className="text-xs font-semibold text-slate-700">Açıklama / Başlık (Opsiyonel)</Label>
-                                        <Input
-                                            placeholder="Örn: 4. Kat tabliye betonu dökümü tamamlandı"
-                                            value={caption}
-                                            onChange={(e) => setCaption(e.target.value)}
-                                            className="h-9 text-xs"
-                                        />
-                                    </div>
-
                                     {/* Upload Trigger Button */}
                                     <Button
                                         onClick={handleUpload}
@@ -696,9 +685,9 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                                         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-10 gap-2 shadow-sm"
                                     >
                                         {isUploading ? (
-                                            <><Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor...</>
+                                            <><Loader2 className="w-4 h-4 animate-spin" /> {uploadProgressText || 'Yükleniyor...'}</>
                                         ) : (
-                                            <><Upload className="w-4 h-4" /> {selectedFiles.length} Dosyayı Klasöre Yükle</>
+                                            <><Upload className="w-4 h-4" /> {selectedFiles.length} Dosyayı "{selectedFolder !== 'all' ? selectedFolder : (availableFolders[0]?.name || 'Genel İlerlemeler')}" Klasörüne Yükle</>
                                         )}
                                     </Button>
                                 </div>
@@ -945,6 +934,45 @@ export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }
                     )}
                 </div>
             )}
+
+            {/* Quick New Folder Dialog */}
+            <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="text-sm font-bold flex items-center gap-2 text-slate-900">
+                            <FolderPlus className="w-4 h-4 text-indigo-600" />
+                            Yeni İlerleme Klasörü
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                        <Label className="text-xs font-semibold text-slate-700">Klasör Adı</Label>
+                        <Input
+                            placeholder="Örn: Blok A - Kaba İnşaat, 1. Kat..."
+                            value={newFolderNameInput}
+                            onChange={(e) => setNewFolderNameInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    handleCreateFolder()
+                                }
+                            }}
+                            autoFocus
+                        />
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" size="sm" onClick={() => setIsNewFolderOpen(false)}>
+                            Vazgeç
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                            onClick={() => handleCreateFolder()}
+                        >
+                            Klasör Oluştur
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     )
 }
