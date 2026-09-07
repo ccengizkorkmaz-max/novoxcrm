@@ -46,6 +46,7 @@ export default async function CRMPage(props: {
     const filterDateFrom = params.df as string
     const filterDateTo = params.dt as string
     const filterFirstContact = params.fc as string
+    const filterUnansweredWp = params.unanswered_wp === 'true' || params.wp_unanswered === 'true'
     const activeTab = (params.tab as string) || 'pipeline'
 
     const page = Number(searchParams.page) || 1
@@ -81,10 +82,11 @@ export default async function CRMPage(props: {
     let baseQuery = supabase
         .from('sales')
         .select('*, customers!inner(id, full_name, email, phone, customer_number, communication_enabled, source, lead_qualifications(last_call_at, interest_level, interest_level_ai, interest_level_source, interest_level_history, call_notes, status)), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name, is_external)', { count: 'exact' })
-        .neq('status', 'Inbox')
-
-    if (!isManager && user) {
-        baseQuery = baseQuery.eq('assigned_to', user.id)
+    if (!filterUnansweredWp) {
+        baseQuery = baseQuery.neq('status', 'Inbox')
+        if (!isManager && user) {
+            baseQuery = baseQuery.eq('assigned_to', user.id)
+        }
     } else if (filterReps.length > 0) {
         if (filterReps.includes('unassigned')) {
             baseQuery = baseQuery.is('assigned_to', null)
@@ -115,8 +117,6 @@ export default async function CRMPage(props: {
         }
     }
 
-    const filterUnansweredWp = params.unanswered_wp === 'true' || params.wp_unanswered === 'true'
-
     // Fetch unread WhatsApp conversations for this tenant (replies waiting for sales rep response)
     const { data: rawUnreadConvs } = userTenantId
         ? await adminSupabase
@@ -131,16 +131,63 @@ export default async function CRMPage(props: {
     const unreadWpMap: Record<string, { count: number; preview: string; at: string }> = {}
     const unreadCustomerIds: string[] = []
 
-    rawUnreadConvs?.forEach((c: any) => {
-        if (c.customer_id) {
-            unreadWpMap[c.customer_id] = {
-                count: c.unread_count || 1,
-                preview: c.last_message_preview || '',
-                at: c.last_message_at
+    if (rawUnreadConvs && rawUnreadConvs.length > 0) {
+        // 1. Resolve any unlinked conversations by phone
+        const unlinkedConvs = rawUnreadConvs.filter((c: any) => !c.customer_id && c.phone_number)
+        for (const c of unlinkedConvs) {
+            const cleanPhone = c.phone_number.replace(/\D/g, '').slice(-10)
+            const { data: matchedCust } = await adminSupabase
+                .from('customers')
+                .select('id')
+                .eq('tenant_id', userTenantId)
+                .ilike('phone', `%${cleanPhone}%`)
+                .limit(1)
+                .maybeSingle()
+
+            if (matchedCust?.id) {
+                c.customer_id = matchedCust.id
+                await adminSupabase.from('whatsapp_conversations').update({ customer_id: matchedCust.id }).eq('id', c.id)
             }
-            unreadCustomerIds.push(c.customer_id)
         }
-    })
+
+        // Collect all resolved customer IDs (sorted by last_message_at desc from query)
+        for (const c of rawUnreadConvs) {
+            if (c.customer_id) {
+                unreadWpMap[c.customer_id] = {
+                    count: c.unread_count || 1,
+                    preview: c.last_message_preview || '',
+                    at: c.last_message_at
+                }
+                if (!unreadCustomerIds.includes(c.customer_id)) {
+                    unreadCustomerIds.push(c.customer_id)
+                }
+            }
+        }
+
+        // 2. Bulk check which customers are missing a sale record and create them
+        if (unreadCustomerIds.length > 0) {
+            const { data: existingSales } = await adminSupabase
+                .from('sales')
+                .select('customer_id')
+                .in('customer_id', unreadCustomerIds)
+                .eq('tenant_id', userTenantId)
+
+            const existingCustIdSet = new Set((existingSales || []).map((s: any) => s.customer_id))
+            const missingSaleCustIds = unreadCustomerIds.filter(id => !existingCustIdSet.has(id))
+
+            if (missingSaleCustIds.length > 0) {
+                const newSales = missingSaleCustIds.map(custId => ({
+                    tenant_id: userTenantId,
+                    customer_id: custId,
+                    status: 'Lead',
+                    description: 'WhatsApp yanıtı sonrası otomatik oluşturuldu',
+                    assigned_to: (!isManager && user) ? user.id : null,
+                    assigned_at: new Date().toISOString()
+                }))
+                await adminSupabase.from('sales').insert(newSales)
+            }
+        }
+    }
 
     const isUnansweredWpFiltered = filterUnansweredWp && unreadCustomerIds.length > 0
     if (filterUnansweredWp) {
@@ -154,8 +201,8 @@ export default async function CRMPage(props: {
     }
 
     // Sales reps: sort by most recently assigned first
-    // Managers/Admins: sort by creation date
-    const orderColumn = (!isManager && user) ? 'assigned_at' : 'created_at'
+    // Managers/Admins: sort by creation date (or latest when unread WP filtered)
+    const orderColumn = (!filterUnansweredWp && !isManager && user) ? 'assigned_at' : 'created_at'
 
     const showTrackingTab = !isAdvanceMode && !isBroker && isManager
 
