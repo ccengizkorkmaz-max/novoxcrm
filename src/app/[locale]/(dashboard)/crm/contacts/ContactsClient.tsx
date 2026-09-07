@@ -16,11 +16,11 @@ import { Textarea } from '@/components/ui/textarea'
 import {
     Search, Phone, Mail, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
     Plus, Upload, Download, Tag, Trash2, Building2, MapPin, Loader2, FileSpreadsheet,
-    X, Filter, Users, UserPlus
+    X, Filter, Users, UserPlus, Pencil
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-    createContact, deleteContact, deleteContacts,
+    createContact, updateContact, deleteContact, deleteContacts,
     updateContactTags, bulkUpdateContactTags,
     importContactsFromExcel, exportContacts
 } from './actions'
@@ -85,6 +85,20 @@ export function ContactsClient({ contacts, locale, userRole }: {
     const [newTags, setNewTags] = useState<string[]>([])
     const [newNotes, setNewNotes] = useState('')
     const [newCity, setNewCity] = useState('')
+
+    // ── Edit Contact Form & Modal ──
+    const [showEditModal, setShowEditModal] = useState(false)
+    const [editContactId, setEditContactId] = useState<string | null>(null)
+    const [editName, setEditName] = useState('')
+    const [editPhone, setEditPhone] = useState('')
+    const [editEmail, setEditEmail] = useState('')
+    const [editCompany, setEditCompany] = useState('')
+    const [editTitle, setEditTitle] = useState('')
+    const [editSource, setEditSource] = useState('Manuel Giriş')
+    const [editTags, setEditTags] = useState<string[]>([])
+    const [editNotes, setEditNotes] = useState('')
+    const [editCity, setEditCity] = useState('')
+    const [editDistrict, setEditDistrict] = useState('')
 
     // ── Bulk tag ──
     const [bulkTags, setBulkTags] = useState<string[]>([])
@@ -187,6 +201,55 @@ export function ContactsClient({ contacts, locale, userRole }: {
                 toast.success(`"${newName}" kontağı eklendi!`)
                 setShowAddModal(false)
                 resetNewForm()
+                router.refresh()
+            }
+        })
+    }
+
+    const openEditModal = (contact: any) => {
+        setEditContactId(contact.id)
+        setEditName(contact.full_name || '')
+        setEditPhone(contact.phone || '')
+        setEditEmail(contact.email || '')
+        setEditCompany(contact.company || '')
+        setEditTitle(contact.title || '')
+        setEditSource(contact.source || 'Manuel Giriş')
+        setEditTags(Array.isArray(contact.tags) ? [...contact.tags] : [])
+        setEditNotes(contact.notes || '')
+        setEditCity(contact.city || '')
+        setEditDistrict(contact.district || '')
+        setShowEditModal(true)
+    }
+
+    const toggleEditTag = (tag: string) => {
+        setEditTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+    }
+
+    const handleUpdateContact = () => {
+        if (!editContactId) return
+        if (!editName.trim()) { toast.error('Ad Soyad zorunludur.'); return }
+
+        startTransition(async () => {
+            const fd = new FormData()
+            fd.append('id', editContactId)
+            fd.append('full_name', editName.trim())
+            if (editPhone.trim()) fd.append('phone', editPhone.trim())
+            if (editEmail.trim()) fd.append('email', editEmail.trim())
+            if (editCompany.trim()) fd.append('company', editCompany.trim())
+            if (editTitle.trim()) fd.append('title', editTitle.trim())
+            fd.append('source', editSource)
+            if (editTags.length > 0) fd.append('tags', editTags.join(','))
+            if (editNotes.trim()) fd.append('notes', editNotes.trim())
+            if (editCity.trim()) fd.append('city', editCity.trim())
+            if (editDistrict.trim()) fd.append('district', editDistrict.trim())
+
+            const res = await updateContact(fd)
+            if (res?.error) {
+                toast.error(res.error)
+            } else {
+                toast.success(`"${editName}" kontağı güncellendi!`)
+                setShowEditModal(false)
+                setEditContactId(null)
                 router.refresh()
             }
         })
@@ -421,25 +484,35 @@ export function ContactsClient({ contacts, locale, userRole }: {
                                     <th className="px-3 py-2.5 font-medium">Kaynak</th>
                                     <th className="px-3 py-2.5 font-medium">Etiketler</th>
                                     <th className="px-3 py-2.5 font-medium">Tarih</th>
-                                    <th className="px-3 py-2.5 font-medium w-16">İşlem</th>
+                                    <th className="px-3 py-2.5 font-medium w-20 text-center">İşlem</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {paginatedContacts.length > 0 ? paginatedContacts.map(contact => (
                                     <tr key={contact.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="px-3 py-2.5">
-                                            <Checkbox
+                                             <Checkbox
                                                 checked={selectedIds.has(contact.id)}
                                                 onCheckedChange={() => toggleSelect(contact.id)}
                                             />
                                         </td>
                                         <td className="px-3 py-2.5">
                                             <div className="flex items-center gap-2">
-                                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-600 font-semibold text-xs flex-shrink-0">
+                                                <div 
+                                                    className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-600 font-semibold text-xs flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all"
+                                                    onClick={() => openEditModal(contact)}
+                                                    title="Düzenlemek için tıklayın"
+                                                >
                                                     {(contact.full_name || '?')[0]?.toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <span className="font-medium text-slate-900 text-sm">{contact.full_name || 'İsimsiz'}</span>
+                                                    <span 
+                                                        className="font-medium text-slate-900 text-sm hover:text-blue-600 hover:underline cursor-pointer transition-colors"
+                                                        onClick={() => openEditModal(contact)}
+                                                        title="Düzenlemek için tıklayın"
+                                                    >
+                                                        {contact.full_name || 'İsimsiz'}
+                                                    </span>
                                                     {contact.title && (
                                                         <p className="text-[10px] text-muted-foreground">{contact.title}</p>
                                                     )}
@@ -507,16 +580,29 @@ export function ContactsClient({ contacts, locale, userRole }: {
                                         <td className="px-3 py-2.5 text-[11px] text-muted-foreground whitespace-nowrap">
                                             {contact.created_at ? new Date(contact.created_at).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                                         </td>
-                                        <td className="px-3 py-2.5">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => handleDelete(contact.id, contact.full_name)}
-                                                disabled={isPending}
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
+                                        <td className="px-3 py-2.5 text-center">
+                                            <div className="flex items-center justify-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 w-7 p-0 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+                                                    onClick={() => openEditModal(contact)}
+                                                    title="Kontağı Düzenle"
+                                                    disabled={isPending}
+                                                >
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                    onClick={() => handleDelete(contact.id, contact.full_name)}
+                                                    title="Kontağı Sil"
+                                                    disabled={isPending}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 )) : (
@@ -663,6 +749,101 @@ export function ContactsClient({ contacts, locale, userRole }: {
                         <Button onClick={handleCreateContact} disabled={isPending} className="gap-1.5 bg-blue-600 hover:bg-blue-700">
                             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                             Ekle
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* ════════ EDIT CONTACT MODAL ════════ */}
+            <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Pencil className="h-5 w-5 text-blue-600" /> Kontağı Düzenle
+                        </DialogTitle>
+                        <DialogDescription>Kontak bilgilerini güncelleyin</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label className="text-xs">Ad Soyad *</Label>
+                                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Ahmet Yılmaz" className="h-9" />
+                            </div>
+                            <div>
+                                <Label className="text-xs">Telefon</Label>
+                                <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="05XX XXX XX XX" className="h-9" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label className="text-xs">E-Posta</Label>
+                                <Input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="ornek@mail.com" className="h-9" />
+                            </div>
+                            <div>
+                                <Label className="text-xs">Firma</Label>
+                                <Input value={editCompany} onChange={e => setEditCompany(e.target.value)} placeholder="Şirket adı" className="h-9" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div>
+                                <Label className="text-xs">Ünvan</Label>
+                                <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Genel Müdür" className="h-9" />
+                            </div>
+                            <div>
+                                <Label className="text-xs">Şehir</Label>
+                                <Input value={editCity} onChange={e => setEditCity(e.target.value)} placeholder="İstanbul" className="h-9" />
+                            </div>
+                            <div>
+                                <Label className="text-xs">İlçe</Label>
+                                <Input value={editDistrict} onChange={e => setEditDistrict(e.target.value)} placeholder="Kadıköy" className="h-9" />
+                            </div>
+                        </div>
+                        <div>
+                            <Label className="text-xs">Kaynak</Label>
+                            <Select value={editSource} onValueChange={setEditSource}>
+                                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Manuel Giriş">Manuel Giriş</SelectItem>
+                                    <SelectItem value="Referans">Referans</SelectItem>
+                                    <SelectItem value="Fuar">Fuar</SelectItem>
+                                    <SelectItem value="Networking">Networking</SelectItem>
+                                    <SelectItem value="Sosyal Medya">Sosyal Medya</SelectItem>
+                                    <SelectItem value="Web Sitesi">Web Sitesi</SelectItem>
+                                    <SelectItem value="Telefon">Telefon</SelectItem>
+                                    <SelectItem value="Meta Ads">Meta Ads</SelectItem>
+                                    <SelectItem value="Google Ads">Google Ads</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label className="text-xs mb-1.5 block">Etiketler</Label>
+                            <div className="flex flex-wrap gap-1.5">
+                                {TAG_PRESETS.map(tp => (
+                                    <button
+                                        key={tp.value}
+                                        type="button"
+                                        onClick={() => toggleEditTag(tp.value)}
+                                        className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded border cursor-pointer transition-all ${
+                                            editTags.includes(tp.value)
+                                                ? tp.color + ' ring-2 ring-offset-1 ring-blue-400'
+                                                : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        {tp.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <Label className="text-xs">Not</Label>
+                            <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Ek notlar..." rows={2} className="text-sm" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowEditModal(false)}>İptal</Button>
+                        <Button onClick={handleUpdateContact} disabled={isPending} className="gap-1.5 bg-blue-600 hover:bg-blue-700">
+                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+                            Değişiklikleri Kaydet
                         </Button>
                     </DialogFooter>
                 </DialogContent>

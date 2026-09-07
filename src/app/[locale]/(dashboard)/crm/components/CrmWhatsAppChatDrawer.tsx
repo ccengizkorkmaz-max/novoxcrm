@@ -37,6 +37,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { format } from 'date-fns'
+import { tr } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import {
     getOrCreateCustomerWhatsAppConversation,
@@ -44,6 +46,20 @@ import {
     toggleCustomerWhatsAppAi,
     sendCustomerWhatsAppTemplateAction
 } from '../actions'
+
+function getDateDividerLabel(date: Date): string {
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(today.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) {
+        return `Bugün, ${format(date, 'd MMMM yyyy', { locale: tr })}`
+    }
+    if (date.toDateString() === yesterday.toDateString()) {
+        return `Dün, ${format(date, 'd MMMM yyyy', { locale: tr })}`
+    }
+    return format(date, 'd MMMM yyyy, EEEE', { locale: tr })
+}
 
 const META_APPROVED_TEMPLATES = [
     {
@@ -497,46 +513,61 @@ export function CrmWhatsAppChatDrawer({
                                 return null
                             })()}
 
-                            {messages.map((msg) => {
+                            {messages.map((msg, index) => {
                                 const isOutbound = msg.direction === 'outbound'
                                 const isAi = msg.role === 'assistant' && msg.sender_type === 'ai'
-                                const time = msg.created_at
-                                    ? new Date(msg.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+                                const msgDate = msg.created_at ? new Date(msg.created_at) : null
+                                const prevMsg = index > 0 ? messages[index - 1] : null
+                                const prevDate = prevMsg?.created_at ? new Date(prevMsg.created_at) : null
+                                const isNewDay = msgDate && (!prevDate || msgDate.toDateString() !== prevDate.toDateString())
+
+                                const formattedDateTime = msgDate
+                                    ? format(msgDate, 'dd.MM.yyyy · HH:mm', { locale: tr })
                                     : ''
 
                                 return (
-                                    <div
-                                        key={msg.id}
-                                        className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}
-                                    >
+                                    <React.Fragment key={msg.id}>
+                                        {isNewDay && msgDate && (
+                                            <div className="flex justify-center my-2.5 sticky top-2 z-10">
+                                                <span className="px-3.5 py-1 rounded-full text-[11px] font-semibold bg-white/95 text-slate-700 border border-slate-200/80 shadow-2xs backdrop-blur-xs">
+                                                    {getDateDividerLabel(msgDate)}
+                                                </span>
+                                            </div>
+                                        )}
                                         <div
-                                            className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[14.5px] shadow-xs relative leading-relaxed ${
-                                                isOutbound
-                                                    ? 'bg-[#d9fdd3] text-[#111b21] rounded-tr-xs border border-[#c3f4bb]'
-                                                    : 'bg-white text-[#111b21] rounded-tl-xs border border-[#e9edef]'
-                                            }`}
+                                            className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}
                                         >
-                                            {isAi && (
-                                                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-700 mb-1 pb-1 border-b border-purple-100">
-                                                    <Sparkles className="h-3.5 w-3.5" />
-                                                    <span>Novo AI Otomatik Yanıt</span>
-                                                </div>
-                                            )}
-                                            <p className="whitespace-pre-wrap break-words font-normal text-[#111b21]">
-                                                {msg.content}
-                                            </p>
                                             <div
-                                                className={`flex items-center justify-end gap-1.5 mt-1 text-[11.5px] font-medium ${
-                                                    isOutbound ? 'text-[#008069]' : 'text-slate-400'
+                                                className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[14.5px] shadow-xs relative leading-relaxed ${
+                                                    isOutbound
+                                                        ? 'bg-[#d9fdd3] text-[#111b21] rounded-tr-xs border border-[#c3f4bb]'
+                                                        : 'bg-white text-[#111b21] rounded-tl-xs border border-[#e9edef]'
                                                 }`}
                                             >
-                                                <span>{time}</span>
-                                                {isOutbound && (
-                                                    <CheckCheck className="h-4 w-4 text-[#53bdeb]" />
+                                                {isAi && (
+                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-purple-700 mb-1 pb-1 border-b border-purple-100">
+                                                        <Sparkles className="h-3.5 w-3.5" />
+                                                        <span>Novo AI Otomatik Yanıt</span>
+                                                    </div>
                                                 )}
+                                                <p className="whitespace-pre-wrap break-words font-normal text-[#111b21]">
+                                                    {msg.content}
+                                                </p>
+                                                <div
+                                                    className={`flex items-center justify-end gap-1.5 mt-1.5 text-[11px] font-medium ${
+                                                        isOutbound ? 'text-[#008069]' : 'text-slate-400'
+                                                    }`}
+                                                >
+                                                    <span title={msgDate ? format(msgDate, 'd MMMM yyyy HH:mm:ss', { locale: tr }) : ''}>
+                                                        {formattedDateTime}
+                                                    </span>
+                                                    {isOutbound && (
+                                                        <CheckCheck className="h-4 w-4 text-[#53bdeb]" />
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </React.Fragment>
                                 )
                             })}
                             <div ref={messagesEndRef} />

@@ -1,12 +1,26 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { Bot, User, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import AutoScroll from './AutoScroll'
+
+function getDateDividerLabel(date: Date): string {
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(today.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) {
+        return `Bugün, ${format(date, 'd MMMM yyyy', { locale: tr })}`
+    }
+    if (date.toDateString() === yesterday.toDateString()) {
+        return `Dün, ${format(date, 'd MMMM yyyy', { locale: tr })}`
+    }
+    return format(date, 'd MMMM yyyy, EEEE', { locale: tr })
+}
 
 export default function RealtimeMessages({ 
     initialMessages, 
@@ -63,49 +77,64 @@ export default function RealtimeMessages({
                     <p className="text-sm font-medium">Henüz mesaj yok. Görüşmeyi başlatın.</p>
                 </div>
             ) : (
-                messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={cn(
-                            "flex w-full items-end gap-2",
-                            msg.direction === 'outbound' ? "justify-end" : "justify-start"
-                        )}
-                    >
-                        {/* Avatar for Inbound Messages */}
-                        {msg.direction === 'inbound' && (
-                            <div className="h-7 w-7 shrink-0 rounded-full bg-slate-100 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center shadow-sm mb-1">
-                                <span className="text-[10px] font-bold uppercase">
-                                    {customerName ? customerName.charAt(0) : '?'}
-                                </span>
-                            </div>
-                        )}
+                messages.map((msg, index) => {
+                    const msgDate = new Date(msg.created_at)
+                    const prevMsg = index > 0 ? messages[index - 1] : null
+                    const prevDate = prevMsg ? new Date(prevMsg.created_at) : null
+                    const isNewDay = !prevDate || msgDate.toDateString() !== prevDate.toDateString()
 
-                        {/* Bubble */}
-                        <div
-                            className={cn(
-                                "relative max-w-[75%] md:max-w-[65%] px-4 py-2.5 shadow-sm",
-                                msg.direction === 'outbound'
-                                    ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-[22px] rounded-br-sm"
-                                    : "bg-[#f0f2f5] dark:bg-slate-800 text-slate-900 dark:text-white rounded-[22px] rounded-bl-sm"
+                    return (
+                        <React.Fragment key={msg.id}>
+                            {isNewDay && (
+                                <div className="flex justify-center my-3 sticky top-2 z-10">
+                                    <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100/95 dark:bg-slate-800/95 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 shadow-2xs backdrop-blur-xs">
+                                        {getDateDividerLabel(msgDate)}
+                                    </span>
+                                </div>
                             )}
-                        >
-                            <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                            
-                            {/* Timestamp below bubble if needed, but Messenger puts it outside or very small */}
-                            <div className={cn(
-                                "flex items-center gap-1 mt-1 justify-end",
-                                msg.direction === 'outbound' ? "text-white/80" : "text-slate-500"
-                            )}>
-                                {msg.sender_type === 'bot' && (
-                                    <Bot className="h-3 w-3 opacity-70" />
+                            <div
+                                className={cn(
+                                    "flex w-full items-end gap-2",
+                                    msg.direction === 'outbound' ? "justify-end" : "justify-start"
                                 )}
-                                <span className="text-[10px] font-medium">
-                                    {format(new Date(msg.created_at), 'HH:mm', { locale: tr })}
-                                </span>
+                            >
+                                {/* Avatar for Inbound Messages */}
+                                {msg.direction === 'inbound' && (
+                                    <div className="h-7 w-7 shrink-0 rounded-full bg-slate-100 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center shadow-sm mb-1">
+                                        <span className="text-[10px] font-bold uppercase">
+                                            {customerName ? customerName.charAt(0) : '?'}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Bubble */}
+                                <div
+                                    className={cn(
+                                        "relative max-w-[75%] md:max-w-[65%] px-4 py-2.5 shadow-sm",
+                                        msg.direction === 'outbound'
+                                            ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-[22px] rounded-br-sm"
+                                            : "bg-[#f0f2f5] dark:bg-slate-800 text-slate-900 dark:text-white rounded-[22px] rounded-bl-sm"
+                                    )}
+                                >
+                                    <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                    
+                                    {/* Date and Time */}
+                                    <div className={cn(
+                                        "flex items-center gap-1.5 mt-1.5 justify-end text-[10.5px] font-medium",
+                                        msg.direction === 'outbound' ? "text-white/85" : "text-slate-500 dark:text-slate-400"
+                                    )}>
+                                        {msg.sender_type === 'bot' && (
+                                            <Bot className="h-3 w-3 opacity-80" />
+                                        )}
+                                        <span title={format(msgDate, 'd MMMM yyyy, HH:mm:ss', { locale: tr })}>
+                                            {format(msgDate, 'dd.MM.yyyy · HH:mm', { locale: tr })}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                ))
+                        </React.Fragment>
+                    )
+                })
             )}
             <AutoScroll deps={messages.length} />
         </div>

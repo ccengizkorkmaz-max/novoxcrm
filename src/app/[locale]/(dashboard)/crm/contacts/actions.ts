@@ -84,6 +84,93 @@ export async function createContact(formData: FormData) {
     return { success: true, contact: newContact }
 }
 
+// ─── UPDATE CONTACT ───
+export async function updateContact(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Yetkisiz erişim' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
+
+    const id = (formData.get('id') as string)?.trim()
+    if (!id) return { error: 'Kontak ID zorunludur.' }
+
+    const full_name = (formData.get('full_name') as string)?.trim()
+    const phone = (formData.get('phone') as string)?.trim() || null
+    const email = (formData.get('email') as string)?.trim() || null
+    const company = (formData.get('company') as string)?.trim() || null
+    const title = (formData.get('title') as string)?.trim() || null
+    const source = (formData.get('source') as string)?.trim() || 'Manuel Giriş'
+    const notes = (formData.get('notes') as string)?.trim() || null
+    const city = (formData.get('city') as string)?.trim() || null
+    const district = (formData.get('district') as string)?.trim() || null
+    const tagsRaw = formData.get('tags') as string
+    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
+
+    if (!full_name) return { error: 'Ad Soyad zorunludur.' }
+
+    const adminSupabase = createAdminClient()
+
+    // Mükerrer kontrol (kendi ID'si hariç)
+    if (phone) {
+        const cleanPhone = phone.replace(/\D/g, '')
+        const { data: existing } = await adminSupabase
+            .from('contacts')
+            .select('id, full_name')
+            .eq('tenant_id', profile.tenant_id)
+            .neq('id', id)
+            .or(`phone.eq.${phone},phone.eq.${cleanPhone}`)
+            .limit(1)
+
+        if (existing && existing.length > 0) {
+            return { error: `Bu telefon numarası zaten "${existing[0].full_name}" kontağına kayıtlı.` }
+        }
+    }
+
+    if (email) {
+        const { data: existing } = await adminSupabase
+            .from('contacts')
+            .select('id, full_name')
+            .eq('tenant_id', profile.tenant_id)
+            .neq('id', id)
+            .eq('email', email.toLowerCase())
+            .limit(1)
+
+        if (existing && existing.length > 0) {
+            return { error: `Bu e-posta adresi zaten "${existing[0].full_name}" kontağına kayıtlı.` }
+        }
+    }
+
+    const { data: updatedContact, error } = await adminSupabase
+        .from('contacts')
+        .update({
+            full_name,
+            phone,
+            email: email?.toLowerCase() || null,
+            company,
+            title,
+            source,
+            tags,
+            notes,
+            city,
+            district,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('tenant_id', profile.tenant_id)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('updateContact error:', error)
+        return { error: error.message }
+    }
+
+    revalidatePath('/crm/contacts')
+    return { success: true, contact: updatedContact }
+}
+
 // ─── DELETE CONTACT ───
 export async function deleteContact(contactId: string) {
     const supabase = await createClient()
