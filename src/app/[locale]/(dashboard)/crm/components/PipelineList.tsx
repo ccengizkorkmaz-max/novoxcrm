@@ -2163,29 +2163,59 @@ export default function PipelineList({
                 )
             }
 
-            <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
-                <DialogContent className="max-w-2xl w-[95vw] rounded-2xl bg-white dark:bg-slate-950">
-                    <DialogHeader>
-                        <DialogTitle>{t('actions.paymentPlanTitle')}</DialogTitle>
-                    </DialogHeader>
+            <Sheet open={isPlanOpen} onOpenChange={setIsPlanOpen}>
+                <SheetContent 
+                    side="right" 
+                    className="w-full sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 flex flex-col h-full bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden z-50"
+                >
                     {selectedSaleId && (() => {
                         const selectedSale = sales.find(s => s.id === selectedSaleId)
                         const saleProjectId = selectedSale?.units?.project_id || selectedSale?.project_id
                         const filteredTemplates = saleProjectId
                             ? templates.filter((t: any) => !t.project_id || t.project_id === saleProjectId)
                             : templates
+                        const customerName = selectedSale?.customers?.full_name
+                        const unitNumber = selectedSale?.units?.unit_number
+                        const projectName = (selectedSale?.units as any)?.projects?.name || (selectedSale as any)?.projects?.name
+
                         return (
-                            <PaymentPlanCalculator
-                                saleId={selectedSaleId}
-                                totalAmount={selectedSale?.final_price || selectedSale?.units?.price || 0}
-                                initialCurrency={selectedSale?.currency || selectedSale?.units?.currency || 'TRY'}
-                                onClose={() => setIsPlanOpen(false)}
-                                templates={filteredTemplates}
-                            />
+                            <div className="flex flex-col h-full min-h-0">
+                                <SheetHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 flex-shrink-0">
+                                    <div className="flex items-center justify-between pr-8">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2.5">
+                                                <SheetTitle className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                                                    {t('actions.paymentPlanTitle') || 'Ödeme Planı Hesapla & Yönet'}
+                                                </SheetTitle>
+                                                {projectName && (
+                                                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800">
+                                                        {projectName} {unitNumber ? `• No: ${unitNumber}` : ''}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {customerName && (
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                                    Müşteri: <span className="font-semibold text-slate-700 dark:text-slate-200">{customerName}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </SheetHeader>
+                                <div className="flex-1 min-h-0 p-6 overflow-hidden">
+                                    <PaymentPlanCalculator
+                                        saleId={selectedSaleId}
+                                        totalAmount={selectedSale?.final_price || selectedSale?.units?.price || 0}
+                                        initialCurrency={selectedSale?.currency || selectedSale?.units?.currency || 'TRY'}
+                                        onClose={() => setIsPlanOpen(false)}
+                                        templates={filteredTemplates}
+                                        isWide={true}
+                                    />
+                                </div>
+                            </div>
                         )
                     })()}
-                </DialogContent>
-            </Dialog>
+                </SheetContent>
+            </Sheet>
 
             <Dialog open={!!viewingLead} onOpenChange={(open) => !open && setViewingLead(null)}>
                 <DialogContent className="max-w-lg w-[95vw] rounded-2xl overflow-hidden p-0 bg-white dark:bg-slate-950">

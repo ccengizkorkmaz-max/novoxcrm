@@ -14,6 +14,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet"
 import PaymentPlanCalculator from '../../crm/components/PaymentPlanCalculator'
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
@@ -233,23 +239,33 @@ export default function OptionList({ options, templates = [] }: { options: Optio
                 </Table>
             </div>
 
-            <Dialog open={planOpen} onOpenChange={setPlanOpen}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>{t('dialog.title')}</DialogTitle>
-                    </DialogHeader>
-                    {selectedSaleId && (
-                        <PaymentPlanCalculator
-                            saleId={selectedSaleId}
-                            totalAmount={options.find(o => o.id === selectedUnitId)?.price}
-                            initialCurrency={options.find(o => o.id === selectedUnitId)?.currency}
-                            onClose={() => setPlanOpen(false)}
-                            onSaveSuccess={handlePlanSaved}
-                            templates={templates}
-                        />
-                    )}
-                </DialogContent>
-            </Dialog>
+            <Sheet open={planOpen} onOpenChange={setPlanOpen}>
+                <SheetContent 
+                    side="right" 
+                    className="w-full sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 flex flex-col h-full bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden z-50"
+                >
+                    <div className="flex flex-col h-full min-h-0">
+                        <SheetHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 flex-shrink-0">
+                            <SheetTitle className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                                {t('dialog.title') || 'Ödeme Planı Hesapla & Yönet'}
+                            </SheetTitle>
+                        </SheetHeader>
+                        <div className="flex-1 min-h-0 p-6 overflow-hidden">
+                            {selectedSaleId && (
+                                <PaymentPlanCalculator
+                                    saleId={selectedSaleId}
+                                    totalAmount={options.find(o => o.id === selectedUnitId)?.price}
+                                    initialCurrency={options.find(o => o.id === selectedUnitId)?.currency}
+                                    onClose={() => setPlanOpen(false)}
+                                    onSaveSuccess={handlePlanSaved}
+                                    templates={templates}
+                                    isWide={true}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
 
     )
