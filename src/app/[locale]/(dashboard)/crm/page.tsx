@@ -82,11 +82,10 @@ export default async function CRMPage(props: {
     let baseQuery = supabase
         .from('sales')
         .select('*, customers!inner(id, full_name, email, phone, customer_number, communication_enabled, source, lead_qualifications(last_call_at, interest_level, interest_level_ai, interest_level_source, interest_level_history, call_notes, status)), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name, is_external)', { count: 'exact' })
-    if (!filterUnansweredWp) {
-        baseQuery = baseQuery.neq('status', 'Inbox')
-        if (!isManager && user) {
-            baseQuery = baseQuery.eq('assigned_to', user.id)
-        }
+    baseQuery = baseQuery.neq('status', 'Inbox')
+
+    if (!isManager && user) {
+        baseQuery = baseQuery.eq('assigned_to', user.id)
     } else if (filterReps.length > 0) {
         if (filterReps.includes('unassigned')) {
             baseQuery = baseQuery.is('assigned_to', null)
@@ -117,16 +116,38 @@ export default async function CRMPage(props: {
         }
     }
 
-    // Fetch unread WhatsApp conversations for this tenant (replies waiting for sales rep response)
-    const { data: rawUnreadConvs } = userTenantId
-        ? await adminSupabase
-            .from('whatsapp_conversations')
-            .select('id, customer_id, phone_number, unread_count, last_message_preview, last_message_at')
+    // Role-based WhatsApp scoping:
+    // - Sales Rep (!isManager): Only see unread messages from their assigned leads
+    // - Admin / Manager (isManager): See all unread messages across the tenant
+    let repCustomerIds: string[] | null = null
+    if (!isManager && user) {
+        const { data: mySales } = await adminSupabase
+            .from('sales')
+            .select('customer_id')
             .eq('tenant_id', userTenantId)
-            .gt('unread_count', 0)
-            .order('last_message_at', { ascending: false })
-            .limit(1000)
-        : { data: [] }
+            .eq('assigned_to', user.id)
+
+        repCustomerIds = Array.from(new Set((mySales || []).map((s: any) => s.customer_id).filter(Boolean)))
+    }
+
+    // Fetch unread WhatsApp conversations
+    let unreadQuery = adminSupabase
+        .from('whatsapp_conversations')
+        .select('id, customer_id, phone_number, unread_count, last_message_preview, last_message_at')
+        .eq('tenant_id', userTenantId)
+        .gt('unread_count', 0)
+        .order('last_message_at', { ascending: false })
+        .limit(1000)
+
+    if (repCustomerIds !== null) {
+        if (repCustomerIds.length > 0) {
+            unreadQuery = unreadQuery.in('customer_id', repCustomerIds)
+        } else {
+            unreadQuery = unreadQuery.eq('id', '00000000-0000-0000-0000-000000000000')
+        }
+    }
+
+    const { data: rawUnreadConvs } = userTenantId ? await unreadQuery : { data: [] }
 
     const unreadWpMap: Record<string, { count: number; preview: string; at: string }> = {}
     const unreadCustomerIds: string[] = []
