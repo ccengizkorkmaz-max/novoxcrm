@@ -242,7 +242,7 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
 
     // 4. Fetch Accurate Appointments (Meetings) in range (Gerçek randevular)
     // Sadece gerçek toplantı/randevu aktivitelerini ve iptal edilmemişleri say
-    const { data: meetings } = await adminSupabase
+    let meetingsQuery = adminSupabase
         .from('activities')
         .select('id, type, status, topic, summary, notes, owner_id, user_id, created_at')
         .eq('tenant_id', profile.tenant_id)
@@ -251,10 +251,34 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
         .gte('created_at', startISO)
         .lte('created_at', endISO)
 
+    if (params.repId && params.repId !== '__all__') {
+        meetingsQuery = meetingsQuery.or(`owner_id.eq.${params.repId},user_id.eq.${params.repId}`)
+    }
+
+    const { data: meetings } = await meetingsQuery
+
     ;(meetings || []).forEach(m => {
         const rId = m.owner_id || m.user_id
-        if (rId && repStatsMap.has(rId)) {
-            repStatsMap.get(rId)!.appointmentCount++
+        if (rId) {
+            if (repStatsMap.has(rId)) {
+                repStatsMap.get(rId)!.appointmentCount++
+            } else {
+                repStatsMap.set(rId, {
+                    id: rId,
+                    name: 'Diğer Danışman / Yönetici',
+                    totalCalls: 0,
+                    outboundCalls: 0,
+                    inboundCalls: 0,
+                    answeredCalls: 0,
+                    unansweredCalls: 0,
+                    totalDurationSeconds: 0,
+                    avgDurationSeconds: 0,
+                    appointmentCount: 1,
+                    lastCallDate: null,
+                    successRate: 0,
+                    recordingsCount: 0
+                })
+            }
         }
     })
 
@@ -388,6 +412,28 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
                             repId = nursena.id
                             repName = nursena.full_name
                         }
+                    }
+                }
+
+                if (!repId) {
+                    repId = 'santral_genel'
+                    repName = 'Santral / Genel Karşılama'
+                    if (!repStatsMap.has('santral_genel')) {
+                        repStatsMap.set('santral_genel', {
+                            id: 'santral_genel',
+                            name: 'Santral / Genel Karşılama',
+                            totalCalls: 0,
+                            outboundCalls: 0,
+                            inboundCalls: 0,
+                            answeredCalls: 0,
+                            unansweredCalls: 0,
+                            totalDurationSeconds: 0,
+                            avgDurationSeconds: 0,
+                            appointmentCount: 0,
+                            lastCallDate: null,
+                            successRate: 0,
+                            recordingsCount: 0
+                        })
                     }
                 }
 
@@ -546,9 +592,9 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
             avgDurationSeconds: avgSec,
             successRate: rate
         }
-    }).sort((a, b) => b.totalCalls - a.totalCalls)
+    }).sort((a, b) => (b.outboundCalls * 10 + b.totalCalls + b.appointmentCount) - (a.outboundCalls * 10 + a.totalCalls + a.appointmentCount))
 
-    const topRep = repPerformanceList.find(r => r.totalCalls > 0 && r.id !== 'unassigned') || null
+    const topRep = repPerformanceList.find(r => (r.totalCalls > 0 || r.outboundCalls > 0) && r.id !== 'unassigned' && r.id !== 'santral_genel') || null
 
     const unansweredCallsCount = Math.max(0, totalCalls - answeredCallsCount)
     const avgDurationSeconds = totalCalls > 0 ? Math.round(totalDurationSeconds / totalCalls) : 0
@@ -604,8 +650,14 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
     // Sort recent calls by date desc
     callLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-    const totalInbound = callLogs.filter(c => c.type === 'inbound').length
-    const totalOutbound = Math.max(0, totalCalls - totalInbound)
+    let totalOutbound = 0
+    let totalInbound = 0
+    Array.from(repStatsMap.values()).forEach(r => {
+        if (!params.repId || params.repId === '__all__' || r.id === params.repId) {
+            totalOutbound += r.outboundCalls
+            totalInbound += r.inboundCalls
+        }
+    })
 
     return {
         summary: {
@@ -626,6 +678,8 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
                 name: topRep.name,
                 phone: topRep.phone,
                 totalCalls: topRep.totalCalls,
+                outboundCalls: topRep.outboundCalls,
+                inboundCalls: topRep.inboundCalls,
                 totalMinutes: Math.round(topRep.totalDurationSeconds / 60)
             } : null
         },

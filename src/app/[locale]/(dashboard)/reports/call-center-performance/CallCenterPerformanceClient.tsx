@@ -231,17 +231,22 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                 {/* 1. Total Calls */}
                 <Card className="border-slate-200 shadow-sm relative overflow-hidden bg-gradient-to-br from-white to-blue-50/50">
                     <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-                        <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Toplam Arama</span>
+                        <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Yapılan Arama (Giden)</span>
                         <div className="p-2 rounded-xl bg-blue-100 text-blue-700">
                             <PhoneCall className="h-4 w-4" />
                         </div>
                     </CardHeader>
                     <CardContent className="p-4 pt-1">
-                        <div className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
-                            {summary.totalCalls || 0}
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
+                                {summary.totalOutbound || 0}
+                            </span>
+                            <span className="text-xs font-bold text-slate-500">
+                                / {summary.totalCalls || 0} Toplam Santral
+                            </span>
                         </div>
-                        <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-700 font-bold">
-                            <span className="text-blue-700">↗ {summary.totalOutbound || 0} Giden</span>
+                        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-700 font-bold flex-wrap">
+                            <span className="text-blue-700">↗ {summary.totalOutbound || 0} Yapılan Arama</span>
                             <span className="text-slate-400">•</span>
                             <span className="text-indigo-700">↙ {summary.totalInbound || 0} Gelen</span>
                         </div>
@@ -323,7 +328,8 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                     </div>
                                 )}
                                 <div className="text-xs text-slate-200 font-semibold mt-1">
-                                    <span className="text-amber-300 font-black">{summary.topRep.totalCalls} arama</span> • {summary.topRep.totalMinutes} dk
+                                    <span className="text-amber-300 font-black">{summary.topRep.outboundCalls ?? summary.topRep.totalCalls} arama (giden)</span>
+                                    {summary.topRep.inboundCalls ? <span className="text-slate-300"> • {summary.topRep.inboundCalls} gelen</span> : null} • {summary.topRep.totalMinutes} dk
                                 </div>
                             </>
                         ) : (
@@ -346,7 +352,7 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                         </CardDescription>
                     </div>
                     <Badge variant="outline" className="text-xs font-black bg-white text-slate-900 border-slate-300 w-fit px-3 py-1">
-                        {reps.filter(r => r.totalCalls > 0).length} Aktif Temsilci
+                        {reps.filter(r => r.totalCalls > 0 || r.appointmentCount > 0).length} Aktif Temsilci
                     </Badge>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -356,7 +362,7 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                 <tr className="bg-slate-100 border-b border-slate-300 text-slate-900 font-black tracking-wider uppercase text-[11px]">
                                     <th className="py-3.5 px-4 w-12 text-center">#</th>
                                     <th className="py-3.5 px-4">Satış Danışmanı</th>
-                                    <th className="py-3.5 px-4 text-center">Toplam Arama</th>
+                                    <th className="py-3.5 px-4 text-center">Yapılan Arama (Giden)</th>
                                     <th className="py-3.5 px-4 text-center">Ulaşılan / Yanıtsız</th>
                                     <th className="py-3.5 px-4 text-center">Başarı Oranı</th>
                                     <th className="py-3.5 px-4 text-center">Toplam Süre</th>
@@ -366,14 +372,14 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                                {reps.length === 0 || reps.every(r => r.totalCalls === 0) ? (
+                                {reps.length === 0 || reps.every(r => r.totalCalls === 0 && r.appointmentCount === 0) ? (
                                     <tr>
                                         <td colSpan={9} className="py-12 text-center text-slate-600 font-bold text-sm">
-                                            Seçilen dönemde arama kaydı bulunamadı.
+                                            Seçilen dönemde arama veya randevu kaydı bulunamadı.
                                         </td>
                                     </tr>
                                 ) : (
-                                    reps.filter(r => r.totalCalls > 0).map((rep, idx) => {
+                                    reps.filter(r => r.totalCalls > 0 || r.appointmentCount > 0).map((rep, idx) => {
                                         const rankBadge = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`
 
                                         return (
@@ -400,7 +406,7 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                                                 )}
                                                             </div>
                                                             <div className="text-[11px] text-slate-600 font-semibold mt-0.5">
-                                                                <span className="text-slate-700">{rep.outboundCalls} giden</span> • <span className="text-slate-700">{rep.inboundCalls} gelen</span>
+                                                                <span className="text-slate-700 font-bold text-blue-700">{rep.outboundCalls} giden</span> • <span className="text-slate-700">{rep.inboundCalls} gelen</span>
                                                                 {rep.recordingsCount ? (
                                                                     <span className="text-indigo-800 font-bold ml-1.5">
                                                                         • 🎧 {rep.recordingsCount} ses kaydı
@@ -410,8 +416,15 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-3.5 px-4 text-center font-black text-slate-950 text-base">
-                                                    {rep.totalCalls}
+                                                <td className="py-3.5 px-4 text-center">
+                                                    <div className="flex flex-col items-center">
+                                                        <span className="font-black text-blue-900 text-base">
+                                                            {rep.outboundCalls} Arama
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-slate-500">
+                                                            {rep.inboundCalls > 0 ? `+ ${rep.inboundCalls} gelen (Top: ${rep.totalCalls})` : `(Top: ${rep.totalCalls})`}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="py-3.5 px-4 text-center text-sm">
                                                     <span className="text-emerald-800 font-black">{rep.answeredCalls}</span>
