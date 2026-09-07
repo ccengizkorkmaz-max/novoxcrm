@@ -154,12 +154,12 @@ export default async function ProjectDetailPage(props: {
     const { data: unitProgress } = unitProgressRes
     const { data: allBrokers } = allBrokersRes
 
-    // Fetch construction photos separately
+    // Fetch construction media separately
     const { data: constructionPhotosRaw } = await supabase
         .from('project_documents')
-        .select('id, file_url, file_name, document_name, description, created_at, uploaded_by')
+        .select('id, file_url, file_name, file_type, file_size, document_name, description, folder_name, progress_date, progress_percentage, created_at, uploaded_by')
         .eq('project_id', id)
-        .eq('category', 'construction_photo')
+        .in('category', ['construction_photo', 'construction_media'])
         .order('created_at', { ascending: false })
 
     // Resolve uploader names for construction photos

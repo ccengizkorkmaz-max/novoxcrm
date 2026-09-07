@@ -76,9 +76,9 @@ export function ActivitiesView({
     // Lookup maps
     const projectMap = useMemo(() => new Map(projects.map((p: any) => [p.id, p.name])), [projects])
 
-    // Normalize activities to typed objects
+    // Normalize activities to typed objects, merging online meetings
     const allActivities: ActivityItem[] = useMemo(() => {
-        return initialActivities.map(a => ({
+        const list: ActivityItem[] = initialActivities.map(a => ({
             id: a.id,
             type: a.type,
             topic: a.topic,
@@ -100,7 +100,66 @@ export function ActivitiesView({
             daily_room_name: a.daily_room_name,
             meeting_id: a.meeting_id
         }))
-    }, [initialActivities, projectMap])
+
+        // Collect existing meeting references so we do not duplicate
+        const existingMeetingIds = new Set(
+            initialActivities.map(a => a.meeting_id).filter(Boolean)
+        )
+        const existingRoomNames = new Set(
+            initialActivities.map(a => a.daily_room_name).filter(Boolean)
+        )
+
+        // Merge meetings table records that are not already in activities
+        meetings.forEach((m: any) => {
+            const roomName = m.daily_room_url ? m.daily_room_url.split('/').pop() : undefined
+            if (existingMeetingIds.has(m.id)) return
+            if (roomName && existingRoomNames.has(roomName)) return
+
+            const statusMap: Record<string, any> = {
+                'scheduled': 'Planned',
+                'in_progress': 'In Progress',
+                'completed': 'Completed',
+                'cancelled': 'Cancelled'
+            }
+
+            const custFullName = m.customers
+                ? `${m.customers.first_name || ''} ${m.customers.last_name || ''}`.trim()
+                : ''
+
+            list.push({
+                id: `meeting-${m.id}`,
+                type: 'OnlineMeeting',
+                topic: m.title || 'Online Toplantı',
+                summary: m.description || m.title || `Online Toplantı${custFullName ? `: ${custFullName}` : ''}`,
+                customer_id: m.customer_id,
+                customers: m.customers ? {
+                    id: m.customers.id,
+                    full_name: custFullName || 'Müşteri',
+                    phone: m.customers.phone,
+                    email: m.customers.email
+                } : undefined,
+                leads: undefined,
+                owner: m.host ? {
+                    id: m.host.id,
+                    full_name: m.host.full_name
+                } : undefined,
+                owner_id: m.host_user_id,
+                due_date: m.meeting_time || m.created_at,
+                status: statusMap[m.status] || 'Planned',
+                outcome: undefined,
+                notes: m.description,
+                description: m.description,
+                priority: 'High',
+                reminder_at: undefined,
+                project_id: m.project_id,
+                projects: m.projects ? { name: m.projects.name } : (m.project_id ? { name: projectMap.get(m.project_id) || '' } : undefined),
+                daily_room_name: roomName,
+                meeting_id: m.id
+            })
+        })
+
+        return list
+    }, [initialActivities, meetings, projectMap])
 
     // KPI Counters (Calculated from full activity set)
     const stats = useMemo(() => {

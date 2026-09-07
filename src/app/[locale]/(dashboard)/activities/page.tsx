@@ -117,10 +117,15 @@ export default async function ActivitiesPage(props: {
             .order('name')
             .then(r => r.data || []),
 
-        // Meetings for live links & room matching
+        // Meetings for live links & activities integration
         adminSupabase
             .from('meetings')
-            .select('id, title, status, scheduled_at, daily_room_name, customer_id, project_id, host_user_id')
+            .select(`
+                id, title, description, status, scheduled_at, daily_room_name, daily_room_url, customer_id, project_id, host_user_id,
+                customers(id, full_name, phone, email, customer_type, company_name),
+                host:profiles!meetings_host_user_id_fkey(id, full_name, phone),
+                projects:project_id(id, name)
+            `)
             .eq('tenant_id', tenantId)
             .order('scheduled_at', { ascending: false })
             .limit(500)

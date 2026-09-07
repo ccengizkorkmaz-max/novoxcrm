@@ -20,6 +20,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ActivityForm } from './activity-form'
+import { QuickCallOutcomeModal } from './QuickCallOutcomeModal'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { cancelActivity, deleteActivity, outcomeActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
@@ -117,6 +118,7 @@ export function ActivityStreamCard({
     const router = useRouter()
     const [showEdit, setShowEdit] = useState(false)
     const [showComplete, setShowComplete] = useState(false)
+    const [showOutcomeModal, setShowOutcomeModal] = useState(false)
     const [copiedKey, setCopiedKey] = useState<string | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
 
@@ -474,13 +476,16 @@ export function ActivityStreamCard({
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={handleQuickComplete}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    setShowOutcomeModal(true)
+                                }}
                                 disabled={isProcessing}
-                                className="h-9 px-3 border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-semibold text-xs gap-1.5"
-                                title="Aktiviteyi Tamamla"
+                                className="h-9 px-3 border-emerald-300 bg-emerald-50/60 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-400 font-semibold text-xs gap-1.5 shadow-xs"
+                                title="Aktivite Sonucu & İlk Temas Logla"
                             >
                                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                                <span className="hidden sm:inline">Tamamla</span>
+                                <span className="hidden sm:inline">Sonuçlandır</span>
                             </Button>
                         )}
 
@@ -494,17 +499,23 @@ export function ActivityStreamCard({
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuContent align="end" className="w-48">
                                 <DropdownMenuItem onClick={() => setShowEdit(true)} className="gap-2 text-xs">
                                     <Pencil className="h-3.5 w-3.5" />
                                     Düzenle
                                 </DropdownMenuItem>
 
                                 {activity.status !== 'Completed' && (
-                                    <DropdownMenuItem onClick={handleQuickComplete} className="gap-2 text-xs text-emerald-600 font-medium">
-                                        <CheckCircle2 className="h-3.5 w-3.5" />
-                                        Tamamlandı İşaretle
-                                    </DropdownMenuItem>
+                                    <>
+                                        <DropdownMenuItem onClick={() => setShowOutcomeModal(true)} className="gap-2 text-xs text-emerald-600 font-semibold">
+                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                            Sonuçlandır & Logla
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={handleQuickComplete} className="gap-2 text-xs text-slate-600">
+                                            <Check className="h-3.5 w-3.5" />
+                                            Hızlı Tamamla (Success)
+                                        </DropdownMenuItem>
+                                    </>
                                 )}
 
                                 {activity.status !== 'Cancelled' && (
@@ -525,6 +536,25 @@ export function ActivityStreamCard({
                     </div>
                 </div>
             </Card>
+
+            {/* Quick Call / Activity Outcome Modal */}
+            <QuickCallOutcomeModal
+                open={showOutcomeModal}
+                onOpenChange={setShowOutcomeModal}
+                activity={{
+                    id: activity.id,
+                    summary: displayTitle,
+                    type: activity.type,
+                    customer_id: activity.customer_id,
+                    customerName: customerName,
+                    customerPhone: customerPhone,
+                    projectName: projectName
+                }}
+                onSuccess={() => {
+                    if (onRefresh) onRefresh()
+                    router.refresh()
+                }}
+            />
 
             {/* Edit / Complete Dialog */}
             <ActivityForm

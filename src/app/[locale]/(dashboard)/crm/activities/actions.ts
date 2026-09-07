@@ -366,6 +366,17 @@ export async function outcomeActivity(formData: FormData) {
         return { error: 'Aktivite ID bulunamadı.' }
     }
 
+    if (id.startsWith('meeting-')) {
+        const meetingId = id.replace('meeting-', '')
+        const outcome = (formData.get('outcome') as string) || 'Success'
+        const notes = formData.get('notes') as string
+        await adminSupabase.from('meetings').update({ status: 'completed' }).eq('id', meetingId)
+        await adminSupabase.from('activities').update({ status: 'Completed', outcome, notes }).eq('meeting_id', meetingId)
+        revalidatePath('/activities')
+        revalidatePath('/meetings')
+        return { success: true }
+    }
+
     const outcome = formData.get('outcome') as string
     const notes = formData.get('notes') as string
 
@@ -451,6 +462,17 @@ export async function outcomeActivity(formData: FormData) {
 
 export async function deleteActivity(id: string) {
     const supabase = await createClient()
+
+    if (id.startsWith('meeting-')) {
+        const meetingId = id.replace('meeting-', '')
+        const adminSupabase = createAdminClient()
+        await adminSupabase.from('meetings').delete().eq('id', meetingId)
+        await adminSupabase.from('activities').delete().eq('meeting_id', meetingId)
+        revalidatePath('/activities')
+        revalidatePath('/meetings')
+        return { success: true }
+    }
+
     const { error } = await supabase.from('activities').delete().eq('id', id)
 
     if (error) return { error: `Silinemedi: ${error.message}` }
@@ -464,6 +486,16 @@ export async function deleteActivity(id: string) {
 
 export async function cancelActivity(id: string) {
     const supabase = await createClient()
+
+    if (id.startsWith('meeting-')) {
+        const meetingId = id.replace('meeting-', '')
+        const adminSupabase = createAdminClient()
+        await adminSupabase.from('meetings').update({ status: 'cancelled' }).eq('id', meetingId)
+        await adminSupabase.from('activities').update({ status: 'Cancelled' }).eq('meeting_id', meetingId)
+        revalidatePath('/activities')
+        revalidatePath('/meetings')
+        return { success: true }
+    }
 
     const { error } = await supabase
         .from('activities')
@@ -499,6 +531,133 @@ export async function completeActivity(formData: FormData) {
     revalidatePath('/activities')
     revalidatePath('/customers')
     revalidatePath('/customers/[id]', 'page')
+    return { success: true }
+}
+
+export interface LogCallOutcomeInput {
+    activityId: string
+    outcome: string
+    notes?: string
+    nextActionDate?: string
+    nextActionType?: string
+    nextActionSummary?: string
+}
+
+export async function logCallActivityOutcome(input: LogCallOutcomeInput) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const adminSupabase = createAdminClient()
+    const { data: profile } = await adminSupabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
+
+    // Support virtual meeting IDs created on the fly
+    if (input.activityId.startsWith('meeting-')) {
+        const mId = input.activityId.replace('meeting-', '')
+        await adminSupabase.from('meetings').update({
+            status: 'completed',
+            outcome: input.outcome,
+            notes: input.notes || null,
+        }).eq('id', mId)
+
+        revalidatePath('/activities')
+        revalidatePath('/meetings')
+        return { success: true }
+    }
+
+    if (input.activityId.startsWith('meeting-')) {
+        const meetingId = input.activityId.replace('meeting-', '')
+        await adminSupabase.from('meetings').update({ status: 'completed' }).eq('id', meetingId)
+        await adminSupabase.from('activities').update({
+            status: 'Completed',
+            outcome: input.outcome,
+            notes: input.notes
+        }).eq('meeting_id', meetingId)
+        revalidatePath('/activities')
+        revalidatePath('/meetings')
+        return { success: true }
+    }
+
+    const { data: currentAct, error: fetchErr } = await adminSupabase
+        .from('activities')
+        .select('*')
+        .eq('id', input.activityId)
+        .single()
+
+    if (fetchErr || !currentAct) {
+        return { error: 'Aktivite bulunamadı.' }
+    }
+
+    const completedAt = new Date().toISOString()
+    const finalNotes = input.notes ? `${input.outcome} — ${input.notes}` : input.outcome
+
+    const { error: updateError } = await adminSupabase
+        .from('activities')
+        .update({
+            status: 'Completed',
+            outcome: input.outcome,
+            completed_at: completedAt,
+            done_at: completedAt,
+            notes: finalNotes,
+            description: currentAct.description ? `${currentAct.description}\n\n[Tamamlandı]: ${finalNotes}` : finalNotes
+        })
+        .eq('id', input.activityId)
+
+    if (updateError) {
+        return { error: `Aktivite tamamlanamadı: ${updateError.message}` }
+    }
+
+    // If next action is scheduled (e.g. Tekrar Aranacak or Ulaşılamadı with next date)
+    if (input.nextActionDate && input.nextActionDate.trim() !== '') {
+        const nextDateISO = safeDateISO(input.nextActionDate)
+        if (nextDateISO) {
+            await adminSupabase.from('activities').insert({
+                tenant_id: profile?.tenant_id || currentAct.tenant_id,
+                customer_id: currentAct.customer_id,
+                lead_id: currentAct.lead_id,
+                user_id: user.id,
+                owner_id: currentAct.owner_id || user.id,
+                assigned_by_id: user.id,
+                type: input.nextActionType || 'Call',
+                topic: 'Follow-up',
+                summary: input.nextActionSummary || `📞 Takip Araması (${input.outcome})`,
+                due_date: nextDateISO,
+                project_id: currentAct.project_id,
+                unit_id: currentAct.unit_id,
+                previous_activity_id: currentAct.id,
+                status: 'Planned',
+                notes: `Önceki arama sonucu: ${input.outcome}${input.notes ? ` (${input.notes})` : ''}`
+            })
+        }
+    }
+
+    // Sync with CRM Sales first_contact if applicable
+    if (currentAct.customer_id && profile?.tenant_id) {
+        try {
+            const { data: sales } = await adminSupabase
+                .from('sales')
+                .select('id, first_contact, status')
+                .eq('customer_id', currentAct.customer_id)
+                .neq('status', 'Sold')
+                .neq('status', 'Completed')
+                .neq('status', 'Lost')
+                .order('created_at', { ascending: false })
+                .limit(1)
+
+            if (sales && sales.length > 0) {
+                const saleId = sales[0].id
+                const updateData: any = { first_contact: input.outcome }
+                if (input.notes) updateData.process_note = input.notes
+                await adminSupabase.from('sales').update(updateData).eq('id', saleId)
+            }
+        } catch (crmSyncErr) {
+            console.error('CRM Sale first_contact sync error:', crmSyncErr)
+        }
+    }
+
+    revalidatePath('/activities')
+    revalidatePath('/crm')
+    revalidatePath('/customers')
     return { success: true }
 }
 

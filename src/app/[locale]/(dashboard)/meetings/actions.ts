@@ -241,20 +241,25 @@ export async function createMeeting(input: CreateMeetingInput) {
             }
         }
 
-        // 5. Log activity on customer timeline
+        // 5. Log activity on customer timeline & activities stream
         try {
             await adminDb.from('activities').insert({
                 tenant_id: profile.tenant_id,
                 customer_id: input.customer_id,
-                type: 'Meeting',
+                owner_id: hostUserId,
+                user_id: user.id,
+                project_id: input.project_id || null,
+                type: 'OnlineMeeting',
                 topic: 'Online Toplantı',
                 summary: `📹 Online toplantı planlandı: ${input.title}`,
                 description: `Tarih: ${new Date(input.scheduled_at).toLocaleDateString('tr-TR')} ${new Date(input.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}\nTip: ${MEETING_TYPE_LABELS[input.meeting_type] || input.meeting_type}\nDanışman: ${hostName}`,
                 due_date: input.scheduled_at,
+                daily_room_name: room.name,
+                meeting_id: meetingId,
                 status: 'Planned',
             })
-        } catch {
-            // Non-blocking
+        } catch (actErr: any) {
+            console.error('[Meetings] Activity log error:', actErr?.message)
         }
 
         console.log(`[Meetings] ✅ Meeting created: ${meetingId} for ${customer.full_name}`)

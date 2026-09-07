@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,65 +17,175 @@ import {
     CalendarDays,
     ChevronLeft,
     ChevronRight,
-    Download
+    Download,
+    Video,
+    FileText,
+    Folder,
+    FolderPlus,
+    Play,
+    ExternalLink,
+    Filter,
+    Layers,
+    CheckCircle2,
+    Percent
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { uploadConstructionPhotos, deleteConstructionPhoto } from '@/app/[locale]/(dashboard)/projects/[id]/documents-actions'
+import {
+    uploadConstructionPhotos,
+    deleteConstructionPhoto,
+    deleteConstructionFolder
+} from '@/app/[locale]/(dashboard)/projects/[id]/documents-actions'
+import { cn } from '@/lib/utils'
 
-interface ConstructionPhoto {
+export interface ConstructionMediaItem {
     id: string
     file_url: string
     file_name: string
+    file_type?: string
+    file_size?: number
     document_name: string
     description: string | null
+    folder_name?: string | null
+    progress_date?: string | null
+    progress_percentage?: number | null
     created_at: string
     uploader_name?: string
 }
 
 interface ConstructionGalleryProps {
     projectId: string
-    photos: ConstructionPhoto[]
+    photos: ConstructionMediaItem[]
     isAdmin: boolean
 }
 
-export function ConstructionGallery({ projectId, photos: initialPhotos, isAdmin }: ConstructionGalleryProps) {
-    const [photos, setPhotos] = useState<ConstructionPhoto[]>(initialPhotos)
+export function ConstructionGallery({ projectId, photos: initialItems, isAdmin }: ConstructionGalleryProps) {
+    const [items, setItems] = useState<ConstructionMediaItem[]>(initialItems)
     const [isUploading, setIsUploading] = useState(false)
     const [selectedFiles, setSelectedFiles] = useState<File[]>([])
     const [previewUrls, setPreviewUrls] = useState<string[]>([])
     const [caption, setCaption] = useState('')
+    const [selectedFolder, setSelectedFolder] = useState<string>('all')
+    const [newFolderName, setNewFolderName] = useState('')
+    const [isCreatingNewFolder, setIsCreatingNewFolder] = useState(false)
+    const [progressDate, setProgressDate] = useState<string>(new Date().toISOString().split('T')[0])
+    const [progressPercentage, setProgressPercentage] = useState<string>('')
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
     const [showUploadArea, setShowUploadArea] = useState(false)
     const [isDragOver, setIsDragOver] = useState(false)
+    const [mediaFilter, setMediaFilter] = useState<'all' | 'image' | 'video' | 'document'>('all')
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    // Group photos by date
-    const photosByDate = photos.reduce((acc, photo) => {
-        const date = new Date(photo.created_at).toLocaleDateString('tr-TR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+    // Helper functions for media classification
+    const isVideo = (item: { file_type?: string; file_name: string }) =>
+        item.file_type?.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(item.file_name)
+
+    const isDoc = (item: { file_type?: string; file_name: string }) =>
+        item.file_type?.startsWith('application/pdf') ||
+        item.file_type?.includes('word') ||
+        item.file_type?.includes('document') ||
+        /\.(pdf|doc|docx|xls|xlsx)$/i.test(item.file_name)
+
+    const isImage = (item: { file_type?: string; file_name: string }) =>
+        !isVideo(item) && !isDoc(item)
+
+    // Grouping by folder
+    const folderMap = useMemo(() => {
+        const map = new Map<string, {
+            name: string
+            items: ConstructionMediaItem[]
+            progressDate?: string
+            progressPercentage?: number | null
+            imageCount: number
+            videoCount: number
+            docCount: number
+        }>()
+
+        items.forEach(item => {
+            const folder = (item.folder_name && item.folder_name.trim()) || 'Genel İlerlemeler'
+            if (!map.has(folder)) {
+                map.set(folder, {
+                    name: folder,
+                    items: [],
+                    progressDate: item.progress_date || undefined,
+                    progressPercentage: item.progress_percentage,
+                    imageCount: 0,
+                    videoCount: 0,
+                    docCount: 0
+                })
+            }
+            const f = map.get(folder)!
+            f.items.push(item)
+            if (item.progress_date && !f.progressDate) f.progressDate = item.progress_date
+            if (item.progress_percentage !== undefined && item.progress_percentage !== null) {
+                f.progressPercentage = item.progress_percentage
+            }
+
+            if (isVideo(item)) f.videoCount++
+            else if (isDoc(item)) f.docCount++
+            else f.imageCount++
         })
-        if (!acc[date]) acc[date] = []
-        acc[date].push(photo)
-        return acc
-    }, {} as Record<string, ConstructionPhoto[]>)
+
+        return map
+    }, [items])
+
+    const availableFolders = useMemo(() => Array.from(folderMap.values()), [folderMap])
+
+    // Filtered items
+    const filteredItems = useMemo(() => {
+        let res = items
+
+        if (selectedFolder !== 'all') {
+            res = res.filter(i => ((i.folder_name && i.folder_name.trim()) || 'Genel İlerlemeler') === selectedFolder)
+        }
+
+        if (mediaFilter === 'image') res = res.filter(isImage)
+        if (mediaFilter === 'video') res = res.filter(isVideo)
+        if (mediaFilter === 'document') res = res.filter(isDoc)
+
+        return res
+    }, [items, selectedFolder, mediaFilter])
+
+    // Group items by date for display
+    const itemsByDate = useMemo(() => {
+        return filteredItems.reduce((acc, item) => {
+            const dateStr = item.progress_date || item.created_at
+            const date = new Date(dateStr).toLocaleDateString('tr-TR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })
+            if (!acc[date]) acc[date] = []
+            acc[date].push(item)
+            return acc
+        }, {} as Record<string, ConstructionMediaItem[]>)
+    }, [filteredItems])
 
     const handleFileSelect = useCallback((files: FileList | File[]) => {
-        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
-        if (imageFiles.length === 0) {
-            toast.error('Lütfen resim dosyası seçin.')
+        const fileList = Array.from(files).filter(f => {
+            const isImg = f.type.startsWith('image/')
+            const isVid = f.type.startsWith('video/')
+            const isDc = f.type === 'application/pdf' ||
+                f.type.includes('word') ||
+                /\.(pdf|doc|docx|xls|xlsx)$/i.test(f.name)
+            return isImg || isVid || isDc
+        })
+
+        if (fileList.length === 0) {
+            toast.error('Lütfen resim, video veya PDF/belge dosyası seçin.')
             return
         }
-        setSelectedFiles(prev => [...prev, ...imageFiles])
-        // Generate preview URLs
-        const newPreviews = imageFiles.map(f => URL.createObjectURL(f))
+
+        setSelectedFiles(prev => [...prev, ...fileList])
+        const newPreviews = fileList.map(f => {
+            if (f.type.startsWith('image/')) return URL.createObjectURL(f)
+            return ''
+        })
         setPreviewUrls(prev => [...prev, ...newPreviews])
     }, [])
 
     const removeSelectedFile = (index: number) => {
-        URL.revokeObjectURL(previewUrls[index])
+        if (previewUrls[index]) URL.revokeObjectURL(previewUrls[index])
         setSelectedFiles(prev => prev.filter((_, i) => i !== index))
         setPreviewUrls(prev => prev.filter((_, i) => i !== index))
     }
@@ -83,16 +193,22 @@ export function ConstructionGallery({ projectId, photos: initialPhotos, isAdmin 
     const handleUpload = async () => {
         if (selectedFiles.length === 0) return
 
+        const activeFolder = isCreatingNewFolder
+            ? (newFolderName.trim() || 'Yeni Aşama')
+            : (selectedFolder !== 'all' ? selectedFolder : (availableFolders[0]?.name || 'Genel İlerlemeler'))
+
         setIsUploading(true)
         try {
-            // Upload via Supabase Storage directly from client (bypass Vercel limits)
             const supabase = createClient()
-            const uploadedPhotos: ConstructionPhoto[] = []
+            const uploadedItems: ConstructionMediaItem[] = []
 
             for (const file of selectedFiles) {
+                const isVid = file.type.startsWith('video/')
+                const isDc = file.type === 'application/pdf' || /\.(pdf|doc|docx)$/i.test(file.name)
+                const prefix = isVid ? 'video' : isDc ? 'doc' : 'img'
                 const fileExt = file.name.split('.').pop()
-                const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
-                const filePath = `construction-photos/${projectId}/${fileName}`
+                const fileName = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
+                const filePath = `construction-media/${projectId}/${fileName}`
 
                 const { error: uploadError } = await supabase.storage
                     .from('crm-images')
@@ -108,12 +224,17 @@ export function ConstructionGallery({ projectId, photos: initialPhotos, isAdmin 
                     .from('crm-images')
                     .getPublicUrl(filePath)
 
-                uploadedPhotos.push({
+                uploadedItems.push({
                     id: `temp-${Date.now()}-${Math.random()}`,
                     file_url: urlData.publicUrl,
                     file_name: file.name,
-                    document_name: caption || `Şantiye Fotoğrafı - ${new Date().toLocaleDateString('tr-TR')}`,
+                    file_type: file.type || (isVid ? 'video/mp4' : isDc ? 'application/pdf' : 'image/jpeg'),
+                    file_size: file.size,
+                    document_name: caption || file.name,
                     description: caption,
+                    folder_name: activeFolder,
+                    progress_date: progressDate,
+                    progress_percentage: progressPercentage ? parseInt(progressPercentage, 10) : null,
                     created_at: new Date().toISOString(),
                     uploader_name: 'Siz'
                 })
@@ -121,20 +242,24 @@ export function ConstructionGallery({ projectId, photos: initialPhotos, isAdmin 
 
             // Save metadata via server action
             const formData = new FormData()
-            selectedFiles.forEach(f => formData.append('photos', f))
+            selectedFiles.forEach(f => formData.append('files', f))
             if (caption) formData.set('caption', caption)
+            formData.set('folder_name', activeFolder)
+            if (progressDate) formData.set('progress_date', progressDate)
+            if (progressPercentage) formData.set('progress_percentage', progressPercentage)
 
             const result = await uploadConstructionPhotos(projectId, formData)
 
             if (result?.success) {
-                toast.success(`${result.uploaded}/${result.total} fotoğraf başarıyla yüklendi!`)
-                // Cleanup
-                previewUrls.forEach(url => URL.revokeObjectURL(url))
+                toast.success(`${result.uploaded}/${result.total} dosya başarıyla eklendi!`)
+                previewUrls.forEach(url => { if (url) URL.revokeObjectURL(url) })
                 setSelectedFiles([])
                 setPreviewUrls([])
                 setCaption('')
+                setIsCreatingNewFolder(false)
+                setNewFolderName('')
                 setShowUploadArea(false)
-                // Reload to get fresh data while staying on construction tab
+
                 if (typeof window !== 'undefined') {
                     sessionStorage.setItem(`project_tab_${projectId}`, 'construction')
                     if (!window.location.search.includes('tab=')) {
@@ -154,134 +279,426 @@ export function ConstructionGallery({ projectId, photos: initialPhotos, isAdmin 
         }
     }
 
-    const handleDelete = async (photoId: string) => {
-        if (!confirm('Bu fotoğrafı silmek istediğinize emin misiniz?')) return
+    const handleDeleteItem = async (itemId: string) => {
+        if (!confirm('Bu medyayı silmek istediğinize emin misiniz?')) return
 
-        const result = await deleteConstructionPhoto(photoId, projectId)
+        const result = await deleteConstructionPhoto(itemId, projectId)
         if (result?.success) {
-            setPhotos(prev => prev.filter(p => p.id !== photoId))
-            toast.success('Fotoğraf silindi.')
+            setItems(prev => prev.filter(p => p.id !== itemId))
+            toast.success('Dosya silindi.')
             if (lightboxIndex !== null) setLightboxIndex(null)
         } else {
             toast.error(result?.error || 'Silme başarısız.')
         }
     }
 
-    // Drag and drop handlers
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault()
-        setIsDragOver(true)
-    }
-    const handleDragLeave = () => setIsDragOver(false)
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault()
-        setIsDragOver(false)
-        if (e.dataTransfer.files) handleFileSelect(e.dataTransfer.files)
+    const handleDeleteFolder = async (folderName: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!confirm(`"${folderName}" klasörünü ve içindeki TÜM medya dosyalarını silmek istediğinize emin misiniz?`)) return
+
+        const result = await deleteConstructionFolder(projectId, folderName)
+        if (result?.success) {
+            setItems(prev => prev.filter(p => (p.folder_name || 'Genel İlerlemeler') !== folderName))
+            if (selectedFolder === folderName) setSelectedFolder('all')
+            toast.success('Klasör ve içeriği silindi.')
+        } else {
+            toast.error('Klasör silinemedi.')
+        }
     }
 
     // Lightbox navigation
     const openLightbox = (index: number) => setLightboxIndex(index)
     const closeLightbox = () => setLightboxIndex(null)
-    const prevImage = () => setLightboxIndex(prev => prev !== null ? (prev - 1 + photos.length) % photos.length : null)
-    const nextImage = () => setLightboxIndex(prev => prev !== null ? (prev + 1) % photos.length : null)
+    const prevItem = () => setLightboxIndex(prev => prev !== null ? (prev - 1 + filteredItems.length) % filteredItems.length : null)
+    const nextItem = () => setLightboxIndex(prev => prev !== null ? (prev + 1) % filteredItems.length : null)
+
+    const activeLightboxItem = lightboxIndex !== null ? filteredItems[lightboxIndex] : null
 
     return (
         <>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="border border-slate-200/80 shadow-xs">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
                     <div>
-                        <CardTitle className="flex items-center gap-2">
-                            <Camera className="w-5 h-5 text-primary" />
-                            Şantiye Fotoğrafları
+                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl font-black text-slate-900">
+                            <Camera className="w-5 h-5 text-indigo-600" />
+                            Şantiye Görüntüleri & İlerleme Belgeleri
                         </CardTitle>
-                        <CardDescription>
-                            Projeye ait güncel şantiye ve inşaat fotoğrafları.
-                            {photos.length > 0 && (
-                                <Badge variant="secondary" className="ml-2">{photos.length} fotoğraf</Badge>
+                        <CardDescription className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                            İnşaat aşamaları, fotoğraf, video ve teknik ilerleme evrakları.
+                            {items.length > 0 && (
+                                <span className="ml-2 inline-flex items-center gap-1.5 font-semibold text-slate-700">
+                                    <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-800">
+                                        {items.length} Dosya
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs text-indigo-700 border-indigo-200 bg-indigo-50/50">
+                                        {availableFolders.length} İlerleme Klasörü
+                                    </Badge>
+                                </span>
                             )}
                         </CardDescription>
                     </div>
-                    {isAdmin && (
-                        <Button onClick={() => setShowUploadArea(!showUploadArea)} variant={showUploadArea ? "secondary" : "default"}>
-                            {showUploadArea ? (
-                                <><X className="w-4 h-4 mr-2" />İptal</>
-                            ) : (
-                                <><ImagePlus className="w-4 h-4 mr-2" />Fotoğraf Ekle</>
-                            )}
-                        </Button>
-                    )}
+
+                    <div className="flex items-center gap-2 shrink-0">
+                        {isAdmin && (
+                            <Button
+                                onClick={() => {
+                                    setShowUploadArea(!showUploadArea)
+                                    if (!showUploadArea) setIsCreatingNewFolder(false)
+                                }}
+                                variant={showUploadArea ? "secondary" : "default"}
+                                className={cn(
+                                    "text-xs font-bold gap-1.5",
+                                    !showUploadArea && "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                                )}
+                            >
+                                {showUploadArea ? (
+                                    <><X className="w-4 h-4" /> Vazgeç</>
+                                ) : (
+                                    <><ImagePlus className="w-4 h-4" /> Medya / İlerleme Ekle</>
+                                )}
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
+
                 <CardContent className="space-y-6">
-                    {/* Upload Area */}
+                    {/* Folder Navigation & Overview Cards */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                <Folder className="w-3.5 h-3.5 text-indigo-500" />
+                                İlerleme Klasörleri / Fazlar
+                            </span>
+
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowUploadArea(true)
+                                        setIsCreatingNewFolder(true)
+                                    }}
+                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold inline-flex items-center gap-1 hover:underline"
+                                >
+                                    <FolderPlus className="w-3.5 h-3.5" />
+                                    Yeni Klasör / Faz Aç
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Folder Pills Bar */}
+                        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedFolder('all')}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 border",
+                                    selectedFolder === 'all'
+                                        ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                )}
+                            >
+                                <Layers className="w-3.5 h-3.5" />
+                                <span>Tüm Klasörler</span>
+                                <span className={cn("text-[10px] px-1.5 py-0.2 rounded-full", selectedFolder === 'all' ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-600")}>
+                                    {items.length}
+                                </span>
+                            </button>
+
+                            {availableFolders.map(folder => {
+                                const isSelected = selectedFolder === folder.name
+                                return (
+                                    <div
+                                        key={folder.name}
+                                        onClick={() => setSelectedFolder(folder.name)}
+                                        className={cn(
+                                            "group px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 shrink-0 border cursor-pointer select-none",
+                                            isSelected
+                                                ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        <Folder className={cn("w-3.5 h-3.5", isSelected ? "text-white" : "text-indigo-500")} />
+                                        <span>{folder.name}</span>
+
+                                        {folder.progressPercentage !== null && folder.progressPercentage !== undefined && (
+                                            <span className={cn(
+                                                "text-[10px] px-1.5 py-0.2 font-black rounded-md",
+                                                isSelected ? "bg-indigo-800 text-indigo-100" : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                            )}>
+                                                %{folder.progressPercentage}
+                                            </span>
+                                        )}
+
+                                        <span className={cn(
+                                            "text-[10px] px-1.5 py-0.2 rounded-full",
+                                            isSelected ? "bg-indigo-700 text-white" : "bg-slate-100 text-slate-600"
+                                        )}>
+                                            {folder.items.length}
+                                        </span>
+
+                                        {isAdmin && folder.name !== 'Genel İlerlemeler' && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleDeleteFolder(folder.name, e)}
+                                                className={cn(
+                                                    "opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white rounded p-0.5 transition-all",
+                                                    isSelected ? "text-indigo-200" : "text-slate-400"
+                                                )}
+                                                title="Klasörü Sil"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Media Type Filter Tabs (Hepsi, Fotoğraflar, Videolar, Belgeler) */}
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-slate-400 font-bold uppercase tracking-wider text-[11px] mr-1">Filtrele:</span>
+                            {(['all', 'image', 'video', 'document'] as const).map(type => (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => setMediaFilter(type)}
+                                    className={cn(
+                                        "px-2.5 py-1 rounded-md font-semibold text-xs transition-colors flex items-center gap-1",
+                                        mediaFilter === type
+                                            ? "bg-slate-800 text-white"
+                                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    )}
+                                >
+                                    {type === 'all' && <span>Tümü ({filteredItems.length})</span>}
+                                    {type === 'image' && <span>📷 Fotoğraf</span>}
+                                    {type === 'video' && <span>📹 Video</span>}
+                                    {type === 'document' && <span>📄 Belge / PDF</span>}
+                                </button>
+                            ))}
+                        </div>
+
+                        {selectedFolder !== 'all' && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedFolder('all')}
+                                className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1"
+                            >
+                                <ChevronLeft className="w-3.5 h-3.5" /> Tüm Klasörlere Dön
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Upload Drawer / Section */}
                     {showUploadArea && (
-                        <div className="space-y-4 p-4 border-2 border-dashed rounded-xl bg-muted/30 animate-in fade-in slide-in-from-top-2 duration-300">
-                            {/* Drop zone */}
+                        <div className="space-y-4 p-5 border-2 border-dashed border-indigo-200 rounded-2xl bg-indigo-50/30 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                        <Upload className="w-4 h-4 text-indigo-600" />
+                                        Şantiye İlerleme Dosyası Yükle
+                                    </h4>
+                                    <p className="text-xs text-slate-500">
+                                        Fotoğraf, video ve teknik inşaat belgelerini klasörleyerek yükleyin.
+                                    </p>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setShowUploadArea(false)}
+                                    className="h-7 w-7 p-0 text-slate-400 hover:text-slate-700"
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+
+                            {/* Folder & Milestone Settings */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {/* Folder Select / Create */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                                        <span>Klasör / İlerleme Fazı</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCreatingNewFolder(!isCreatingNewFolder)}
+                                            className="text-[10px] text-indigo-600 hover:underline font-semibold"
+                                        >
+                                            {isCreatingNewFolder ? 'Mevcut Klasör Seç' : '+ Yeni Klasör Aç'}
+                                        </button>
+                                    </Label>
+
+                                    {isCreatingNewFolder ? (
+                                        <Input
+                                            placeholder="Örn: Eylül 2026 - Kaba İnşaat"
+                                            value={newFolderName}
+                                            onChange={(e) => setNewFolderName(e.target.value)}
+                                            className="h-9 text-xs font-semibold bg-white border-indigo-300 focus-visible:ring-indigo-500"
+                                        />
+                                    ) : (
+                                        <select
+                                            value={selectedFolder === 'all' ? (availableFolders[0]?.name || 'Genel İlerlemeler') : selectedFolder}
+                                            onChange={(e) => setSelectedFolder(e.target.value)}
+                                            className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            {availableFolders.map(f => (
+                                                <option key={f.name} value={f.name}>{f.name}</option>
+                                            ))}
+                                            {availableFolders.length === 0 && (
+                                                <option value="Genel İlerlemeler">Genel İlerlemeler</option>
+                                            )}
+                                        </select>
+                                    )}
+                                </div>
+
+                                {/* Milestone Date */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                        <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+                                        <span>İlerleme / Çekim Tarihi</span>
+                                    </Label>
+                                    <Input
+                                        type="date"
+                                        value={progressDate}
+                                        onChange={(e) => setProgressDate(e.target.value)}
+                                        className="h-9 text-xs bg-white border-slate-200"
+                                    />
+                                </div>
+
+                                {/* Progress Percentage */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                        <Percent className="w-3.5 h-3.5 text-slate-400" />
+                                        <span>Tamamlanma Oranı (%)</span>
+                                    </Label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        placeholder="Örn: 45"
+                                        value={progressPercentage}
+                                        onChange={(e) => setProgressPercentage(e.target.value)}
+                                        className="h-9 text-xs bg-white border-slate-200"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Drop Zone */}
                             <div
-                                className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
+                                className={cn(
+                                    "relative flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl cursor-pointer transition-all bg-white",
                                     isDragOver
-                                        ? 'border-primary bg-primary/5 scale-[1.01]'
-                                        : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
-                                }`}
-                                onDragOver={handleDragOver}
-                                onDragLeave={handleDragLeave}
-                                onDrop={handleDrop}
+                                        ? 'border-indigo-600 bg-indigo-50/50 scale-[1.01]'
+                                        : 'border-slate-300 hover:border-indigo-400 hover:bg-slate-50/50'
+                                )}
+                                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+                                onDragLeave={() => setIsDragOver(false)}
+                                onDrop={(e) => {
+                                    e.preventDefault()
+                                    setIsDragOver(false)
+                                    if (e.dataTransfer.files) handleFileSelect(e.dataTransfer.files)
+                                }}
                                 onClick={() => fileInputRef.current?.click()}
                             >
-                                <Upload className={`w-10 h-10 mb-3 ${isDragOver ? 'text-primary' : 'text-muted-foreground/50'}`} />
-                                <p className="text-sm font-medium text-muted-foreground">
-                                    Fotoğrafları sürükleyip bırakın veya <span className="text-primary font-semibold">dosya seçin</span>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                        <Upload className="w-5 h-5" />
+                                    </div>
+                                </div>
+                                <p className="text-xs sm:text-sm font-bold text-slate-800">
+                                    Fotoğraf, video veya belgeleri buraya sürükleyin ya da <span className="text-indigo-600 underline">seçin</span>
                                 </p>
-                                <p className="text-xs text-muted-foreground/70 mt-1">
-                                    JPG, PNG, WebP — Birden fazla dosya seçebilirsiniz
+                                <p className="text-[11px] text-slate-500 mt-1">
+                                    Desteklenenler: JPG, PNG, WebP · MP4, MOV, WebM · PDF, DOC, DOCX
                                 </p>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/*,video/*,.pdf,.doc,.docx"
                                     multiple
                                     className="hidden"
                                     onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
                                 />
                             </div>
 
-                            {/* Selected files preview */}
-                            {previewUrls.length > 0 && (
-                                <div className="space-y-3">
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                                        {previewUrls.map((url, i) => (
-                                            <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border bg-muted">
-                                                <img src={url} alt="" className="w-full h-full object-cover" />
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => { e.stopPropagation(); removeSelectedFile(i) }}
-                                                    className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                </button>
-                                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1.5 py-0.5">
-                                                    <p className="text-[9px] text-white truncate">{selectedFiles[i]?.name}</p>
+                            {/* Selected Files Preview List */}
+                            {selectedFiles.length > 0 && (
+                                <div className="space-y-3 bg-white p-3 rounded-xl border border-slate-200">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-slate-700">
+                                            Seçilen Dosyalar ({selectedFiles.length})
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                previewUrls.forEach(url => { if (url) URL.revokeObjectURL(url) })
+                                                setSelectedFiles([])
+                                                setPreviewUrls([])
+                                            }}
+                                            className="text-xs text-red-600 hover:underline font-semibold"
+                                        >
+                                            Hepsini Temizle
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                                        {selectedFiles.map((file, i) => {
+                                            const isVid = file.type.startsWith('video/')
+                                            const isDocFile = file.type === 'application/pdf' || /\.(pdf|doc|docx)$/i.test(file.name)
+                                            const imgUrl = previewUrls[i]
+
+                                            return (
+                                                <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex flex-col items-center justify-center p-2 text-center">
+                                                    {imgUrl ? (
+                                                        <img src={imgUrl} alt="" className="w-full h-full object-cover rounded" />
+                                                    ) : isVid ? (
+                                                        <div className="flex flex-col items-center justify-center text-indigo-600">
+                                                            <Video className="w-8 h-8 mb-1" />
+                                                            <span className="text-[10px] font-bold uppercase text-slate-700">Video</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center justify-center text-amber-600">
+                                                            <FileText className="w-8 h-8 mb-1" />
+                                                            <span className="text-[10px] font-bold uppercase text-slate-700">Belge</span>
+                                                        </div>
+                                                    )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); removeSelectedFile(i) }}
+                                                        className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-0.5">
+                                                        <p className="text-[9px] text-white truncate">{file.name}</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
 
                                     {/* Caption */}
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-medium">Açıklama (opsiyonel)</Label>
+                                    <div className="space-y-1 pt-1">
+                                        <Label className="text-xs font-semibold text-slate-700">Açıklama / Başlık (Opsiyonel)</Label>
                                         <Input
-                                            placeholder="Örn: 3. kat kaba inşaat tamamlandı"
+                                            placeholder="Örn: 4. Kat tabliye betonu dökümü tamamlandı"
                                             value={caption}
                                             onChange={(e) => setCaption(e.target.value)}
-                                            className="h-9 text-sm"
+                                            className="h-9 text-xs"
                                         />
                                     </div>
 
-                                    {/* Upload button */}
-                                    <Button onClick={handleUpload} disabled={isUploading} className="w-full">
+                                    {/* Upload Trigger Button */}
+                                    <Button
+                                        onClick={handleUpload}
+                                        disabled={isUploading}
+                                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-10 gap-2 shadow-sm"
+                                    >
                                         {isUploading ? (
-                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Yükleniyor...</>
+                                            <><Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor...</>
                                         ) : (
-                                            <><Upload className="w-4 h-4 mr-2" />{selectedFiles.length} Fotoğraf Yükle</>
+                                            <><Upload className="w-4 h-4" /> {selectedFiles.length} Dosyayı Klasöre Yükle</>
                                         )}
                                     </Button>
                                 </div>
@@ -289,56 +706,111 @@ export function ConstructionGallery({ projectId, photos: initialPhotos, isAdmin 
                         </div>
                     )}
 
-                    {/* Gallery */}
-                    {photos.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                            <Camera className="w-16 h-16 mb-4 opacity-15" />
-                            <p className="text-lg font-medium">Henüz şantiye fotoğrafı yüklenmemiş</p>
-                            <p className="text-sm mt-1">Güncel şantiye görüntülerini eklemek için "Fotoğraf Ekle" butonunu kullanın.</p>
+                    {/* Gallery Items Display */}
+                    {filteredItems.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                            <Camera className="w-14 h-14 mb-3 opacity-20 text-slate-500" />
+                            <p className="text-base font-bold text-slate-700">Henüz medya eklenmemiş</p>
+                            <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                                {selectedFolder !== 'all'
+                                    ? `"${selectedFolder}" klasöründe seçilen filtreye uygun dosya bulunamadı.`
+                                    : 'Güncel şantiye fotoğrafları, videolar veya teknik belgeler eklemek için yukarıdaki butonu kullanın.'}
+                            </p>
+                            {isAdmin && (
+                                <Button
+                                    size="sm"
+                                    onClick={() => setShowUploadArea(true)}
+                                    className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+                                >
+                                    <Upload className="w-3.5 h-3.5 mr-1.5" /> Dosya Yükle
+                                </Button>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-8">
-                            {Object.entries(photosByDate).map(([date, datePhotos]) => (
-                                <div key={date}>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <CalendarDays className="w-4 h-4 text-muted-foreground" />
-                                        <h3 className="text-sm font-semibold text-muted-foreground">{date}</h3>
-                                        <Badge variant="outline" className="text-[10px]">{datePhotos.length}</Badge>
+                            {Object.entries(itemsByDate).map(([date, dateItems]) => (
+                                <div key={date} className="space-y-3">
+                                    <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                                        <CalendarDays className="w-4 h-4 text-indigo-600" />
+                                        <h3 className="text-xs font-bold text-slate-700 tracking-wide uppercase">{date}</h3>
+                                        <Badge variant="outline" className="text-[10px] font-bold bg-slate-50 text-slate-600">
+                                            {dateItems.length} dosya
+                                        </Badge>
                                     </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                                        {datePhotos.map((photo) => {
-                                            const globalIndex = photos.findIndex(p => p.id === photo.id)
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
+                                        {dateItems.map((item) => {
+                                            const globalIndex = filteredItems.findIndex(p => p.id === item.id)
+                                            const itemIsVideo = isVideo(item)
+                                            const itemIsDoc = isDoc(item)
+
                                             return (
                                                 <div
-                                                    key={photo.id}
-                                                    className="group relative aspect-square rounded-xl overflow-hidden border bg-muted cursor-pointer shadow-sm hover:shadow-lg transition-all hover:scale-[1.02]"
+                                                    key={item.id}
+                                                    className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200/90 bg-slate-900 cursor-pointer shadow-xs hover:shadow-lg transition-all hover:scale-[1.02]"
                                                     onClick={() => openLightbox(globalIndex)}
                                                 >
-                                                    <img
-                                                        src={photo.file_url}
-                                                        alt={photo.document_name}
-                                                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                                        loading="lazy"
-                                                    />
-                                                    {/* Hover overlay */}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <div className="absolute bottom-0 left-0 right-0 p-2">
-                                                            <p className="text-[11px] text-white/90 truncate font-medium">{photo.description || photo.document_name}</p>
-                                                            <p className="text-[9px] text-white/60">
-                                                                {new Date(photo.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                                                {photo.uploader_name && ` · ${photo.uploader_name}`}
+                                                    {itemIsVideo ? (
+                                                        <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                                                            <video
+                                                                src={item.file_url}
+                                                                preload="metadata"
+                                                                className="w-full h-full object-cover opacity-80"
+                                                            />
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10 transition-colors">
+                                                                <div className="h-10 w-10 rounded-full bg-indigo-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                                                                    <Play className="w-5 h-5 fill-current ml-0.5" />
+                                                                </div>
+                                                            </div>
+                                                            <Badge className="absolute top-2 left-2 bg-indigo-600 text-white text-[9px] font-black tracking-wider uppercase border-none">
+                                                                VIDEO
+                                                            </Badge>
+                                                        </div>
+                                                    ) : itemIsDoc ? (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50/90 p-3 text-center">
+                                                            <FileText className="w-12 h-12 text-amber-600 mb-1.5" />
+                                                            <p className="text-xs font-bold text-amber-950 line-clamp-2 px-1">
+                                                                {item.description || item.document_name}
                                                             </p>
+                                                            <Badge className="mt-2 bg-amber-200 text-amber-900 text-[9px] font-bold border-amber-300">
+                                                                BELGE / PDF
+                                                            </Badge>
                                                         </div>
-                                                        {/* Zoom icon */}
+                                                    ) : (
+                                                        <img
+                                                            src={item.file_url}
+                                                            alt={item.document_name}
+                                                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                            loading="lazy"
+                                                        />
+                                                    )}
+
+                                                    {/* Hover Overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                                                            <p className="text-xs text-white truncate font-bold">{item.description || item.document_name}</p>
+                                                            <div className="flex items-center justify-between text-[10px] text-white/70 mt-0.5">
+                                                                <span>{item.folder_name || 'Genel'}</span>
+                                                                {item.uploader_name && <span>{item.uploader_name}</span>}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Top right icon */}
                                                         <div className="absolute top-2 right-2">
-                                                            <ZoomIn className="w-5 h-5 text-white/80" />
+                                                            <div className="h-7 w-7 rounded-full bg-black/60 flex items-center justify-center text-white/90 shadow-sm">
+                                                                <ZoomIn className="w-3.5 h-3.5" />
+                                                            </div>
                                                         </div>
-                                                        {/* Delete button */}
+
+                                                        {/* Delete Button */}
                                                         {isAdmin && (
                                                             <button
-                                                                onClick={(e) => { e.stopPropagation(); handleDelete(photo.id) }}
-                                                                className="absolute top-2 left-2 p-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-colors"
-                                                                title="Fotoğrafı Sil"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    handleDeleteItem(item.id)
+                                                                }}
+                                                                className="absolute top-2 left-2 p-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm"
+                                                                title="Dosyayı Sil"
                                                             >
                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                             </button>
@@ -355,61 +827,105 @@ export function ConstructionGallery({ projectId, photos: initialPhotos, isAdmin 
                 </CardContent>
             </Card>
 
-            {/* Lightbox */}
-            {lightboxIndex !== null && photos[lightboxIndex] && (
+            {/* Rich Lightbox / Player Modal */}
+            {activeLightboxItem && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-200"
                     onClick={closeLightbox}
                 >
                     {/* Close button */}
                     <button
-                        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-10"
+                        className="absolute top-4 right-4 p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-20"
                         onClick={closeLightbox}
                     >
                         <X className="w-6 h-6" />
                     </button>
 
                     {/* Nav prev */}
-                    {photos.length > 1 && (
+                    {filteredItems.length > 1 && (
                         <button
-                            className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-10"
-                            onClick={(e) => { e.stopPropagation(); prevImage() }}
+                            className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-20"
+                            onClick={(e) => { e.stopPropagation(); prevItem() }}
                         >
                             <ChevronLeft className="w-6 h-6" />
                         </button>
                     )}
 
-                    {/* Image */}
-                    <div className="max-w-[90vw] max-h-[85vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
-                        <img
-                            src={photos[lightboxIndex].file_url}
-                            alt={photos[lightboxIndex].document_name}
-                            className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl"
-                        />
-                        <div className="mt-4 text-center">
-                            <p className="text-white font-medium">
-                                {photos[lightboxIndex].description || photos[lightboxIndex].document_name}
-                            </p>
-                            <p className="text-white/60 text-sm mt-1">
-                                {new Date(photos[lightboxIndex].created_at).toLocaleDateString('tr-TR', {
-                                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                                })}
-                                {photos[lightboxIndex].uploader_name && ` · ${photos[lightboxIndex].uploader_name}`}
-                            </p>
-                            <div className="flex items-center justify-center gap-3 mt-3">
-                                <span className="text-white/40 text-xs">{lightboxIndex + 1} / {photos.length}</span>
+                    {/* Media Content Display */}
+                    <div className="max-w-[92vw] max-h-[88vh] flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        {isVideo(activeLightboxItem) ? (
+                            <video
+                                src={activeLightboxItem.file_url}
+                                controls
+                                autoPlay
+                                className="max-w-full max-h-[75vh] rounded-xl shadow-2xl bg-black"
+                            />
+                        ) : isDoc(activeLightboxItem) ? (
+                            <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-md text-center">
+                                <FileText className="w-20 h-20 text-amber-600 mb-4" />
+                                <h3 className="text-lg font-black text-slate-900 mb-2">
+                                    {activeLightboxItem.description || activeLightboxItem.document_name}
+                                </h3>
+                                <p className="text-xs text-slate-500 mb-6">
+                                    Klasör: <span className="font-semibold text-slate-700">{activeLightboxItem.folder_name || 'Genel'}</span>
+                                </p>
                                 <a
-                                    href={photos[lightboxIndex].file_url}
+                                    href={activeLightboxItem.file_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs rounded-lg transition-colors"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md transition-all"
+                                >
+                                    <ExternalLink className="w-4 h-4" /> Belgeyi Yeni Sekmede Aç / İndir
+                                </a>
+                            </div>
+                        ) : (
+                            <img
+                                src={activeLightboxItem.file_url}
+                                alt={activeLightboxItem.document_name}
+                                className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl"
+                            />
+                        )}
+
+                        {/* Details Footer */}
+                        <div className="mt-4 text-center text-white max-w-xl">
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                {activeLightboxItem.folder_name && (
+                                    <Badge className="bg-indigo-600/80 text-white text-[10px] font-bold">
+                                        📁 {activeLightboxItem.folder_name}
+                                    </Badge>
+                                )}
+                                {activeLightboxItem.progress_percentage !== null && activeLightboxItem.progress_percentage !== undefined && (
+                                    <Badge className="bg-emerald-600/80 text-white text-[10px] font-bold">
+                                        %{activeLightboxItem.progress_percentage} Tamamlandı
+                                    </Badge>
+                                )}
+                            </div>
+
+                            <p className="text-sm font-bold text-slate-100">
+                                {activeLightboxItem.description || activeLightboxItem.document_name}
+                            </p>
+                            <p className="text-white/60 text-xs mt-1">
+                                {new Date(activeLightboxItem.progress_date || activeLightboxItem.created_at).toLocaleDateString('tr-TR', {
+                                    year: 'numeric', month: 'long', day: 'numeric'
+                                })}
+                                {activeLightboxItem.uploader_name && ` · Yükleyen: ${activeLightboxItem.uploader_name}`}
+                            </p>
+
+                            <div className="flex items-center justify-center gap-3 mt-3">
+                                <span className="text-white/40 text-xs font-mono">{lightboxIndex! + 1} / {filteredItems.length}</span>
+                                <a
+                                    href={activeLightboxItem.file_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    download
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition-colors"
                                 >
                                     <Download className="w-3.5 h-3.5" /> İndir
                                 </a>
                                 {isAdmin && (
                                     <button
-                                        onClick={() => handleDelete(photos[lightboxIndex!].id)}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600/80 hover:bg-red-600 text-white text-xs rounded-lg transition-colors"
+                                        onClick={() => handleDeleteItem(activeLightboxItem.id)}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" /> Sil
                                     </button>
@@ -419,10 +935,10 @@ export function ConstructionGallery({ projectId, photos: initialPhotos, isAdmin 
                     </div>
 
                     {/* Nav next */}
-                    {photos.length > 1 && (
+                    {filteredItems.length > 1 && (
                         <button
-                            className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-10"
-                            onClick={(e) => { e.stopPropagation(); nextImage() }}
+                            className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-20"
+                            onClick={(e) => { e.stopPropagation(); nextItem() }}
                         >
                             <ChevronRight className="w-6 h-6" />
                         </button>
