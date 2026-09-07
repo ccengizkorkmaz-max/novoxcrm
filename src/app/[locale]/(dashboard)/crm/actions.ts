@@ -4574,7 +4574,7 @@ export async function getProjectDocumentsForSharing(projectId: string) {
 
     const { data: documents, error } = await supabase
         .from('project_documents')
-        .select('id, document_name, file_name, file_url, file_type, file_size, description, created_at')
+        .select('id, document_name, file_name, file_url, file_type, file_size, description, created_at, is_customer_shareable, permissions')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false })
 
@@ -4583,7 +4583,15 @@ export async function getProjectDocumentsForSharing(projectId: string) {
         return { error: error.message, documents: [] }
     }
 
-    return { documents: documents || [] }
+    // Yalnızca "Müşteri ile paylaşılabilir" olanlar listelenir (iç kullanım için olanlar gizlenir)
+    const shareableDocs = (documents || []).filter((doc: any) => {
+        if (typeof doc.is_customer_shareable === 'boolean') {
+            return doc.is_customer_shareable === true
+        }
+        return doc.permissions === 'public'
+    })
+
+    return { documents: shareableDocs }
 }
 
 export async function getApprovedWhatsAppTemplates() {

@@ -31,6 +31,7 @@ import { UnitListClient } from './components/UnitListClient'
 import { ProjectDetailTabs } from './components/ProjectDetailTabs'
 import { DynamicAmenities } from '@/components/projects/DynamicAmenities'
 import { ProjectExpensesTab } from './components/ProjectExpensesTab'
+import { ProjectDocumentsTable } from './components/ProjectDocumentsTable'
 import { getProjectExpenses } from './expenses-actions'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -538,67 +539,11 @@ export default async function ProjectDetailPage(props: {
                             {isAdmin && <DocumentUpload projectId={project.id} />}
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Döküman Adı</TableHead>
-                                        <TableHead>Kategori</TableHead>
-                                        <TableHead>İzin Seviyesi</TableHead>
-                                        <TableHead>Açıklama</TableHead>
-                                        <TableHead>Yükleme Tarihi</TableHead>
-                                        <TableHead>Yükleyen</TableHead>
-                                        <TableHead className="text-right">İşlemler</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {documents && documents.length > 0 ? (
-                                        documents.map((doc: any) => (
-                                            <TableRow key={doc.id}>
-                                                <TableCell className="font-medium">{doc.document_name}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {CATEGORY_LABELS[doc.category] || doc.category || '-'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {doc.permissions === 'public' ? (
-                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Kamusal</Badge>
-                                                    ) : doc.permissions === 'broker_only' ? (
-                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Broker</Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="bg-slate-100 text-slate-700">Dahili</Badge>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="max-w-xs truncate">{doc.description || '-'}</TableCell>
-                                                <TableCell>{new Date(doc.created_at).toLocaleDateString('tr-TR')}</TableCell>
-                                                <TableCell>{doc.uploader_name || 'Unknown'}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Link href={doc.file_url} target="_blank">
-                                                            <Button size="sm" variant="outline">
-                                                                <Download className="h-4 w-4" />
-                                                            </Button>
-                                                        </Link>
-                                                        {isAdmin && (
-                                                            <form action={handleDeleteDocument.bind(null, doc.id)}>
-                                                                 <Button size="sm" variant="destructive" type="submit">
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </form>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                                                Henüz döküman yüklenmemiş.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                            <ProjectDocumentsTable
+                                projectId={project.id}
+                                initialDocuments={documents || []}
+                                isAdmin={isAdmin}
+                            />
                         </CardContent>
                     </Card>
                 </TabsContent>

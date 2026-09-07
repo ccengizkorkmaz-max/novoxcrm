@@ -314,11 +314,13 @@ export async function getTenantDocumentsContext(supabase: any, tenantId: string)
 
         const { data: projectDocs } = await supabase
             .from('project_documents')
-            .select('id, document_name, file_url, category, project_id')
+            .select('id, document_name, file_url, category, project_id, is_customer_shareable, permissions')
             .eq('tenant_id', tenantId)
             .eq('permissions', 'public');
 
-        const normalizedProjectDocs = (projectDocs || []).map((d: any) => ({
+        const normalizedProjectDocs = (projectDocs || [])
+            .filter((d: any) => d.is_customer_shareable !== false)
+            .map((d: any) => ({
             id: d.id,
             name: d.document_name,
             file_url: d.file_url,

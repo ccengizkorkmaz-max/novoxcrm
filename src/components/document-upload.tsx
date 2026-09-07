@@ -27,6 +27,8 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [isCustomerShareable, setIsCustomerShareable] = useState(true)
+    const [permissions, setPermissions] = useState('public')
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -37,7 +39,6 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
         const documentName = formData.get('document_name') as string
         const description = formData.get('description') as string
         const category = formData.get('category') as string
-        const permissions = formData.get('permissions') as string
 
         if (!file || !documentName) {
             toast.error('Dosya ve döküman adı zorunludur.')
@@ -78,7 +79,8 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
                 documentName,
                 description,
                 category,
-                permissions
+                permissions: isCustomerShareable ? permissions : 'internal',
+                isCustomerShareable: isCustomerShareable
             })
 
             setLoading(false)
@@ -87,6 +89,8 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
                 toast.success('Döküman başarıyla yüklendi!')
                 setOpen(false)
                 setSelectedFile(null)
+                setIsCustomerShareable(true)
+                setPermissions('public')
                 ; (e.target as HTMLFormElement).reset()
                 // Force page reload to show new document while staying on documents tab
                 setTimeout(() => {
@@ -173,6 +177,12 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
                                 <select
                                     id="permissions"
                                     name="permissions"
+                                    value={permissions}
+                                    onChange={(e) => {
+                                        const newPerm = e.target.value
+                                        setPermissions(newPerm)
+                                        setIsCustomerShareable(newPerm === 'public')
+                                    }}
                                     required
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
@@ -180,6 +190,34 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
                                     <option value="internal">Dahili (Sadece Firma)</option>
                                     <option value="broker_only">Sadece Brokerlar</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        {/* Müşteri ile Paylaşılabilir Checkbox */}
+                        <div className="flex items-start space-x-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3 transition-colors hover:bg-slate-50">
+                            <input
+                                type="checkbox"
+                                id="is_customer_shareable"
+                                name="is_customer_shareable"
+                                checked={isCustomerShareable}
+                                onChange={(e) => {
+                                    const val = e.target.checked
+                                    setIsCustomerShareable(val)
+                                    if (val) {
+                                        setPermissions('public')
+                                    } else if (permissions === 'public') {
+                                        setPermissions('internal')
+                                    }
+                                }}
+                                className="h-4 w-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <div className="space-y-0.5 select-none">
+                                <Label htmlFor="is_customer_shareable" className="font-semibold text-xs cursor-pointer text-slate-900 flex items-center gap-1.5">
+                                    Müşteri ile paylaşılabilir
+                                </Label>
+                                <p className="text-[11px] text-muted-foreground leading-snug">
+                                    Bu seçenek işaretli olduğunda doküman katalog ve WhatsApp/e-posta paylaşımlarında listelenir. İşaretsiz ise sadece kurum içi kullanım içindir.
+                                </p>
                             </div>
                         </div>
                         <div className="space-y-2">

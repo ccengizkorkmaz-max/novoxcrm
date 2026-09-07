@@ -389,9 +389,9 @@ export default function ShareProjectDocumentsModal({
                             <div className="flex items-center gap-2 p-3.5 border border-amber-100 rounded-2xl bg-amber-50/50 text-amber-800 text-xs">
                                 <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
                                 <div>
-                                    <span className="font-bold">Bu projeye ait henüz doküman yüklenmemiş.</span>
+                                    <span className="font-bold">Bu projeye ait müşteriyle paylaşılabilir doküman bulunamadı.</span>
                                     <p className="text-[11px] text-amber-700 mt-0.5">
-                                        Proje detay sayfasından katalog, kat planı veya sunum yükleyebilirsiniz.
+                                        Proje detay sayfasından katalog/broşür yükleyebilir veya mevcut dokümanların "Müşteri ile paylaşılabilir" ayarını açabilirsiniz.
                                     </p>
                                 </div>
                             </div>

@@ -605,17 +605,19 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                                 // Find public documents for this project
                                 const { data: docs } = await adminSupabase
                                     .from('project_documents')
-                                    .select('id, document_name, category')
+                                    .select('id, document_name, category, is_customer_shareable')
                                     .eq('project_id', resolvedProjectId)
                                     .eq('permissions', 'public');
                                 
+                                const shareableDocs = (docs || []).filter((d: any) => d.is_customer_shareable !== false);
+
                                 const { data: libDocs } = await adminSupabase
                                     .from('document_library')
                                     .select('id, name, category')
                                     .eq('project_id', resolvedProjectId)
                                     .eq('permissions', 'public');
 
-                                const allDocs = [...(docs || []), ...(libDocs || [])];
+                                const allDocs = [...shareableDocs, ...(libDocs || [])];
                                 // Prioritize brochures and catalogs first, fall back to any other public document
                                 const bestDoc = allDocs.find(d => d.category === 'brochure' || d.category === 'catalog') || allDocs[0];
                                 const docId = bestDoc?.id;

@@ -47,6 +47,11 @@ export async function uploadDocument(formData: FormData) {
             .from('crm-images')
             .getPublicUrl(filePath)
 
+        const isCustomerShareableRaw = formData.get('is_customer_shareable')
+        const isCustomerShareable = isCustomerShareableRaw !== null 
+            ? (isCustomerShareableRaw === 'on' || isCustomerShareableRaw === 'true' || isCustomerShareableRaw === '1')
+            : true
+
         // Save metadata to database
         const { error: dbError } = await supabase
             .from('project_documents')
@@ -59,6 +64,8 @@ export async function uploadDocument(formData: FormData) {
                 file_size: file.size,
                 document_name: documentName,
                 description: description,
+                is_customer_shareable: isCustomerShareable,
+                permissions: isCustomerShareable ? 'public' : 'internal',
                 uploaded_by: user.id
             })
 
@@ -126,6 +133,7 @@ export async function saveDocumentMetadata(metadata: {
     description: string
     category?: string
     permissions?: string
+    isCustomerShareable?: boolean
 }) {
     const supabase = await createClient()
 
@@ -141,6 +149,10 @@ export async function saveDocumentMetadata(metadata: {
 
     if (!profile?.tenant_id) return { error: 'No tenant found' }
 
+    const isShareable = metadata.isCustomerShareable !== undefined
+        ? metadata.isCustomerShareable
+        : (metadata.permissions !== 'internal')
+
     const { error: dbError } = await supabase
         .from('project_documents')
         .insert({
@@ -153,7 +165,8 @@ export async function saveDocumentMetadata(metadata: {
             document_name: metadata.documentName,
             description: metadata.description,
             category: metadata.category || 'brochure',
-            permissions: metadata.permissions || 'public',
+            permissions: isShareable ? (metadata.permissions || 'public') : 'internal',
+            is_customer_shareable: isShareable,
             uploaded_by: user.id
         })
 
@@ -163,6 +176,29 @@ export async function saveDocumentMetadata(metadata: {
     }
 
     revalidatePath(`/projects/${metadata.projectId}`)
+    return { success: true }
+}
+
+export async function toggleDocumentShareable(documentId: string, projectId: string, isShareable: boolean) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { error } = await supabase
+        .from('project_documents')
+        .update({
+            is_customer_shareable: isShareable,
+            permissions: isShareable ? 'public' : 'internal'
+        })
+        .eq('id', documentId)
+
+    if (error) {
+        console.error('toggleDocumentShareable error:', error)
+        return { error: 'Doküman paylaşım durumu güncellenemedi' }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
     return { success: true }
 }
 

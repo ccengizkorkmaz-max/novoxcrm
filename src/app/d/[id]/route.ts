@@ -34,11 +34,14 @@ export async function GET(
     // 2. Check project_documents
     const { data: projDoc } = await supabase
         .from('project_documents')
-        .select('file_url')
+        .select('file_url, is_customer_shareable, permissions')
         .eq('id', decodedId)
         .maybeSingle();
 
     if (projDoc?.file_url) {
+        if (projDoc.is_customer_shareable === false || projDoc.permissions === 'internal') {
+            return new NextResponse('Bu doküman sadece iç kullanım içindir ve paylaşıma kapalıdır.', { status: 403 });
+        }
         return NextResponse.redirect(projDoc.file_url, 307);
     }
 

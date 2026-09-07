@@ -183,11 +183,13 @@ export async function handleAndSendCatalogEmail(params: CatalogEmailParams): Pro
 
     const { data: projectDocs } = await supabase
         .from('project_documents')
-        .select('id, document_name, file_url, category')
+        .select('id, document_name, file_url, category, is_customer_shareable, permissions')
         .eq('project_id', projectId)
         .eq('permissions', 'public');
 
-    const normalizedProjectDocs = (projectDocs || []).map((d: any) => ({
+    const normalizedProjectDocs = (projectDocs || [])
+        .filter((d: any) => d.is_customer_shareable !== false)
+        .map((d: any) => ({
         id: d.id,
         name: d.document_name,
         file_url: d.file_url,
