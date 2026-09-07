@@ -232,6 +232,7 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                 })
                 if ('error' in res) {
                     if (!silent) toast.error(res.error || 'Veri yüklenemedi')
+                    setData((prev: any) => (prev && !prev.error) ? prev : { error: res.error || 'Veri yüklenemedi' })
                 } else {
                     setData(res)
                     setCachedData(newProject, newPeriod, res)
@@ -244,8 +245,9 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                         toast.success('Satış hunisi verileri güncellendi')
                     }
                 }
-            } catch (err) {
+            } catch (err: any) {
                 if (!silent) toast.error('Beklenmedik bir hata oluştu')
+                setData((prev: any) => (prev && !prev.error) ? prev : { error: 'Veriler yüklenirken beklenmedik bir hata oluştu.' })
             } finally {
                 setIsRevalidating(false)
             }

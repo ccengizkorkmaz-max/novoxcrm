@@ -211,11 +211,7 @@ async function fetchCeoSalesData(supabase: any, options: FetchCeoSalesOptions) {
 }
 
 async function fetchAllContracts(supabase: any, tenantId: string, selectedProjectId: string | null) {
-    const allContracts: any[] = []
-    let contractsPage = 0
-    const CHUNK_SIZE = 1000
-
-    while (true) {
+    try {
         let query = supabase
             .from('contracts')
             .select(`
@@ -251,30 +247,57 @@ async function fetchAllContracts(supabase: any, tenantId: string, selectedProjec
             query = query.eq('project_id', selectedProjectId)
         }
 
-        const { data, error: contractsErr } = await query
-            .order('id', { ascending: true })
-            .range(contractsPage * CHUNK_SIZE, (contractsPage + 1) * CHUNK_SIZE - 1)
+        const { data, error } = await query
+            .order('contract_date', { ascending: false })
+            .limit(1000)
 
-        if (contractsErr) {
-            console.error('CeoFunnel contracts fetch error:', contractsErr)
-            break
+        if (error) {
+            console.error('CeoFunnel contracts fetch error:', error)
+            return []
         }
-
-        if (!data || data.length === 0) break
-        allContracts.push(...data)
-        if (data.length < CHUNK_SIZE) break
-        contractsPage++
+        return data || []
+    } catch (err) {
+        console.error('CeoFunnel contracts error:', err)
+        return []
     }
-    return allContracts
 }
 
-async function fetchAllActivities(supabase: any, tenantId: string, selectedProjectId: string | null) {
-    const allActivities: any[] = []
-    let activitiesPage = 0
-    const CHUNK_SIZE = 1000
+interface FetchCeoActivitiesOptions {
+    tenantId: string
+    selectedProjectId: string | null
+    currentStart: Date | null
+    currentEnd: Date | null
+    now: Date
+}
 
-    while (true) {
-        let query = supabase
+async function fetchCeoActivities(supabase: any, options: FetchCeoActivitiesOptions) {
+    const { tenantId, selectedProjectId, currentStart, currentEnd, now } = options
+
+    try {
+        // A) Today / Recent Activities (for today operational metrics)
+        const recentWindowStart = subDays(now, 2).toISOString()
+        let todayQuery = supabase
+            .from('activities')
+            .select(`
+                id,
+                type,
+                status,
+                due_date,
+                completed_at,
+                created_at,
+                owner_id,
+                customer_id
+            `)
+            .eq('tenant_id', tenantId)
+            .gte('created_at', recentWindowStart)
+
+        if (selectedProjectId) {
+            todayQuery = todayQuery.eq('project_id', selectedProjectId)
+        }
+        todayQuery = todayQuery.limit(500)
+
+        // B) Period Activities (scoped to selected filter period)
+        let periodQuery = supabase
             .from('activities')
             .select(`
                 id,
@@ -294,24 +317,34 @@ async function fetchAllActivities(supabase: any, tenantId: string, selectedProje
             .eq('tenant_id', tenantId)
 
         if (selectedProjectId) {
-            query = query.eq('project_id', selectedProjectId)
+            periodQuery = periodQuery.eq('project_id', selectedProjectId)
         }
 
-        const { data, error: activitiesErr } = await query
-            .order('id', { ascending: true })
-            .range(activitiesPage * CHUNK_SIZE, (activitiesPage + 1) * CHUNK_SIZE - 1)
-
-        if (activitiesErr) {
-            console.error('CeoFunnel activities fetch error:', activitiesErr)
-            break
+        if (currentStart) {
+            periodQuery = periodQuery.gte('created_at', currentStart.toISOString())
+            if (currentEnd && currentEnd < now) {
+                periodQuery = periodQuery.lte('created_at', currentEnd.toISOString())
+            }
+        } else {
+            // 'all' filter: limit to last 180 days to prevent scanning tens of thousands of rows
+            periodQuery = periodQuery.gte('created_at', subDays(now, 180).toISOString())
         }
 
-        if (!data || data.length === 0) break
-        allActivities.push(...data)
-        if (data.length < CHUNK_SIZE) break
-        activitiesPage++
+        periodQuery = periodQuery.order('created_at', { ascending: false }).limit(2500)
+
+        const [todayRes, periodRes] = await Promise.all([todayQuery, periodQuery])
+
+        return {
+            todayActivities: todayRes.data || [],
+            periodActivities: periodRes.data || []
+        }
+    } catch (err) {
+        console.error('CeoFunnel activities error:', err)
+        return {
+            todayActivities: [],
+            periodActivities: []
+        }
     }
-    return allActivities
 }
 
 export interface FunnelStageData {
@@ -421,12 +454,13 @@ export interface SalesActivitiesData {
 }
 
 export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
-    const supabase = await createClient()
+    try {
+        const supabase = await createClient()
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-        return { error: 'Yetkisiz erişim. Lütfen oturum açın.' }
-    }
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) {
+            return { error: 'Yetkisiz erişim. Lütfen oturum açın.' }
+        }
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -489,7 +523,7 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
     }
 
     // 3. PARALLEL EXECUTION: Fetch Projects, Sales (Fast Sliced), Contracts & Activities simultaneously!
-    const [projectsRes, salesResult, allContracts, allActivities] = await Promise.all([
+    const [projectsRes, salesResult, allContracts, activitiesResult] = await Promise.all([
         supabase
             .from('projects')
             .select('id, name')
@@ -505,7 +539,13 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
             now
         }),
         fetchAllContracts(supabase, tenantId, selectedProjectId),
-        fetchAllActivities(supabase, tenantId, selectedProjectId)
+        fetchCeoActivities(supabase, {
+            tenantId,
+            selectedProjectId,
+            currentStart,
+            currentEnd,
+            now
+        })
     ])
 
     const projects: any[] = projectsRes.data || []
@@ -514,6 +554,8 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
     const exactCurrentLeadCount: number = salesResult.exactCurrentLeadCount
     const exactPrevLeadCount: number = salesResult.exactPrevLeadCount
     const monthlyLeadCounts: number[] = salesResult.monthlyLeadCounts
+    const todayActivities: any[] = activitiesResult.todayActivities || []
+    const periodActivities: any[] = activitiesResult.periodActivities || []
 
     // Helper to categorize sales status into standard pipeline stages
     const categorizeStatus = (status: string | null) => {
@@ -1006,12 +1048,12 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         contract: any
     }> = []
 
-    allContracts.forEach(c => {
+    allContracts.forEach((c: any) => {
         const val = Number(c.final_amount || c.total_amount || c.amount || 0)
         totalContractedValue += val
 
         const payments = (c.payments as any[]) || []
-        payments.forEach(p => {
+        payments.forEach((p: any) => {
             const pAmount = Number(p.amount || 0)
             const pPaid = Number(p.paid_amount || 0)
             const actualPaid = p.status === 'Paid' ? (pPaid > 0 ? pPaid : pAmount) : pPaid
@@ -1158,8 +1200,8 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
     let todayMeetings = 0
     let todayVisits = 0
 
-    allActivities.forEach(act => {
-        const isTodayAct = (act.due_date && isSameDayTurkey(act.due_date, now)) || (act.completed_at && isSameDayTurkey(act.completed_at, now))
+    todayActivities.forEach((act: any) => {
+        const isTodayAct = (act.due_date && isSameDayTurkey(act.due_date, now)) || (act.completed_at && isSameDayTurkey(act.completed_at, now)) || (act.created_at && isSameDayTurkey(act.created_at, now))
         if (isTodayAct) {
             todayTotal += 1
             if (act.status === 'Completed') todayCompleted += 1
@@ -1170,21 +1212,11 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         }
     })
 
-    // Period activities
-    const periodActivities = allActivities.filter(act => {
-        const d = act.due_date || act.created_at
-        if (!d) return false
-        const actDate = new Date(d)
-        if (currentStart && actDate < currentStart) return false
-        if (currentEnd && actDate > currentEnd) return false
-        return true
-    })
-
     const periodTotal = periodActivities.length
-    const periodCompleted = periodActivities.filter(a => a.status === 'Completed').length
-    const periodCalls = periodActivities.filter(a => ['call', 'phone'].includes((a.type || '').toLowerCase())).length
-    const periodMeetings = periodActivities.filter(a => ['meeting', 'officemeeting', 'onlinemeeting'].includes((a.type || '').toLowerCase())).length
-    const periodVisits = periodActivities.filter(a => ['visit', 'site visit', 'sitevisit'].includes((a.type || '').toLowerCase())).length
+    const periodCompleted = periodActivities.filter((a: any) => a.status === 'Completed').length
+    const periodCalls = periodActivities.filter((a: any) => ['call', 'phone'].includes((a.type || '').toLowerCase())).length
+    const periodMeetings = periodActivities.filter((a: any) => ['meeting', 'officemeeting', 'onlinemeeting'].includes((a.type || '').toLowerCase())).length
+    const periodVisits = periodActivities.filter((a: any) => ['visit', 'site visit', 'sitevisit'].includes((a.type || '').toLowerCase())).length
     const completionRate = periodTotal > 0 ? Math.round((periodCompleted / periodTotal) * 100) : 0
 
     // Rep activity matrix
@@ -1211,7 +1243,7 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         }
     })
 
-    periodActivities.forEach(act => {
+    periodActivities.forEach((act: any) => {
         const rId = act.owner_id || 'unassigned'
         const rName = (act.profiles as any)?.full_name || 'Atanmamış'
         if (!repActivityMap[rId]) {
@@ -1239,7 +1271,7 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
 
     // Neglected Hot Deals (High Value Deals in proposal/reservation with no activity in 5+ days)
     const customerLastActivityMap: Record<string, string> = {}
-    allActivities.forEach(a => {
+    periodActivities.forEach((a: any) => {
         if (a.customer_id) {
             const dateStr = a.completed_at || a.due_date || a.created_at
             if (dateStr) {
@@ -1249,6 +1281,37 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
             }
         }
     })
+
+    const hotSales = currentPeriodSales.filter((s: any) => {
+        const cat = categorizeStatus(s.status)
+        return ['proposal', 'reservation'].includes(cat)
+    })
+    const hotCustomerIds = Array.from(new Set(hotSales.map((s: any) => s.customer_id).filter(Boolean)))
+    const missingHotCustomerIds = hotCustomerIds.filter(cId => !customerLastActivityMap[cId])
+
+    if (missingHotCustomerIds.length > 0) {
+        try {
+            const { data: hotActs } = await supabase
+                .from('activities')
+                .select('customer_id, created_at, completed_at, due_date')
+                .in('customer_id', missingHotCustomerIds.slice(0, 50))
+                .order('created_at', { ascending: false })
+                .limit(100)
+
+            ;(hotActs || []).forEach((a: any) => {
+                if (a.customer_id) {
+                    const dateStr = a.completed_at || a.due_date || a.created_at
+                    if (dateStr) {
+                        if (!customerLastActivityMap[a.customer_id] || customerLastActivityMap[a.customer_id] < dateStr) {
+                            customerLastActivityMap[a.customer_id] = dateStr
+                        }
+                    }
+                }
+            })
+        } catch (err) {
+            console.error('CeoFunnel hot activities touch error:', err)
+        }
+    }
 
     const fiveDaysAgo = subDays(now, 5)
     const neglectedHotDeals = currentPeriodSales
@@ -1332,4 +1395,8 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
     })
 
     return finalResult
+    } catch (err: any) {
+        console.error('getCeoFunnelData fatal error:', err)
+        return { error: err?.message || 'Satış hunisi verileri yüklenirken bir hata oluştu.' }
+    }
 }
