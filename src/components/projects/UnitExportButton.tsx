@@ -9,42 +9,54 @@ import { toast } from 'sonner'
 interface UnitExportButtonProps {
     units: any[]
     projectName: string
+    isAdmin?: boolean
 }
 
-export function UnitExportButton({ units, projectName }: UnitExportButtonProps) {
+export function UnitExportButton({ units, projectName, isAdmin = false }: UnitExportButtonProps) {
     const handleExport = () => {
         if (!units || units.length === 0) {
             toast.info('Dışa aktarılacak ünite bulunamadı. Şablon indiriliyor.')
         }
         // Prepare data for export
-        const exportData = (units || []).map(unit => ({
-            'Ünite No': unit.unit_number || '',
-            'Ünite Türü': unit.unit_category || '',
-            'Oda Tipi': unit.type || '',
-            'Durum': unit.status === 'For Sale' ? 'Satılık' :
-                unit.status === 'Reserved' ? 'Rezerve' :
-                    unit.status === 'Sold' ? 'Satıldı' : unit.status,
-            'Fiyat': unit.price || 0,
-            'Para Birimi': unit.currency || 'TRY',
-            'Brüt m²': unit.area_gross || 0,
-            'Net m²': unit.area_net || 0,
-            'Kat': unit.floor || '',
-            'Blok': unit.block || '',
-            'Balkon m²': unit.balcony_area || 0,
-            'Teras m²': unit.terrace_area || 0,
-            'Bahçe m²': unit.garden_area || 0,
-            'Oda Sayısı': unit.rooms || 0,
-            'Banyo Sayısı': unit.bathrooms || 0,
-            'Yatak Odası': unit.bedrooms || 0,
-            'Otopark': unit.parking || 0,
-            'Depo': unit.storage || 0,
-            'Cephe': unit.facade_direction || '',
-            'Manzara': unit.view || '',
-        }))
+        const exportData = (units || []).map(unit => {
+            const row: Record<string, any> = {
+                'Ünite No': unit.unit_number || '',
+                'Ünite Türü': unit.unit_category || '',
+                'Oda Tipi': unit.type || '',
+                'Durum': unit.status === 'For Sale' ? 'Satılık' :
+                    unit.status === 'Reserved' ? 'Rezerve' :
+                        unit.status === 'Sold' ? 'Satıldı' : unit.status,
+                'Fiyat': unit.price || 0,
+            }
+
+            if (isAdmin) {
+                row['Daire Maliyeti'] = unit.cost || 0
+            }
+
+            row['Para Birimi'] = unit.currency || 'TRY'
+            row['Brüt m²'] = unit.area_gross || 0
+            row['Net m²'] = unit.area_net || 0
+            row['Kat'] = unit.floor || ''
+            row['Blok'] = unit.block || ''
+            row['Balkon m²'] = unit.balcony_area || 0
+            row['Teras m²'] = unit.terrace_area || 0
+            row['Bahçe m²'] = unit.garden_area || 0
+            row['Oda Sayısı'] = unit.rooms || 0
+            row['Banyo Sayısı'] = unit.bathrooms || unit.bathroom_count || 0
+            row['Yatak Odası'] = unit.bedrooms || 0
+            row['Otopark'] = unit.parking || unit.parking_type || ''
+            row['Depo'] = unit.storage || 0
+            row['Cephe'] = unit.direction || unit.facade_direction || ''
+            row['Manzara'] = unit.view || ''
+
+            return row
+        })
 
         // Define headers for template (especially important when data is empty)
         const headers = [
-            'Ünite No', 'Ünite Türü', 'Oda Tipi', 'Durum', 'Fiyat', 'Para Birimi',
+            'Ünite No', 'Ünite Türü', 'Oda Tipi', 'Durum', 'Fiyat',
+            ...(isAdmin ? ['Daire Maliyeti'] : []),
+            'Para Birimi',
             'Brüt m²', 'Net m²', 'Kat', 'Blok', 'Balkon m²', 'Teras m²', 'Bahçe m²',
             'Oda Sayısı', 'Banyo Sayısı', 'Yatak Odası', 'Otopark', 'Depo', 'Cephe', 'Manzara'
         ];

@@ -14,6 +14,7 @@ interface Unit {
     status: string
     type: string
     price: number
+    cost?: number | null
     currency: string
     area_gross: number | null
     area_net: number | null
@@ -28,6 +29,7 @@ type ColorMode = 'status' | 'heatmap'
 interface InventoryGridViewProps {
     units: Unit[]
     onUnitClick?: (unit: Unit) => void
+    isAdmin?: boolean
 }
 
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; label: string }> = {
@@ -45,7 +47,7 @@ const getStatusStyle = (status: string) => {
     return STATUS_COLORS[status] || { bg: 'bg-slate-300', border: 'border-slate-200', text: 'text-white', label: status }
 }
 
-export function InventoryGridView({ units, onUnitClick }: InventoryGridViewProps) {
+export function InventoryGridView({ units, onUnitClick, isAdmin = false }: InventoryGridViewProps) {
     const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null)
     const [selectedBlock, setSelectedBlock] = useState<string>('all')
     const [selectedProject, setSelectedProject] = useState<string>('all')
@@ -466,6 +468,29 @@ export function InventoryGridView({ units, onUnitClick }: InventoryGridViewProps
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fiyat</p>
                                 <p className="text-2xl font-black text-slate-900">{formatPrice(selectedUnit.price, selectedUnit.currency)}</p>
                             </div>
+
+                            {/* Admin Cost & Profit Box */}
+                            {isAdmin && selectedUnit.cost != null && (
+                                <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-amber-900 font-bold flex items-center gap-1">
+                                            🔒 Daire Maliyeti:
+                                        </span>
+                                        <span className="font-bold text-amber-950">
+                                            {formatPrice(selectedUnit.cost, selectedUnit.currency)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-200/60">
+                                        <span className="text-slate-600 font-medium">Tahmini Brüt Kâr:</span>
+                                        <span className={`font-black ${(selectedUnit.price - selectedUnit.cost) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                            {formatPrice(selectedUnit.price - selectedUnit.cost, selectedUnit.currency)} 
+                                            <span className="text-[10px] font-bold ml-1 text-slate-500">
+                                                (%{(((selectedUnit.price - selectedUnit.cost) / (selectedUnit.price || 1)) * 100).toFixed(1)})
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Details Grid */}
                             <div className="grid grid-cols-2 gap-3">

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Home, Ruler } from 'lucide-react'
+import { Home, Ruler, Lock, ShieldCheck } from 'lucide-react'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
 import { RoomAreasInput } from '@/components/room-areas-input'
 import { toast } from 'sonner'
@@ -34,11 +34,21 @@ interface FieldOptions {
     features?: string[]
 }
 
-export function UnitEditForm({ unit, disabled = false }: { unit: any; disabled?: boolean }) {
+export function UnitEditForm({ unit, disabled = false, isAdmin = false }: { unit: any; disabled?: boolean; isAdmin?: boolean }) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [selectedFeatures, setSelectedFeatures] = useState<string[]>(unit.features || [])
     const [fieldOptions, setFieldOptions] = useState<FieldOptions>({})
+    const [price, setPrice] = useState<number | ''>(unit.price ?? '')
+    const [cost, setCost] = useState<number | ''>(unit.cost ?? '')
+    const [currency, setCurrency] = useState<string>(unit.currency || 'TRY')
+
+    const profit = typeof price === 'number' && typeof cost === 'number'
+        ? price - cost
+        : null
+    const margin = typeof price === 'number' && typeof cost === 'number' && price > 0
+        ? ((price - cost) / price) * 100
+        : null
 
     // Fetch dynamic field options from settings
     useEffect(() => {
@@ -129,8 +139,21 @@ export function UnitEditForm({ unit, disabled = false }: { unit: any; disabled?:
                             <div className="space-y-2">
                                 <Label>Liste Fiyatı</Label>
                                 <div className="flex gap-2">
-                                    <Input name="price" type="number" defaultValue={unit.price} className="flex-1" disabled={disabled} />
-                                    <select name="currency" className="w-20 rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={unit.currency} disabled={disabled}>
+                                    <Input 
+                                        name="price" 
+                                        type="number" 
+                                        value={price}
+                                        onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                                        className="flex-1" 
+                                        disabled={disabled} 
+                                    />
+                                    <select 
+                                        name="currency" 
+                                        className="w-20 rounded-md border border-input bg-background px-3 py-2 text-sm" 
+                                        value={currency}
+                                        onChange={(e) => setCurrency(e.target.value)}
+                                        disabled={disabled}
+                                    >
                                         <option value="TRY">TRY</option>
                                         <option value="USD">USD</option>
                                         <option value="EUR">EUR</option>
@@ -147,6 +170,61 @@ export function UnitEditForm({ unit, disabled = false }: { unit: any; disabled?:
                             </div>
                         </CardContent>
                     </Card>
+
+                    {isAdmin && (
+                        <Card className="border-amber-200 bg-amber-50/30 overflow-hidden shadow-sm">
+                            <CardHeader className="p-3.5 bg-amber-100/60 border-b border-amber-200 flex flex-row items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                    <Lock className="w-3.5 h-3.5 text-amber-700" />
+                                    <CardTitle className="text-xs font-bold text-amber-950">Maliyet & Finansal Analiz</CardTitle>
+                                </div>
+                                <span className="text-[10px] font-bold bg-amber-600 text-white px-2 py-0.5 rounded-full">
+                                    Sadece Admin
+                                </span>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-4">
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center">
+                                        <Label className="text-xs font-bold text-slate-800">Daire Maliyeti</Label>
+                                        <span className="text-[10px] text-amber-700 font-medium">Özel Alan</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            name="cost" 
+                                            type="number" 
+                                            step="any"
+                                            value={cost}
+                                            onChange={(e) => setCost(e.target.value === '' ? '' : Number(e.target.value))}
+                                            placeholder="0.00" 
+                                            className="bg-white border-amber-300 focus-visible:ring-amber-500 font-semibold" 
+                                            disabled={disabled} 
+                                        />
+                                        <div className="w-16 flex items-center justify-center bg-amber-100 border border-amber-300 rounded-md text-xs font-bold text-amber-900">
+                                            {currency}
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground">Bu bilgi satış temsilcilerine ve müşterilere gösterilmez.</p>
+                                </div>
+
+                                {profit !== null && margin !== null && (
+                                    <div className="p-3 bg-white rounded-lg border border-amber-200 space-y-2 shadow-xs">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-slate-500 font-medium">Tahmini Brüt Kâr:</span>
+                                            <span className={`font-black ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                {profit.toLocaleString('tr-TR')} {currency}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-slate-500 font-medium">Kâr Marjı:</span>
+                                            <span className={`font-black px-1.5 py-0.5 rounded text-[11px] ${margin >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                                %{margin.toFixed(1)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 {/* Right Column: Details */}

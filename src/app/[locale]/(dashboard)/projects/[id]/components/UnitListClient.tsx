@@ -177,6 +177,7 @@ export function UnitListClient({ units, projectId, unitProgress, constructionSta
                         <TableHead className="w-[120px]">Oda Tipi</TableHead>
                         <TableHead className="w-[100px]">Durum</TableHead>
                         <TableHead className="w-[150px]">Fiyat</TableHead>
+                        {isAdmin && <TableHead className="w-[130px] text-amber-700">Maliyet 🔒</TableHead>}
                         <TableHead className="w-[100px]">Brüt m²</TableHead>
                         <TableHead className="w-[80px]">Kat</TableHead>
                         <TableHead className="w-[80px]">Blok</TableHead>
@@ -206,6 +207,11 @@ export function UnitListClient({ units, projectId, unitProgress, constructionSta
                                 <TableCell>
                                     {unit.price ? `${unit.price.toLocaleString('tr-TR')} ${unit.currency || 'TRY'}` : '-'}
                                 </TableCell>
+                                {isAdmin && (
+                                    <TableCell className="font-mono text-amber-700 font-semibold bg-amber-50/20">
+                                        {unit.cost ? `${unit.cost.toLocaleString('tr-TR')} ${unit.currency || 'TRY'}` : '-'}
+                                    </TableCell>
+                                )}
                                 <TableCell>{unit.area_gross ? `${unit.area_gross} m²` : '-'}</TableCell>
                                 <TableCell>{unit.floor || '-'}</TableCell>
                                 <TableCell>{unit.block || '-'}</TableCell>

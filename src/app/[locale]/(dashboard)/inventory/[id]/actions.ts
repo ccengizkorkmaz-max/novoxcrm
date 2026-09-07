@@ -23,7 +23,15 @@ export async function updateUnit(formData: FormData) {
         console.error('Failed to parse room_areas:', e)
     }
 
-    const updates = {
+    // Check if user is admin/owner to allow cost updates
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = user ? await supabase.from('profiles').select('role').eq('id', user.id).single() : { data: null }
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'super_admin'
+
+    const costRaw = formData.get('cost')
+    const cost = (isAdmin && costRaw !== null && costRaw !== '') ? Number(costRaw) : (costRaw === '' ? null : undefined)
+
+    const updates: Record<string, any> = {
         unit_number: formData.get('unit_number') as string,
         type: formData.get('type') as string,
         status: formData.get('status') as string,
@@ -56,6 +64,10 @@ export async function updateUnit(formData: FormData) {
         kitchen_type: formData.get('kitchen_type') as string,
         has_builtin_kitchen: formData.get('has_builtin_kitchen') === 'true',
         has_master_bathroom: formData.get('has_master_bathroom') === 'true'
+    }
+
+    if (cost !== undefined) {
+        updates.cost = cost
     }
 
     // Get old price for logging

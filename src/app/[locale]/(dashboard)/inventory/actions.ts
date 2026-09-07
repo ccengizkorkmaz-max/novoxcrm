@@ -20,23 +20,33 @@ export async function createUnit(formData: FormData) {
     const area_gross = formData.get('area_gross') as string
     const currency = formData.get('currency') as string || 'TRY'
 
-    // Get tenant_id from profile
-    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    // Get tenant_id and role from profile
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, role').eq('id', user.id).single()
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'super_admin'
+
+    const costRaw = formData.get('cost') as string
+    const cost = (isAdmin && costRaw) ? parseFloat(costRaw) : null
+
+    const insertData: Record<string, any> = {
+        tenant_id: profile?.tenant_id,
+        project_id,
+        unit_number,
+        type,
+        price: parseFloat(price),
+        currency,
+        floor: parseInt(floor),
+        direction,
+        area_gross: parseFloat(area_gross),
+        status: 'For Sale' // default
+    }
+
+    if (cost !== null && !isNaN(cost)) {
+        insertData.cost = cost
+    }
 
     const { error } = await supabase
         .from('units')
-        .insert({
-            tenant_id: profile?.tenant_id,
-            project_id,
-            unit_number,
-            type,
-            price: parseFloat(price),
-            currency,
-            floor: parseInt(floor),
-            direction,
-            area_gross: parseFloat(area_gross),
-            status: 'For Sale' // default
-        })
+        .insert(insertData)
 
     if (error) {
         console.error(error)

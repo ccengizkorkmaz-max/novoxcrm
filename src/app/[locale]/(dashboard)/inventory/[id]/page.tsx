@@ -33,6 +33,7 @@ export default async function UnitDetailPage(props: {
     const { data: { user } } = await supabase.auth.getUser()
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
     const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'super_admin'
 
     // Fetch unit with project name
     const { data: unit } = await supabase
@@ -161,9 +162,18 @@ export default async function UnitDetailPage(props: {
             </div>
 
             {/* QUICK STATS */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className={`grid grid-cols-2 ${isAdmin && unit.cost ? 'lg:grid-cols-6' : 'lg:grid-cols-4'} gap-4`}>
                 {[
                     { label: 'Fiyat', value: formatCurrency(unit.price, unit.currency), sub: unit.currency, color: 'text-blue-600' },
+                    ...(isAdmin && unit.cost ? [
+                        { label: 'Maliyet (Özel)', value: formatCurrency(unit.cost, unit.currency), sub: 'Maliyet Tutarı', color: 'text-amber-600' },
+                        { 
+                            label: 'Tahmini Kâr', 
+                            value: formatCurrency(unit.price - unit.cost, unit.currency), 
+                            sub: `%${(((unit.price - unit.cost) / (unit.price || 1)) * 100).toFixed(1)} Marj`, 
+                            color: (unit.price - unit.cost) >= 0 ? 'text-emerald-600' : 'text-rose-600' 
+                        }
+                    ] : []),
                     { label: 'Birim Fiyat', value: pricePerM2 ? formatCurrency(pricePerM2, unit.currency) : '-', sub: 'm² başı', color: 'text-slate-600' },
                     { label: 'Brüt / Net', value: `${unit.area_gross || '-'} / ${unit.area_net || '-'}`, sub: 'm²', color: 'text-emerald-600' },
                     { label: 'Pazarda', value: `${daysOnMarket} Gün`, sub: 'Aktif Süre', color: 'text-amber-600' },
@@ -185,7 +195,7 @@ export default async function UnitDetailPage(props: {
                             <Info className="h-4 w-4 text-blue-500" />
                             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-tight">Ünite Detayları & Özellikler</h3>
                         </div>
-                        <UnitEditForm unit={unit} disabled={isSold || !isManager} />
+                        <UnitEditForm unit={unit} disabled={isSold || !isManager} isAdmin={isAdmin} />
                     </Card>
 
                     {isSold && (

@@ -502,7 +502,7 @@ export default async function ProjectDetailPage(props: {
                                         <ExcelImport projectId={project.id} onImport={importUnitsFromExcel} />
                                     </>
                                 )}
-                                <UnitExportButton units={units || []} projectName={project.name} />
+                                <UnitExportButton units={units || []} projectName={project.name} isAdmin={isAdmin} />
                             </div>
                         </CardHeader>
                         <CardContent>

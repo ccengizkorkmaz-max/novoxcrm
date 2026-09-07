@@ -27,9 +27,10 @@ interface Project {
 interface NewUnitDialogProps {
     projects: Project[]
     unitTypes?: any[]
+    isAdmin?: boolean
 }
 
-export function NewUnitDialog({ projects, unitTypes }: NewUnitDialogProps) {
+export function NewUnitDialog({ projects, unitTypes, isAdmin = false }: NewUnitDialogProps) {
     const t = useTranslations('Inventory.newUnit')
     const tGlobal = useTranslations('Inventory')
     const [open, setOpen] = useState(false)
@@ -99,6 +100,15 @@ export function NewUnitDialog({ projects, unitTypes }: NewUnitDialogProps) {
                             <Label className="text-right">{t('form.price')}</Label>
                             <Input name="price" type="number" className="col-span-3" required />
                         </div>
+                        {isAdmin && (
+                            <div className="grid grid-cols-4 items-center gap-4 bg-amber-50/50 p-2 rounded-lg border border-amber-200">
+                                <Label className="text-right text-xs font-bold text-amber-900">Maliyet</Label>
+                                <div className="col-span-3">
+                                    <Input name="cost" type="number" step="any" placeholder="Daire Maliyeti (Örn: 2000000)" className="bg-white border-amber-300" />
+                                    <span className="text-[10px] text-amber-700">🔒 Sadece yöneticilere görünür</span>
+                                </div>
+                            </div>
+                        )}
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label className="text-right">{t('form.floor')}</Label>
                             <Input name="floor" type="number" className="col-span-3" required />

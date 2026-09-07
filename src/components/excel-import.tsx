@@ -40,6 +40,7 @@ const CRM_FIELDS = [
     { key: 'block', label: 'Blok', required: false, aliases: ['blok', 'block', 'blok adı', 'blok_adi'] },
     { key: 'floor', label: 'Kat', required: false, aliases: ['kat', 'floor', 'kat no', 'bulunduğu kat', 'kat_no'] },
     { key: 'price', label: 'Fiyat', required: false, aliases: ['fiyat', 'price', 'tutar', 'satış fiyatı', 'satis fiyati', 'birim fiyatı'] },
+    { key: 'cost', label: 'Daire Maliyeti (Admin)', required: false, aliases: ['maliyet', 'cost', 'daire maliyeti', 'ünite maliyeti', 'maliyet tutarı', 'maliyet bedeli'] },
     { key: 'currency', label: 'Para Birimi', required: false, aliases: ['para birimi', 'currency', 'döviz', 'doviz', 'birim'] },
     { key: 'area_gross', label: 'Brüt Alan (m²)', required: false, aliases: ['brüt m²', 'brüt alan', 'brut alan', 'brüt', 'brut', 'area_gross', 'gross_area', 'brüt alan (m²)', 'brüt m2'] },
     { key: 'area_net', label: 'Net Alan (m²)', required: false, aliases: ['net m²', 'net alan', 'net', 'area_net', 'net_area', 'net alan (m²)', 'net m2'] },

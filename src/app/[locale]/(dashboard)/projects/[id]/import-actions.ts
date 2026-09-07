@@ -90,6 +90,16 @@ export async function importUnitsFromExcel(formData: FormData) {
                             unit.price = parseFloat(String(value).replace(/\./g, '').replace(',', '.')) || 0
                         }
                         break
+                    case 'cost':
+                    case 'maliyet':
+                    case 'daire maliyeti':
+                    case 'ünite maliyeti':
+                        if (typeof value === 'number') {
+                            unit.cost = value
+                        } else {
+                            unit.cost = parseFloat(String(value).replace(/\./g, '').replace(',', '.')) || null
+                        }
+                        break
                     case 'currency':
                     case 'para birimi':
                         unit.currency = String(value)
@@ -212,6 +222,7 @@ export async function importUnitsMapped(projectId: string, units: any[]) {
             block: u.block ? String(u.block).trim() : null,
             floor: parseInteger(u.floor),
             price: price,
+            cost: parseNumber(u.cost),
             currency: u.currency ? String(u.currency).trim() : 'TRY',
             area_gross: parseNumber(u.area_gross),
             area_net: parseNumber(u.area_net),

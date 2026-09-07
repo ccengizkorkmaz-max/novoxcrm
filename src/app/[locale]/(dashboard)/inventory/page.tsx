@@ -157,6 +157,7 @@ export default async function InventoryPage(props: {
     let units: any[] = []
     let user: any = null
     let isManager = false
+    let isAdmin = false
 
     try {
         t = await getTranslations('Inventory')
@@ -191,6 +192,7 @@ export default async function InventoryPage(props: {
         if (user?.id) {
             const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
             isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
+            isAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'super_admin'
         }
     } catch (error: any) {
         console.error('[INVENTORY PAGE ERROR]', error?.message || error)
@@ -342,7 +344,7 @@ export default async function InventoryPage(props: {
                     <PublicLinkCreator units={units || []} />
                     <InventoryPdfExport units={units || []} />
                     {isManager && <InventoryExport projects={projects || []} />}
-                    {isManager && <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />}
+                    {isManager && <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} isAdmin={isAdmin} />}
                 </div>
             </div>
 
@@ -394,6 +396,9 @@ export default async function InventoryPage(props: {
                                     <SortableHeader column="area_gross" label={t('table.grossArea')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
                                     <SortableHeader column="area_net" label={t('table.netArea')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
                                     <SortableHeader column="price" label={t('table.price')} currentSort={sortBy} currentOrder={sortOrder} params={params} className="font-bold" />
+                                    {isAdmin && (
+                                        <SortableHeader column="cost" label="Maliyet 🔒" currentSort={sortBy} currentOrder={sortOrder} params={params} className="text-amber-700 bg-amber-50/50" />
+                                    )}
 
                                     <TableHead>{t('table.vat')}</TableHead>
                                     <TableHead>{t('table.discount')}</TableHead>
@@ -436,6 +441,11 @@ export default async function InventoryPage(props: {
                                             <TableCell className="font-mono">{unit.area_gross || '-'}</TableCell>
                                             <TableCell className="font-mono">{unit.area_net || '-'}</TableCell>
                                             <TableCell className="font-bold text-slate-900">{formatCurrency(unit.price, unit.currency)}</TableCell>
+                                            {isAdmin && (
+                                                <TableCell className="font-mono text-amber-700 font-semibold bg-amber-50/30">
+                                                    {unit.cost ? formatCurrency(unit.cost, unit.currency) : '-'}
+                                                </TableCell>
+                                            )}
                                             <TableCell>{unit.kdv_rate ? `%${unit.kdv_rate}` : '-'}</TableCell>
                                             <TableCell>{unit.max_discount_rate ? `%${unit.max_discount_rate}` : '-'}</TableCell>
                                             <TableCell>{unit.parking_type ? t(`parking.${parkingMap[unit.parking_type] || unit.parking_type}`) : '-'}</TableCell>
@@ -449,7 +459,7 @@ export default async function InventoryPage(props: {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={22} className="h-32 text-center text-muted-foreground">
+                                        <TableCell colSpan={isAdmin ? 23 : 22} className="h-32 text-center text-muted-foreground">
                                             {t('table.empty')}
                                         </TableCell>
                                     </TableRow>
@@ -477,7 +487,7 @@ export default async function InventoryPage(props: {
                     <ActiveFilters />
 
                     <div className="flex-1 overflow-auto pr-2">
-                        <InventoryGridView units={units || []} />
+                        <InventoryGridView units={units || []} isAdmin={isAdmin} />
                     </div>
                 </TabsContent>
 
