@@ -202,6 +202,51 @@ export async function toggleDocumentShareable(documentId: string, projectId: str
     return { success: true }
 }
 
+export async function updateDocument(documentId: string, projectId: string, data: {
+    documentName: string
+    description?: string
+    category: string
+    permissions?: string
+    isCustomerShareable: boolean
+    fileUrl?: string
+    fileName?: string
+    fileType?: string
+    fileSize?: number
+}) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const updatePayload: any = {
+        document_name: data.documentName,
+        description: data.description || '',
+        category: data.category,
+        permissions: data.isCustomerShareable ? (data.permissions || 'public') : 'internal',
+        is_customer_shareable: data.isCustomerShareable,
+    }
+
+    if (data.fileUrl) {
+        updatePayload.file_url = data.fileUrl
+        if (data.fileName) updatePayload.file_name = data.fileName
+        if (data.fileType) updatePayload.file_type = data.fileType
+        if (data.fileSize) updatePayload.file_size = data.fileSize
+    }
+
+    const { error } = await supabase
+        .from('project_documents')
+        .update(updatePayload)
+        .eq('id', documentId)
+
+    if (error) {
+        console.error('updateDocument error:', error)
+        return { error: 'Doküman güncellenemedi' }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}
+
 // ========================
 // Construction Site Photos
 // ========================
