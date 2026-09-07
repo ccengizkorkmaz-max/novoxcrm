@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatCurrency, cn } from '@/lib/utils'
@@ -15,8 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, CalendarCheck, CheckCircle2, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle, Share2, MessageCircle } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, PhoneCall, Flame, MessageSquareText, CalendarPlus, CalendarCheck, CheckCircle2, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle, Share2, MessageCircle } from 'lucide-react'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
@@ -157,6 +157,45 @@ const getLeadSourceBadge = (sale: any) => {
     }
 
     return { src, srcLabel, srcColor }
+}
+
+export const isCallRequested = (sale: any): boolean => {
+    // 1. lead_qualifications interest level / status
+    const lqs = sale.customers?.lead_qualifications
+    if (Array.isArray(lqs) && lqs.length > 0) {
+        const lvl = (lqs[0]?.interest_level || lqs[0]?.status || '').toLowerCase()
+        if (lvl === 'call_requested' || lvl.includes('arama')) return true
+    }
+
+    // 2. description or notes or campaign info
+    const desc = (sale.description || '').toLowerCase()
+    const notes = (sale.notes || '').toLowerCase()
+    const btnText = (sale.campaign_info?.buttonText || '').toLowerCase()
+    if (
+        desc.includes('beni arayın') || 
+        desc.includes('beni arayin') || 
+        desc.includes('arama talebi') || 
+        desc.includes('call_requested') || 
+        notes.includes('beni arayın') || 
+        notes.includes('beni arayin') ||
+        btnText.includes('beni arayın') ||
+        btnText.includes('beni arayin') ||
+        btnText.includes('evet arayın')
+    ) {
+        return true
+    }
+
+    return false
+}
+
+export const isPendingCall = (sale: any): boolean => {
+    if (!isCallRequested(sale)) return false
+    // Eğer ilk temas henüz girilmediyse veya tekrar aranacaksa acil çağrı statüsündedir
+    const fc = sale.first_contact
+    if (!fc || fc === 'none' || fc === 'Tekrar Aranacak') {
+        return true
+    }
+    return false
 }
 
 export default function PipelineList({
@@ -836,6 +875,28 @@ export default function PipelineList({
         return true
     })
 
+    // "Beni Arayın" diyen ve henüz ilk temas girilmemiş sıcak leadler
+    const pendingCallSales = useMemo(() => {
+        return sales.filter(isPendingCall)
+    }, [sales])
+
+    // Öncelikli Sıralama: 1. Arama Bekleyenler, 2. Okunmamış WhatsApp Mesajı Olanlar, 3. Normal Sıralama
+    const sortedSales = useMemo(() => {
+        return [...currentSales].sort((a, b) => {
+            const aPending = isPendingCall(a)
+            const bPending = isPendingCall(b)
+            if (aPending && !bPending) return -1
+            if (!aPending && bPending) return 1
+
+            const aUnread = Boolean(unreadWpMap[a.customer_id]?.count)
+            const bUnread = Boolean(unreadWpMap[b.customer_id]?.count)
+            if (aUnread && !bUnread) return -1
+            if (!aUnread && bUnread) return 1
+
+            return 0
+        })
+    }, [currentSales, unreadWpMap])
+
     const handlePageChange = (newPage: number) => {
         const params = new URLSearchParams(searchParams.toString())
         params.set('page', newPage.toString())
@@ -870,6 +931,99 @@ export default function PipelineList({
 
     return (
         <div className="space-y-4">
+            {/* 🚨 Acil Arama Bekleyen Leadler (Beni Arayın Diyenler) */}
+            {pendingCallSales.length > 0 && (
+                <div className="p-4 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-orange-500/10 dark:from-amber-950/40 dark:via-rose-950/40 dark:to-orange-950/40 border border-amber-300/80 dark:border-amber-700/60 rounded-2xl shadow-xs space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2.5">
+                            <span className="relative flex h-3.5 w-3.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-600"></span>
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
+                                    <PhoneCall className="w-4 h-4 text-rose-600 dark:text-rose-400 animate-bounce" />
+                                    Acil Arama Bekleyen Müşteriler ({pendingCallSales.length})
+                                </span>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                                    🔥 Sıcak Lead
+                                </span>
+                            </div>
+                        </div>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            WhatsApp üzerinden "Beni Arayın" diyen leadler — İlk 15 dakikada arayarak dönüşümü artırın
+                        </span>
+                    </div>
+
+                    {/* Quick Call Action Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+                        {pendingCallSales.slice(0, 4).map((sale: any) => {
+                            const customerName = sale.customers?.full_name || 'Bilinmeyen Müşteri'
+                            const phone = sale.customers?.phone
+                            const projectName = sale.units?.projects?.name || sale.projects?.name || ''
+                            const unitNo = sale.units?.unit_number ? `No: ${sale.units.unit_number}` : ''
+
+                            return (
+                                <div key={sale.id} className="p-3 bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-800/80 rounded-xl shadow-xs flex flex-col justify-between gap-2.5 hover:shadow-md transition-all">
+                                    <div className="space-y-0.5">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate max-w-[150px]">
+                                                {customerName}
+                                            </span>
+                                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 uppercase">
+                                                Arama Talep Etti
+                                            </span>
+                                        </div>
+                                        {(projectName || unitNo) && (
+                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                                                {projectName} {unitNo}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+                                        {phone ? (
+                                            <a
+                                                href={`tel:${phone}`}
+                                                className="flex-1 h-7 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center justify-center gap-1 shadow-xs transition-colors"
+                                                title="Telefonla Ara"
+                                            >
+                                                <Phone className="w-3 h-3" /> Ara
+                                            </a>
+                                        ) : null}
+
+                                        {phone ? (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    const cleanPhone = phone.replace(/\D/g, '')
+                                                    window.open(`https://wa.me/${cleanPhone}`, '_blank')
+                                                }}
+                                                className="h-7 px-2 text-[11px] font-bold text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
+                                                title="WhatsApp Sohbeti Aç"
+                                            >
+                                                <MessageCircle className="w-3 h-3" />
+                                            </Button>
+                                        ) : null}
+
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => openQuickNote(sale.id, sale.customer_id, sale.description)}
+                                            className="h-7 px-2 text-[10px] font-bold text-blue-600 hover:bg-blue-50 dark:text-blue-400"
+                                            title="İlk Temas Sonucu / Hızlı Not Gir"
+                                        >
+                                            Not Gir
+                                        </Button>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* WhatsApp Yanıt Bekleyenler Hızlı Filtre Barı */}
             {(unreadWpCount > 0 || isUnansweredWpFilter) && (
                 <div className="flex items-center justify-between px-3.5 py-2 bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl shadow-xs transition-all">
@@ -1016,8 +1170,8 @@ export default function PipelineList({
                             </thead>
                         )}
                         <TableBody>
-                            {currentSales && currentSales.length > 0 ? (
-                                currentSales.map((sale: any) => {
+                            {sortedSales && sortedSales.length > 0 ? (
+                                sortedSales.map((sale: any) => {
                                     const isCompleted = sale.status === 'Completed' || sale.status === 'Sold'
                                     const isLost = sale.status === 'Lost'
 
@@ -1071,16 +1225,19 @@ export default function PipelineList({
                                     const activeAppointment = activitiesState.find(a => a.customer_id === sale.customer_id && (a.status === 'Planned' || a.status === 'Pending'))
                                     const unreadWp = sale.customer_id ? unreadWpMap[sale.customer_id] : null
                                     const hasUnreadWp = Boolean(unreadWp && unreadWp.count > 0)
+                                    const callRequested = isPendingCall(sale)
 
                                     return (
                                         <TableRow
                                             key={sale.id}
                                             className={`transition-all border-b ${
-                                                hasUnreadWp
-                                                    ? 'bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100/80 border-l-4 border-l-rose-500 font-medium'
-                                                    : activeAppointment
-                                                        ? 'bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100/90 border-l-4 border-l-emerald-500 font-medium'
-                                                        : isCompleted ? 'bg-emerald-50/30 hover:bg-emerald-50/50' : isLost ? 'bg-red-50/20 hover:bg-red-50/40' : 'hover:bg-slate-50/80'
+                                                callRequested
+                                                    ? 'bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100/90 border-l-4 border-l-amber-500 font-semibold shadow-2xs'
+                                                    : hasUnreadWp
+                                                        ? 'bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100/80 border-l-4 border-l-rose-500 font-medium'
+                                                        : activeAppointment
+                                                            ? 'bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100/90 border-l-4 border-l-emerald-500 font-medium'
+                                                            : isCompleted ? 'bg-emerald-50/30 hover:bg-emerald-50/50' : isLost ? 'bg-red-50/20 hover:bg-red-50/40' : 'hover:bg-slate-50/80'
                                             }`}
                                         >
                                             {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')) && !hiddenCols.includes(colId)).map(colId => {
@@ -1088,7 +1245,7 @@ export default function PipelineList({
                                                 if (colId === 'customer') return (
                                                     <TableCell key="customer" className={cellCls}>
                                                         <div className="flex flex-col gap-0.5">
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-2 flex-wrap">
                                                                 {isAdvanceMode ? (
                                                                     <Link href={`/customers/${sale.customers?.id}`} className="font-semibold text-foreground text-xs hover:text-blue-600 hover:underline transition-colors text-left">
                                                                         {sale.customers?.full_name}
@@ -1097,6 +1254,11 @@ export default function PipelineList({
                                                                     <button type="button" onClick={() => handleOpenCustomerProfile(sale.customers)} className="font-semibold text-foreground text-xs hover:text-blue-600 hover:underline transition-colors text-left">
                                                                         {sale.customers?.full_name}
                                                                     </button>
+                                                                )}
+                                                                {callRequested && (
+                                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-2xs animate-pulse tracking-tight flex-shrink-0" title="Müşteri WhatsApp üzerinden 'Beni Arayın' dedi">
+                                                                        <PhoneCall className="h-2.5 w-2.5" /> ARAMA BEKLİYOR
+                                                                    </span>
                                                                 )}
                                                                 {sale.wa_first_message_sent && (
                                                                     <span title={`WP gönderildi${sale.wa_first_message_at ? ' · ' + new Date(sale.wa_first_message_at).toLocaleString('tr-TR') : ''}`} className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-green-100 text-green-600 flex-shrink-0">
@@ -1736,10 +1898,11 @@ export default function PipelineList({
 
             {/* Mobile Card View */}
             <div className="flex flex-col gap-4 md:hidden">
-                {currentSales && currentSales.length > 0 ? (
-                    currentSales.map((sale: any) => {
+                {sortedSales && sortedSales.length > 0 ? (
+                    sortedSales.map((sale: any) => {
                         const isCompleted = sale.status === 'Completed' || sale.status === 'Sold'
                         const isLost = sale.status === 'Lost'
+                        const callRequested = isPendingCall(sale)
 
                         const getStatusColor = (status: string) => {
                             switch (status) {
@@ -1763,13 +1926,14 @@ export default function PipelineList({
                         return (
                             <div key={sale.id} className={cn(
                                 "rounded-xl border bg-card p-4 shadow-sm space-y-3 relative overflow-hidden",
-                                hasUnreadWp && "border-rose-400 bg-rose-50/40 ring-1 ring-rose-400",
-                                isCompleted && "border-emerald-200 bg-emerald-50/20",
-                                isLost && "border-red-100 bg-red-50/10"
+                                callRequested && "border-amber-400 bg-amber-50/70 dark:bg-amber-950/30 ring-2 ring-amber-400 shadow-md",
+                                !callRequested && hasUnreadWp && "border-rose-400 bg-rose-50/40 ring-1 ring-rose-400",
+                                !callRequested && isCompleted && "border-emerald-200 bg-emerald-50/20",
+                                !callRequested && isLost && "border-red-100 bg-red-50/10"
                             )}>
                                 <div className="flex justify-between items-start">
                                     <div className="flex flex-col">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                             {isAdvanceMode ? (
                                                 <Link
                                                     href={`/customers/${sale.customers?.id}`}
@@ -1785,6 +1949,11 @@ export default function PipelineList({
                                                 >
                                                     {sale.customers?.full_name}
                                                 </button>
+                                            )}
+                                            {callRequested && (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-sm animate-pulse tracking-tight flex-shrink-0">
+                                                    <PhoneCall className="h-2.5 w-2.5" /> ARAMA BEKLİYOR
+                                                </span>
                                             )}
                                             {sale.customers?.lead_qualifications?.[0] && (
                                                 <AiSignalBadge 
