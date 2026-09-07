@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -70,9 +70,30 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
     const [meetingType, setMeetingType] = useState<string>('project_presentation')
     const [scheduledDate, setScheduledDate] = useState('')
     const [scheduledTime, setScheduledTime] = useState('10:00')
+    // Sadece aktif ve dış broker olmayan iç temsilcileri filtrele
+    const activeInternalProfiles = useMemo(() => {
+        return (profiles || []).filter(p => 
+            p.role !== 'broker' && 
+            p.is_external !== true && 
+            p.is_active !== false &&
+            Boolean(p.full_name?.trim())
+        )
+    }, [profiles])
+
     const [projectId, setProjectId] = useState('')
-    const [hostUserId, setHostUserId] = useState(currentUserId)
+    const [hostUserId, setHostUserId] = useState(() => {
+        const found = activeInternalProfiles.find(p => p.id === currentUserId)
+        return found ? currentUserId : (activeInternalProfiles[0]?.id || currentUserId)
+    })
     const [sendWa, setSendWa] = useState(true)
+
+    // Ensure selected host is valid if profiles change
+    useEffect(() => {
+        if (activeInternalProfiles.length > 0 && !activeInternalProfiles.some(p => p.id === hostUserId)) {
+            const hasCurrentUser = activeInternalProfiles.some(p => p.id === currentUserId)
+            setHostUserId(hasCurrentUser ? currentUserId : activeInternalProfiles[0].id)
+        }
+    }, [activeInternalProfiles, currentUserId, hostUserId])
 
     // Customer search
     const [customerSearch, setCustomerSearch] = useState('')
@@ -377,11 +398,11 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                                 </Select>
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs">Danışman</Label>
+                                <Label className="text-xs">Danışman / Temsilci</Label>
                                 <Select value={hostUserId} onValueChange={setHostUserId}>
-                                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                    <SelectTrigger className="h-9"><SelectValue placeholder="Temsilci seçin..." /></SelectTrigger>
                                     <SelectContent>
-                                        {profiles.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
+                                        {activeInternalProfiles.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
