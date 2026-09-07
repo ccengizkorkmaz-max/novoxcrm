@@ -44,7 +44,14 @@ import {
     Radio,
     Coins,
     Sliders,
-    HelpCircle
+    HelpCircle,
+    CreditCard,
+    PhoneCall,
+    CalendarClock,
+    AlertTriangle,
+    FileText,
+    Check,
+    ShieldCheck
 } from 'lucide-react'
 import {
     ResponsiveContainer,
@@ -118,24 +125,15 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
         })
     }
 
-    // Supabase Realtime Subscription on 'sales'
+    // Supabase Realtime Subscription on sales, contracts, payment_plans & activities
     useEffect(() => {
         const supabase = createClient()
         const channel = supabase
-            .channel('ceo-funnel-sales-realtime')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'sales'
-                },
-                (payload) => {
-                    console.log('⚡ CEO Funnel Realtime Event received on sales:', payload)
-                    // Trigger silent refresh
-                    reloadData(period, projectId, true)
-                }
-            )
+            .channel('ceo-funnel-hub-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => reloadData(period, projectId, true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, () => reloadData(period, projectId, true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_plans' }, () => reloadData(period, projectId, true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, () => reloadData(period, projectId, true))
             .subscribe()
 
         return () => {
@@ -182,8 +180,45 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
         sourceBreakdown,
         topWhaleDeals,
         stagnantDeals,
-        projects
+        projects,
+        contractCashflow,
+        salesActivities
     } = data
+
+    const cashflow = contractCashflow || {
+        totalContractsCount: 0,
+        totalContractedValue: 0,
+        totalCollectedCash: 0,
+        totalRemainingReceivables: 0,
+        collectionProgress: 0,
+        thisMonthDue: 0,
+        thisMonthCollected: 0,
+        thisMonthPending: 0,
+        thisMonthCollectionRate: 0,
+        overdueReceivables: 0,
+        overdueCount: 0,
+        forwardCashflow: [],
+        upcomingInstallments: [],
+        topOverdueInstallments: []
+    }
+
+    const activities = salesActivities || {
+        todayTotal: 0,
+        todayCompleted: 0,
+        todayCalls: 0,
+        todayMeetings: 0,
+        todayVisits: 0,
+        periodTotal: 0,
+        periodCompleted: 0,
+        periodCalls: 0,
+        periodMeetings: 0,
+        periodVisits: 0,
+        completionRate: 0,
+        conversionLeadToMeeting: 0,
+        conversionMeetingToWon: 0,
+        repEfforts: [],
+        neglectedHotDeals: []
+    }
 
     const periodLabels: Record<PeriodType, string> = {
         this_month: 'Bu Ay',
@@ -360,6 +395,61 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                         <p className="text-[11px] text-slate-400 leading-relaxed">
                             Opsiyonların %95&apos;i, tekliflerin %80&apos;i ve sunumların %50&apos;sinin satışa dönmesi durumundaki ciro potansiyeli.
                         </p>
+                    </div>
+                </div>
+
+                {/* Executive Cashflow & Operations Pulse Sub-Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-indigo-500/20 text-xs">
+                    <div 
+                        onClick={() => setActiveTab('cashflow')}
+                        className="bg-white/5 hover:bg-white/10 p-3 rounded-xl border border-white/10 flex items-center justify-between cursor-pointer transition-colors group"
+                    >
+                        <div>
+                            <div className="text-[10px] font-bold text-indigo-300 uppercase">Sözleşmeli Portföy</div>
+                            <div className="text-base font-black text-white">{formatCurrency(cashflow.totalContractedValue)}</div>
+                            <div className="text-[10px] text-emerald-400 font-bold">✓ %{cashflow.collectionProgress} tahsil edildi</div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
+                    </div>
+
+                    <div 
+                        onClick={() => setActiveTab('cashflow')}
+                        className="bg-white/5 hover:bg-white/10 p-3 rounded-xl border border-white/10 flex items-center justify-between cursor-pointer transition-colors group"
+                    >
+                        <div>
+                            <div className="text-[10px] font-bold text-indigo-300 uppercase">Bu Ay Tahsilat Hedefi</div>
+                            <div className="text-base font-black text-amber-300">{formatCurrency(cashflow.thisMonthDue)}</div>
+                            <div className="text-[10px] text-indigo-200">{formatCurrency(cashflow.thisMonthCollected)} kasada</div>
+                        </div>
+                        <CalendarClock className="h-4 w-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                    </div>
+
+                    <div 
+                        onClick={() => setActiveTab('cashflow')}
+                        className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-colors group ${
+                            cashflow.overdueReceivables > 0 ? 'bg-rose-500/20 border-rose-500/40 hover:bg-rose-500/30' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                    >
+                        <div>
+                            <div className="text-[10px] font-bold text-rose-300 uppercase">Gecikmiş Alacak Riski</div>
+                            <div className="text-base font-black text-rose-200">{formatCurrency(cashflow.overdueReceivables)}</div>
+                            <div className="text-[10px] text-rose-300 font-bold">
+                                {cashflow.overdueCount > 0 ? `${cashflow.overdueCount} gecikmiş taksit` : 'Risk yok'}
+                            </div>
+                        </div>
+                        <AlertTriangle className="h-4 w-4 text-rose-400 group-hover:scale-110 transition-transform" />
+                    </div>
+
+                    <div 
+                        onClick={() => setActiveTab('activities')}
+                        className="bg-white/5 hover:bg-white/10 p-3 rounded-xl border border-white/10 flex items-center justify-between cursor-pointer transition-colors group"
+                    >
+                        <div>
+                            <div className="text-[10px] font-bold text-indigo-300 uppercase">Bugünkü Ekip Eforu</div>
+                            <div className="text-base font-black text-emerald-300">{activities.todayTotal} Temas</div>
+                            <div className="text-[10px] text-indigo-200">{activities.todayMeetings} randevu • {activities.todayCalls} arama</div>
+                        </div>
+                        <PhoneCall className="h-4 w-4 text-emerald-400 group-hover:scale-110 transition-transform" />
                     </div>
                 </div>
             </div>
@@ -665,6 +755,19 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                             <Coins className="h-4 w-4" />
                             Gelir Projeksiyonu & Kapora
                         </TabsTrigger>
+                        <TabsTrigger value="cashflow" className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm">
+                            <CreditCard className="h-4 w-4 text-emerald-600" />
+                            Sözleşmeli Nakit Akışı & Taksitler
+                            {cashflow.overdueCount > 0 && (
+                                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-100 text-rose-700">
+                                    {cashflow.overdueCount} Risk
+                                </span>
+                            )}
+                        </TabsTrigger>
+                        <TabsTrigger value="activities" className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm">
+                            <PhoneCall className="h-4 w-4 text-blue-600" />
+                            Satış Aktiviteleri & Ekip Nabzı ({activities.periodTotal})
+                        </TabsTrigger>
                         <TabsTrigger value="whales" className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">
                             <Flame className="h-4 w-4 text-amber-500" />
                             Büyük Fırsatlar Radarı ({topWhaleDeals?.length || 0})
@@ -809,6 +912,439 @@ export default function CeoFunnelDashboard({ initialData }: CeoFunnelDashboardPr
                                                 </td>
                                             </tr>
                                         </tfoot>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+
+                {/* TAB: SÖZLEŞMELİ NAKİT AKIŞI & VADELİ TAHSİLAT PROJEKSİYONU */}
+                <TabsContent value="cashflow" className="space-y-6 mt-0">
+                    {/* Top 4 Cashflow Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* 1. Toplam Sözleşmeli Satış Hacmi */}
+                        <Card className="rounded-3xl border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+                            <CardContent className="p-5 space-y-2">
+                                <div className="flex items-center justify-between text-slate-500">
+                                    <span className="text-xs font-bold uppercase tracking-wider">Sözleşmeli Portföy</span>
+                                    <div className="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                        <FileText className="h-4 w-4" />
+                                    </div>
+                                </div>
+                                <div className="text-2xl font-black text-slate-900 tracking-tight">
+                                    {formatCurrency(cashflow.totalContractedValue)}
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-slate-500 font-medium pt-1">
+                                    <span>{cashflow.totalContractsCount} adet sözleşme</span>
+                                    <Badge variant="outline" className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border-indigo-200">
+                                        İmzalanan
+                                    </Badge>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 2. Gerçekleşen Tahsilat (Kasaya Giren) */}
+                        <Card className="rounded-3xl border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+                            <CardContent className="p-5 space-y-2">
+                                <div className="flex items-center justify-between text-slate-500">
+                                    <span className="text-xs font-bold uppercase tracking-wider">Tahsil Edilen (Kasa)</span>
+                                    <div className="h-8 w-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                        <ShieldCheck className="h-4 w-4" />
+                                    </div>
+                                </div>
+                                <div className="text-2xl font-black text-emerald-600 tracking-tight">
+                                    {formatCurrency(cashflow.totalCollectedCash)}
+                                </div>
+                                <div className="space-y-1 pt-1">
+                                    <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                                        <span>Tahsilat İlerlemesi</span>
+                                        <span>%{cashflow.collectionProgress}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div
+                                            className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                                            style={{ width: `${Math.min(100, cashflow.collectionProgress)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 3. Bu Ay Vadesi Gelen Taksitler */}
+                        <Card className="rounded-3xl border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+                            <CardContent className="p-5 space-y-2">
+                                <div className="flex items-center justify-between text-slate-500">
+                                    <span className="text-xs font-bold uppercase tracking-wider">Bu Ayki Taksit Hedefi</span>
+                                    <div className="h-8 w-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                        <CalendarClock className="h-4 w-4" />
+                                    </div>
+                                </div>
+                                <div className="text-2xl font-black text-slate-900 tracking-tight">
+                                    {formatCurrency(cashflow.thisMonthDue)}
+                                </div>
+                                <div className="flex items-center justify-between text-xs pt-1">
+                                    <span className="text-emerald-600 font-bold">
+                                        ✓ {formatCurrency(cashflow.thisMonthCollected)} alındı
+                                    </span>
+                                    <span className="text-slate-400 font-medium">
+                                        %{cashflow.thisMonthCollectionRate}
+                                    </span>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 4. Gecikmiş / Riskli Alacaklar */}
+                        <Card className={`rounded-3xl shadow-sm transition-shadow ${
+                            cashflow.overdueReceivables > 0 ? 'bg-rose-50/50 border-rose-200' : 'border-slate-200/80'
+                        }`}>
+                            <CardContent className="p-5 space-y-2">
+                                <div className="flex items-center justify-between text-slate-500">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-rose-700">Gecikmiş Alacaklar</span>
+                                    <div className="h-8 w-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
+                                        <AlertTriangle className="h-4 w-4" />
+                                    </div>
+                                </div>
+                                <div className="text-2xl font-black text-rose-600 tracking-tight">
+                                    {formatCurrency(cashflow.overdueReceivables)}
+                                </div>
+                                <div className="flex items-center justify-between text-xs pt-1">
+                                    <span className="text-rose-700 font-bold">
+                                        {cashflow.overdueCount > 0 ? `${cashflow.overdueCount} gecikmiş taksit` : 'Gecikme yok'}
+                                    </span>
+                                    <Badge variant="outline" className="text-[10px] font-bold text-rose-700 border-rose-300 bg-rose-100">
+                                        Finansal Risk
+                                    </Badge>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* 12-Month Forward Cashflow Projection Chart */}
+                    <Card className="rounded-3xl border-slate-200/80 shadow-md overflow-hidden">
+                        <CardHeader className="border-b border-slate-100 pb-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-black uppercase">
+                                            12 Aylık Garanti Nakit Akışı
+                                        </Badge>
+                                        <span className="text-xs text-slate-400">
+                                            İmzalı sözleşmelerin takvim bazlı nakit giriş simülasyonu
+                                        </span>
+                                    </div>
+                                    <CardTitle className="text-lg font-black text-slate-800 mt-1">
+                                        Aylık Vadeli Tahsilat & Kasa Giriş Takvimi
+                                    </CardTitle>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs font-bold">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="h-3 w-3 rounded-sm bg-indigo-600" />
+                                        <span className="text-slate-600">Vadesi Gelen (Hedef)</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="h-3 w-3 rounded-sm bg-emerald-500" />
+                                        <span className="text-slate-600">Tahsil Edilen</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-6">
+                            <div className="h-[320px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={cashflow.forwardCashflow} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="shortLabel" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} tickLine={false} axisLine={false} />
+                                        <YAxis tickFormatter={(v) => formatCurrency(v)} tick={{ fill: '#64748b', fontSize: 11 }} tickLine={false} axisLine={false} />
+                                        <Tooltip
+                                            formatter={(value: any, name: any) => [
+                                                formatCurrency(Number(value || 0)),
+                                                name === 'dueAmount' ? 'Vadesi Gelen Taksit' : 'Tahsil Edilen Tutar'
+                                            ]}
+                                            labelFormatter={(l, items) => items?.[0]?.payload?.monthLabel || l}
+                                            contentStyle={{
+                                                backgroundColor: '#0f172a',
+                                                borderRadius: '1rem',
+                                                border: 'none',
+                                                color: '#fff',
+                                                fontWeight: 'bold',
+                                                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+                                            }}
+                                        />
+                                        <Bar dataKey="dueAmount" name="dueAmount" fill="#4f46e5" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                                        <Bar dataKey="paidAmount" name="paidAmount" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {/* Monthly Projection Table Breakdown */}
+                            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                                <table className="w-full text-xs text-left">
+                                    <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                        <tr>
+                                            <th className="py-3 px-4">Ay</th>
+                                            <th className="py-3 px-4">Taksit Adedi</th>
+                                            <th className="py-3 px-4 text-right">Vadesi Gelen</th>
+                                            <th className="py-3 px-4 text-right">Tahsil Edilen</th>
+                                            <th className="py-3 px-4 text-right">Bekleyen Tahsilat</th>
+                                            <th className="py-3 px-4 text-center">Durum</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {cashflow.forwardCashflow.map((m: any) => (
+                                            <tr key={m.monthKey} className={`hover:bg-slate-50/80 transition-colors ${m.isCurrentMonth ? 'bg-indigo-50/50 font-bold' : ''}`}>
+                                                <td className="py-3 px-4 font-bold text-slate-800 flex items-center gap-2">
+                                                    {m.monthLabel}
+                                                    {m.isCurrentMonth && (
+                                                        <Badge className="bg-indigo-600 text-white text-[9px] px-1.5 py-0">
+                                                            Bu Ay
+                                                        </Badge>
+                                                    )}
+                                                </td>
+                                                <td className="py-3 px-4 text-slate-600">{m.count} adet</td>
+                                                <td className="py-3 px-4 text-right font-black text-slate-800">{formatCurrency(m.dueAmount)}</td>
+                                                <td className="py-3 px-4 text-right font-bold text-emerald-600">{formatCurrency(m.paidAmount)}</td>
+                                                <td className="py-3 px-4 text-right font-bold text-amber-600">{formatCurrency(m.pendingAmount)}</td>
+                                                <td className="py-3 px-4 text-center">
+                                                    {m.dueAmount === 0 ? (
+                                                        <span className="text-slate-400 font-medium">-</span>
+                                                    ) : m.pendingAmount === 0 ? (
+                                                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
+                                                            Tamamlandı
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-slate-600 font-semibold">
+                                                            %{m.dueAmount > 0 ? Math.round((m.paidAmount / m.dueAmount) * 100) : 0}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Two Detail Tables: Overdue and Upcoming */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Overdue Installments */}
+                        <Card className="rounded-3xl border-slate-200/80 shadow-md">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base font-black text-rose-700 flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    Gecikmiş Taksitler & Tahsilat Riski ({cashflow.topOverdueInstallments?.length || 0})
+                                </CardTitle>
+                                <CardDescription className="text-xs text-slate-400">
+                                    Vadesi geçmiş ve henüz kapatılmamış taksitler
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {cashflow.topOverdueInstallments?.length === 0 ? (
+                                    <div className="p-8 text-center text-xs text-slate-400 font-medium">
+                                        Harika! Gecikmiş tahsilat kaydı bulunmuyor.
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-100">
+                                        {cashflow.topOverdueInstallments.map((inst: any) => (
+                                            <div key={inst.id} className="p-4 flex items-center justify-between hover:bg-rose-50/30 transition-colors">
+                                                <div>
+                                                    <div className="font-bold text-slate-800 text-xs">{inst.customerName}</div>
+                                                    <div className="text-[11px] text-slate-500">
+                                                        {inst.projectName} • {inst.contractNumber}
+                                                    </div>
+                                                    <div className="text-[10px] text-rose-600 font-semibold mt-0.5">
+                                                        Vade: {inst.dueDate} ({inst.daysOverdue} gün gecikme)
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="font-black text-rose-600 text-sm">{formatCurrency(inst.amount)}</div>
+                                                    <Badge variant="outline" className="text-[9px] font-bold text-rose-700 border-rose-300 bg-rose-50">
+                                                        {inst.paymentType}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Upcoming Installments */}
+                        <Card className="rounded-3xl border-slate-200/80 shadow-md">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base font-black text-slate-800 flex items-center gap-2">
+                                    <CalendarClock className="h-4 w-4 text-indigo-600" />
+                                    Yaklaşan Kritik Taksitler ({cashflow.upcomingInstallments?.length || 0})
+                                </CardTitle>
+                                <CardDescription className="text-xs text-slate-400">
+                                    Önümüzdeki günlerde vadesi gelecek sözleşmeli tahsilatlar
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {cashflow.upcomingInstallments?.length === 0 ? (
+                                    <div className="p-8 text-center text-xs text-slate-400 font-medium">
+                                        Yakın tarihte vadesi gelecek taksit bulunmuyor.
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-100">
+                                        {cashflow.upcomingInstallments.map((inst: any) => (
+                                            <div key={inst.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                                <div>
+                                                    <div className="font-bold text-slate-800 text-xs">{inst.customerName}</div>
+                                                    <div className="text-[11px] text-slate-500">
+                                                        {inst.projectName} • {inst.contractNumber}
+                                                    </div>
+                                                    <div className="text-[10px] text-indigo-600 font-semibold mt-0.5">
+                                                        Vade: {inst.dueDate}
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="font-black text-slate-900 text-sm">{formatCurrency(inst.amount)}</div>
+                                                    <Badge variant="outline" className="text-[9px] font-bold text-indigo-700 border-indigo-200 bg-indigo-50">
+                                                        {inst.paymentType}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+
+                {/* TAB: SATIŞ AKTİVİTELERİ & OPERASYONEL NABIZ */}
+                <TabsContent value="activities" className="space-y-6 mt-0">
+                    {/* Live Activity Pulse Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <Card className="rounded-3xl border-slate-200/80 shadow-sm p-4 space-y-1">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Bugünkü Efor</span>
+                            <div className="text-2xl font-black text-slate-900">{activities.todayTotal} Temas</div>
+                            <div className="text-xs text-emerald-600 font-bold">✓ {activities.todayCompleted} tamamlandı</div>
+                        </Card>
+                        <Card className="rounded-3xl border-slate-200/80 shadow-sm p-4 space-y-1">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Telefon Aramaları</span>
+                            <div className="text-2xl font-black text-blue-600">{activities.periodCalls} Arama</div>
+                            <div className="text-xs text-slate-400">Bugün: {activities.todayCalls}</div>
+                        </Card>
+                        <Card className="rounded-3xl border-slate-200/80 shadow-sm p-4 space-y-1">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Ofis & Randevular</span>
+                            <div className="text-2xl font-black text-purple-600">{activities.periodMeetings} Randevu</div>
+                            <div className="text-xs text-slate-400">Bugün: {activities.todayMeetings}</div>
+                        </Card>
+                        <Card className="rounded-3xl border-slate-200/80 shadow-sm p-4 space-y-1">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Saha Ziyaretleri</span>
+                            <div className="text-2xl font-black text-amber-600">{activities.periodVisits} Saha Turu</div>
+                            <div className="text-xs text-slate-400">Bugün: {activities.todayVisits}</div>
+                        </Card>
+                    </div>
+
+                    {/* Funnel Velocity Metrics */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="rounded-2xl border-slate-200/80 p-5 bg-gradient-to-br from-indigo-50/50 to-white space-y-2">
+                            <div className="text-xs font-bold text-indigo-700 uppercase">Lead → Randevu Oranı</div>
+                            <div className="text-3xl font-black text-indigo-900">%{activities.conversionLeadToMeeting}</div>
+                            <p className="text-[11px] text-slate-500">
+                                Reklam ve gelen müşteri adaylarının satış ofisine getirilme başarısı.
+                            </p>
+                        </Card>
+                        <Card className="rounded-2xl border-slate-200/80 p-5 bg-gradient-to-br from-purple-50/50 to-white space-y-2">
+                            <div className="text-xs font-bold text-purple-700 uppercase">Randevu → Kapanış Oranı</div>
+                            <div className="text-3xl font-black text-purple-900">%{activities.conversionMeetingToWon}</div>
+                            <p className="text-[11px] text-slate-500">
+                                Satış ofisi ve online sunum yapılan müşterilerin satış sözleşmesine dönme gücü.
+                            </p>
+                        </Card>
+                        <Card className="rounded-2xl border-slate-200/80 p-5 bg-gradient-to-br from-emerald-50/50 to-white space-y-2">
+                            <div className="text-xs font-bold text-emerald-700 uppercase">Ekip Görev Disiplini</div>
+                            <div className="text-3xl font-black text-emerald-900">%{activities.completionRate}</div>
+                            <p className="text-[11px] text-slate-500">
+                                Planlanan aktivitelerin zamanında tamamlanma ve sonuç girilme oranı.
+                            </p>
+                        </Card>
+                    </div>
+
+                    {/* Neglected Hot Deals & Rep Leaderboard */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Neglected Deals */}
+                        <Card className="rounded-3xl border-slate-200/80 shadow-md">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base font-black text-rose-700 flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    Takipsiz Kalan Sıcak Fırsatlar ({activities.neglectedHotDeals?.length || 0})
+                                </CardTitle>
+                                <CardDescription className="text-xs text-slate-400">
+                                    Teklif veya opsiyon aşamasında olup son 5+ gündür dokunulmayan yüksek değerli müşteriler
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {activities.neglectedHotDeals?.length === 0 ? (
+                                    <div className="p-8 text-center text-xs text-slate-400 font-medium">
+                                        Tebrikler! Tüm sıcak müşteriler düzenli takip ediliyor.
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-100">
+                                        {activities.neglectedHotDeals.map((d: any) => (
+                                            <div key={d.id} className="p-4 flex items-center justify-between hover:bg-rose-50/30 transition-colors">
+                                                <div>
+                                                    <div className="font-bold text-slate-800 text-xs">{d.customerName}</div>
+                                                    <div className="text-[11px] text-slate-500">
+                                                        Danışman: {d.advisorName} • Aşama: {d.stage}
+                                                    </div>
+                                                    <div className="text-[10px] text-rose-600 font-semibold mt-0.5">
+                                                        {d.daysSinceLastActivity} gündür hiçbir arama/mesaj yapılmadı!
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="font-black text-slate-900 text-sm">{formatCurrency(d.dealValue)}</div>
+                                                    <Badge variant="outline" className="text-[9px] font-bold text-rose-700 border-rose-300 bg-rose-50">
+                                                        Acil Takip
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Rep Effort vs Won Revenue Matrix */}
+                        <Card className="rounded-3xl border-slate-200/80 shadow-md">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base font-black text-slate-800 flex items-center gap-2">
+                                    <Users className="h-4 w-4 text-indigo-600" />
+                                    Danışman Efor vs. Kapanış Matrisi
+                                </CardTitle>
+                                <CardDescription className="text-xs text-slate-400">
+                                    Arama ve randevu eforunun satış cirosuna yansıması
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs text-left">
+                                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                            <tr>
+                                                <th className="py-3 px-4">Danışman</th>
+                                                <th className="py-3 px-3 text-center">Arama</th>
+                                                <th className="py-3 px-3 text-center">Randevu</th>
+                                                <th className="py-3 px-3 text-center">Satış</th>
+                                                <th className="py-3 px-4 text-right">Kazanılan Ciro</th>
+                                                <th className="py-3 px-3 text-center">Kapanış</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {activities.repEfforts?.map((rep: any) => (
+                                                <tr key={rep.repId} className="hover:bg-slate-50 transition-colors">
+                                                    <td className="py-3 px-4 font-bold text-slate-800">{rep.repName}</td>
+                                                    <td className="py-3 px-3 text-center text-slate-600 font-semibold">{rep.callsCount}</td>
+                                                    <td className="py-3 px-3 text-center text-indigo-600 font-bold">{rep.meetingsCount}</td>
+                                                    <td className="py-3 px-3 text-center text-emerald-600 font-bold">{rep.wonCount}</td>
+                                                    <td className="py-3 px-4 text-right font-black text-slate-900">{formatCurrency(rep.wonRevenue)}</td>
+                                                    <td className="py-3 px-3 text-center font-bold text-slate-700">%{rep.closingRatio}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
                                     </table>
                                 </div>
                             </CardContent>

@@ -9,9 +9,11 @@ import {
     subYears,
     endOfMonth,
     format,
-    differenceInDays
+    differenceInDays,
+    addMonths
 } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import { isSameDayTurkey } from '@/lib/utils'
 
 export type PeriodType = 'this_month' | 'last_month' | 'last_30_days' | 'last_90_days' | 'this_year' | 'all'
 
@@ -45,6 +47,85 @@ export interface RevenueForecast {
     baseScenario: number
     optimisticScenario: number
     maxPotentialRevenue: number
+}
+
+export interface MonthlyCashflowItem {
+    monthKey: string
+    monthLabel: string
+    shortLabel: string
+    dueAmount: number
+    paidAmount: number
+    pendingAmount: number
+    count: number
+    isCurrentMonth: boolean
+}
+
+export interface UpcomingInstallmentItem {
+    id: string
+    contractId: string
+    contractNumber: string
+    customerName: string
+    projectName: string
+    paymentType: string
+    dueDate: string
+    amount: number
+    paidAmount: number
+    currency: string
+    status: string
+    isOverdue: boolean
+    daysOverdue?: number
+}
+
+export interface ContractCashflowData {
+    totalContractsCount: number
+    totalContractedValue: number
+    totalCollectedCash: number
+    totalRemainingReceivables: number
+    collectionProgress: number
+    thisMonthDue: number
+    thisMonthCollected: number
+    thisMonthPending: number
+    thisMonthCollectionRate: number
+    overdueReceivables: number
+    overdueCount: number
+    forwardCashflow: MonthlyCashflowItem[]
+    upcomingInstallments: UpcomingInstallmentItem[]
+    topOverdueInstallments: UpcomingInstallmentItem[]
+}
+
+export interface SalesActivitiesData {
+    todayTotal: number
+    todayCompleted: number
+    todayCalls: number
+    todayMeetings: number
+    todayVisits: number
+    periodTotal: number
+    periodCompleted: number
+    periodCalls: number
+    periodMeetings: number
+    periodVisits: number
+    completionRate: number
+    conversionLeadToMeeting: number
+    conversionMeetingToWon: number
+    repEfforts: Array<{
+        repId: string
+        repName: string
+        callsCount: number
+        meetingsCount: number
+        proposalsCount: number
+        wonCount: number
+        wonRevenue: number
+        closingRatio: number
+    }>
+    neglectedHotDeals: Array<{
+        id: string
+        customerName: string
+        advisorName: string
+        stage: string
+        dealValue: number
+        daysSinceLastActivity: number
+        lastActivityDate: string | null
+    }>
 }
 
 export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
@@ -632,6 +713,373 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         .sort((a, b) => b.daysInactive - a.daysInactive)
         .slice(0, 10)
 
+    // -------------------------------------------------------------
+    // 14. Contracted Cashflow & Payment Plan Projections
+    // -------------------------------------------------------------
+    let contractsQuery = supabase
+        .from('contracts')
+        .select(`
+            id,
+            contract_number,
+            contract_date,
+            amount,
+            final_amount,
+            total_amount,
+            currency,
+            status,
+            project_id,
+            projects:project_id ( id, name ),
+            customers:contract_customers (
+                customer:customers ( id, full_name, phone )
+            ),
+            payments:payment_plans (
+                id,
+                payment_type,
+                due_date,
+                amount,
+                paid_amount,
+                currency,
+                status,
+                paid_date,
+                notes
+            )
+        `)
+        .eq('tenant_id', tenantId)
+        .neq('status', 'Cancelled')
+
+    if (selectedProjectId) {
+        contractsQuery = contractsQuery.eq('project_id', selectedProjectId)
+    }
+
+    const { data: rawContracts, error: contractsErr } = await contractsQuery
+    if (contractsErr) {
+        console.error('CeoFunnel contracts fetch error:', contractsErr)
+    }
+
+    const allContracts = rawContracts || []
+    let totalContractedValue = 0
+    let totalCollectedCash = 0
+    const allPaymentItems: Array<{
+        item: any
+        contract: any
+    }> = []
+
+    allContracts.forEach(c => {
+        const val = Number(c.final_amount || c.total_amount || c.amount || 0)
+        totalContractedValue += val
+
+        const payments = (c.payments as any[]) || []
+        payments.forEach(p => {
+            const pAmount = Number(p.amount || 0)
+            const pPaid = Number(p.paid_amount || 0)
+            const actualPaid = p.status === 'Paid' ? (pPaid > 0 ? pPaid : pAmount) : pPaid
+            totalCollectedCash += actualPaid
+            allPaymentItems.push({ item: p, contract: c })
+        })
+    })
+
+    const totalRemainingReceivables = Math.max(0, totalContractedValue - totalCollectedCash)
+    const collectionProgress = totalContractedValue > 0 ? Math.round((totalCollectedCash / totalContractedValue) * 100) : 0
+
+    // This month cashflow
+    const thisMonthKey = format(now, 'yyyy-MM')
+    let thisMonthDue = 0
+    let thisMonthCollected = 0
+
+    // Overdue receivables
+    const todayStr = format(now, 'yyyy-MM-dd')
+    let overdueReceivables = 0
+    let overdueCount = 0
+    const topOverdueInstallments: UpcomingInstallmentItem[] = []
+    const upcomingInstallments: UpcomingInstallmentItem[] = []
+
+    allPaymentItems.forEach(({ item: p, contract: c }) => {
+        const pAmount = Number(p.amount || 0)
+        const pPaid = Number(p.paid_amount || 0)
+        const actualPaid = p.status === 'Paid' ? (pPaid > 0 ? pPaid : pAmount) : pPaid
+        const remaining = Math.max(0, pAmount - actualPaid)
+        const dueDate = p.due_date ? String(p.due_date).slice(0, 10) : ''
+
+        if (dueDate.startsWith(thisMonthKey)) {
+            thisMonthDue += pAmount
+            thisMonthCollected += actualPaid
+        }
+
+        const isOverdue = (p.status === 'Overdue' || (dueDate && dueDate < todayStr)) && p.status !== 'Paid' && remaining > 0
+        if (isOverdue) {
+            overdueReceivables += remaining
+            overdueCount += 1
+            const daysOverdue = dueDate ? differenceInDays(now, new Date(dueDate)) : 0
+            const cust = (c.customers as any[])?.[0]?.customer
+            topOverdueInstallments.push({
+                id: p.id,
+                contractId: c.id,
+                contractNumber: c.contract_number || 'Sözleşme',
+                customerName: cust?.full_name || 'Müşteri',
+                projectName: (c.projects as any)?.name || 'Proje',
+                paymentType: p.payment_type || 'Taksit',
+                dueDate,
+                amount: remaining,
+                paidAmount: actualPaid,
+                currency: p.currency || 'TRY',
+                status: 'Overdue',
+                isOverdue: true,
+                daysOverdue
+            })
+        } else if (dueDate && dueDate >= todayStr && p.status !== 'Paid' && remaining > 0) {
+            const cust = (c.customers as any[])?.[0]?.customer
+            upcomingInstallments.push({
+                id: p.id,
+                contractId: c.id,
+                contractNumber: c.contract_number || 'Sözleşme',
+                customerName: cust?.full_name || 'Müşteri',
+                projectName: (c.projects as any)?.name || 'Proje',
+                paymentType: p.payment_type || 'Taksit',
+                dueDate,
+                amount: remaining,
+                paidAmount: actualPaid,
+                currency: p.currency || 'TRY',
+                status: p.status || 'Pending',
+                isOverdue: false
+            })
+        }
+    })
+
+    topOverdueInstallments.sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0))
+    upcomingInstallments.sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+
+    const thisMonthPending = Math.max(0, thisMonthDue - thisMonthCollected)
+    const thisMonthCollectionRate = thisMonthDue > 0 ? Math.round((thisMonthCollected / thisMonthDue) * 100) : 0
+
+    // Forward 12-Month Cashflow Forecast
+    const forwardCashflow: MonthlyCashflowItem[] = []
+    const startMonth = startOfMonth(now)
+
+    for (let i = 0; i < 12; i++) {
+        const mDate = addMonths(startMonth, i)
+        const mKey = format(mDate, 'yyyy-MM')
+        const mLabel = format(mDate, 'MMMM yyyy', { locale: tr })
+        const sLabel = format(mDate, 'MMM yy', { locale: tr })
+
+        let mDue = 0
+        let mPaid = 0
+        let mCount = 0
+
+        allPaymentItems.forEach(({ item: p }) => {
+            const dueDate = p.due_date ? String(p.due_date).slice(0, 10) : ''
+            if (dueDate.startsWith(mKey)) {
+                const pAmount = Number(p.amount || 0)
+                const pPaid = Number(p.paid_amount || 0)
+                const actualPaid = p.status === 'Paid' ? (pPaid > 0 ? pPaid : pAmount) : pPaid
+                mDue += pAmount
+                mPaid += actualPaid
+                mCount += 1
+            }
+        })
+
+        forwardCashflow.push({
+            monthKey: mKey,
+            monthLabel: mLabel,
+            shortLabel: sLabel,
+            dueAmount: mDue,
+            paidAmount: mPaid,
+            pendingAmount: Math.max(0, mDue - mPaid),
+            count: mCount,
+            isCurrentMonth: i === 0
+        })
+    }
+
+    const contractCashflow: ContractCashflowData = {
+        totalContractsCount: allContracts.length,
+        totalContractedValue,
+        totalCollectedCash,
+        totalRemainingReceivables,
+        collectionProgress,
+        thisMonthDue,
+        thisMonthCollected,
+        thisMonthPending,
+        thisMonthCollectionRate,
+        overdueReceivables,
+        overdueCount,
+        forwardCashflow,
+        upcomingInstallments: upcomingInstallments.slice(0, 8),
+        topOverdueInstallments: topOverdueInstallments.slice(0, 6)
+    }
+
+    // -------------------------------------------------------------
+    // 15. Sales Activities & Operational Pulse
+    // -------------------------------------------------------------
+    let activitiesQuery = supabase
+        .from('activities')
+        .select(`
+            id,
+            type,
+            status,
+            due_date,
+            completed_at,
+            created_at,
+            owner_id,
+            customer_id,
+            project_id,
+            outcome,
+            summary,
+            profiles:owner_id ( id, full_name ),
+            customers:customer_id ( id, full_name, phone )
+        `)
+        .eq('tenant_id', tenantId)
+
+    if (selectedProjectId) {
+        activitiesQuery = activitiesQuery.eq('project_id', selectedProjectId)
+    }
+
+    const { data: rawActivities, error: activitiesErr } = await activitiesQuery
+    if (activitiesErr) {
+        console.error('CeoFunnel activities fetch error:', activitiesErr)
+    }
+
+    const allActivities = rawActivities || []
+
+    let todayTotal = 0
+    let todayCompleted = 0
+    let todayCalls = 0
+    let todayMeetings = 0
+    let todayVisits = 0
+
+    allActivities.forEach(act => {
+        const isTodayAct = (act.due_date && isSameDayTurkey(act.due_date, now)) || (act.completed_at && isSameDayTurkey(act.completed_at, now))
+        if (isTodayAct) {
+            todayTotal += 1
+            if (act.status === 'Completed') todayCompleted += 1
+            const t = (act.type || '').toLowerCase()
+            if (['call', 'phone'].includes(t)) todayCalls += 1
+            else if (['meeting', 'officemeeting', 'onlinemeeting'].includes(t)) todayMeetings += 1
+            else if (['visit', 'site visit', 'sitevisit'].includes(t)) todayVisits += 1
+        }
+    })
+
+    // Period activities
+    const periodActivities = allActivities.filter(act => {
+        const d = act.due_date || act.created_at
+        if (!d) return false
+        const actDate = new Date(d)
+        if (currentStart && actDate < currentStart) return false
+        if (currentEnd && actDate > currentEnd) return false
+        return true
+    })
+
+    const periodTotal = periodActivities.length
+    const periodCompleted = periodActivities.filter(a => a.status === 'Completed').length
+    const periodCalls = periodActivities.filter(a => ['call', 'phone'].includes((a.type || '').toLowerCase())).length
+    const periodMeetings = periodActivities.filter(a => ['meeting', 'officemeeting', 'onlinemeeting'].includes((a.type || '').toLowerCase())).length
+    const periodVisits = periodActivities.filter(a => ['visit', 'site visit', 'sitevisit'].includes((a.type || '').toLowerCase())).length
+    const completionRate = periodTotal > 0 ? Math.round((periodCompleted / periodTotal) * 100) : 0
+
+    // Rep activity matrix
+    const repActivityMap: Record<string, {
+        repId: string
+        repName: string
+        callsCount: number
+        meetingsCount: number
+        proposalsCount: number
+        wonCount: number
+        wonRevenue: number
+    }> = {}
+
+    // Prepopulate from existing repPerformance
+    repPerformance.forEach(rp => {
+        repActivityMap[rp.id] = {
+            repId: rp.id,
+            repName: rp.name,
+            callsCount: 0,
+            meetingsCount: 0,
+            proposalsCount: rp.proposals,
+            wonCount: rp.wonCount,
+            wonRevenue: rp.wonRevenue
+        }
+    })
+
+    periodActivities.forEach(act => {
+        const rId = act.owner_id || 'unassigned'
+        const rName = (act.profiles as any)?.full_name || 'Atanmamış'
+        if (!repActivityMap[rId]) {
+            repActivityMap[rId] = {
+                repId: rId,
+                repName: rName,
+                callsCount: 0,
+                meetingsCount: 0,
+                proposalsCount: 0,
+                wonCount: 0,
+                wonRevenue: 0
+            }
+        }
+        const t = (act.type || '').toLowerCase()
+        if (['call', 'phone'].includes(t)) repActivityMap[rId].callsCount += 1
+        else if (['meeting', 'officemeeting', 'onlinemeeting', 'visit', 'site visit'].includes(t)) repActivityMap[rId].meetingsCount += 1
+    })
+
+    const repEfforts = Object.values(repActivityMap)
+        .map(r => ({
+            ...r,
+            closingRatio: r.meetingsCount > 0 ? Math.round((r.wonCount / r.meetingsCount) * 100) : 0
+        }))
+        .sort((a, b) => b.wonRevenue - a.wonRevenue)
+
+    // Neglected Hot Deals (High Value Deals in proposal/reservation with no activity in 5+ days)
+    const customerLastActivityMap: Record<string, string> = {}
+    allActivities.forEach(a => {
+        if (a.customer_id) {
+            const dateStr = a.completed_at || a.due_date || a.created_at
+            if (dateStr) {
+                if (!customerLastActivityMap[a.customer_id] || customerLastActivityMap[a.customer_id] < dateStr) {
+                    customerLastActivityMap[a.customer_id] = dateStr
+                }
+            }
+        }
+    })
+
+    const fiveDaysAgo = subDays(now, 5)
+    const neglectedHotDeals = currentPeriodSales
+        .filter(s => {
+            const cat = categorizeStatus(s.status)
+            if (!['proposal', 'reservation'].includes(cat)) return false
+            const lastAct = customerLastActivityMap[s.customer_id]
+            if (!lastAct) return true
+            return new Date(lastAct) < fiveDaysAgo
+        })
+        .map(s => {
+            const lastAct = customerLastActivityMap[s.customer_id] || null
+            const daysSince = lastAct ? differenceInDays(now, new Date(lastAct)) : differenceInDays(now, new Date(s.created_at))
+            return {
+                id: s.id,
+                customerName: (s.customers as any)?.full_name || 'İsimsiz Müşteri',
+                advisorName: (s.profiles as any)?.full_name || 'Atanmamış',
+                stage: s.status || 'Teklif',
+                dealValue: getDealValue(s),
+                daysSinceLastActivity: daysSince,
+                lastActivityDate: lastAct
+            }
+        })
+        .sort((a, b) => b.dealValue - a.dealValue)
+        .slice(0, 6)
+
+    const salesActivities: SalesActivitiesData = {
+        todayTotal,
+        todayCompleted,
+        todayCalls,
+        todayMeetings,
+        todayVisits,
+        periodTotal,
+        periodCompleted,
+        periodCalls,
+        periodMeetings,
+        periodVisits,
+        completionRate,
+        conversionLeadToMeeting: stageDataMap.lead.count > 0 ? Math.round((stageDataMap.meeting.count / stageDataMap.lead.count) * 100) : 0,
+        conversionMeetingToWon: stageDataMap.meeting.count > 0 ? Math.round((stageDataMap.won.count / stageDataMap.meeting.count) * 100) : 0,
+        repEfforts,
+        neglectedHotDeals
+    }
+
     return {
         tenantName: profile.full_name,
         period,
@@ -659,6 +1107,8 @@ export async function getCeoFunnelData(filters: CeoFunnelFilters = {}) {
         lossBreakdown,
         sourceBreakdown,
         topWhaleDeals,
-        stagnantDeals
+        stagnantDeals,
+        contractCashflow,
+        salesActivities
     }
 }
