@@ -21,7 +21,7 @@ import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { AiSignalBadge } from '@/components/ui/ai-signal-badge'
-import { updateSaleStatus, autoAssignLead, assignSale, addSaleQuickNote, updateFirstContact, updateProcessNote, completeQuickAppointment } from '../actions'
+import { updateSaleStatus, autoAssignLead, assignSale, addSaleQuickNote, updateFirstContact, updateProcessNote, completeQuickAppointment, dismissCallRequest } from '../actions'
 import QuickAppointmentModal from './QuickAppointmentModal'
 import {
     Command,
@@ -213,6 +213,8 @@ export const isCallRequested = (sale: any, unreadPreview?: string): boolean => {
 
 export const isPendingCall = (sale: any, unreadPreview?: string): boolean => {
     if (!isCallRequested(sale, unreadPreview)) return false
+    // Eğer temsilci zaten "Arandı" olarak işaretlediyse listeden çıkar
+    if (sale.call_request_handled_at) return false
     // Eğer ilk temas henüz girilmediyse veya tekrar aranacaksa acil çağrı statüsündedir
     const fc = sale.first_contact
     if (!fc || fc === 'none' || fc === 'Tekrar Aranacak') {
@@ -1182,7 +1184,7 @@ export default function PipelineList({
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={async () => {
-                                                    const res = await updateFirstContact(sale.id, 'Aradım, Olumlu')
+                                                    const res = await dismissCallRequest(sale.id)
                                                     if (!res.error) {
                                                         toast.success(`${customerName} — Arandı olarak işaretlendi`)
                                                         router.refresh()
