@@ -4243,6 +4243,10 @@ export async function createQuickAppointment(params: {
     representativeId?: string
     sendCustomerWa?: boolean
     sendRepWa?: boolean
+    locationAddress?: string
+    locationLat?: number | null
+    locationLng?: number | null
+    locationMapsUrl?: string
 }) {
     const supabase = await createClient()
     const { createAdminClient } = await import('@/lib/supabase/admin')
@@ -4291,8 +4295,17 @@ export async function createQuickAppointment(params: {
                 ? `https://maps.google.com/?q=${matchedOffice.latitude},${matchedOffice.longitude}`
                 : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(queryTarget)}`)
         } else if (params.location && params.location !== 'Satış Ofisi') {
-            // Custom location: generate direct Google Maps query
-            mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(params.location)}`
+            // Custom location: use frontend-provided metadata if available
+            if (params.locationAddress) {
+                locationAddress = params.locationAddress
+            }
+            if (params.locationMapsUrl) {
+                mapsLink = params.locationMapsUrl
+            } else if (params.locationLat && params.locationLng) {
+                mapsLink = `https://maps.google.com/?q=${params.locationLat},${params.locationLng}`
+            } else {
+                mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(params.location)}`
+            }
         }
     }
 

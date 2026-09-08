@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createQuickAppointment, getTenantSalesOfficesAction, getTenantSalesRepsAction } from '../actions'
+import { saveSalesOffice } from '@/app/[locale]/(dashboard)/settings/sales-offices-actions'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { toTurkeyDateTimeLocal } from '@/lib/utils'
@@ -33,7 +34,9 @@ import {
     MessageCircle,
     Navigation,
     ExternalLink,
-    CheckCircle2
+    CheckCircle2,
+    Search,
+    Info
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
@@ -88,10 +91,14 @@ export default function QuickAppointmentModal({
     const [location, setLocation] = useState('Satış Ofisi')
     const [summary, setSummary] = useState('Proje Sunumu ve Görüşme')
     const [notes, setNotes] = useState('')
-    const [customLocations, setCustomLocations] = useState<{ value: string; label: string }[]>([])
     const [salesOffices, setSalesOffices] = useState<any[]>([])
     const [isAddingLocation, setIsAddingLocation] = useState(false)
     const [newLocationInput, setNewLocationInput] = useState('')
+    const [newLocationAddress, setNewLocationAddress] = useState('')
+    const [newLocationMapsUrl, setNewLocationMapsUrl] = useState('')
+    const [newLocationLat, setNewLocationLat] = useState('')
+    const [newLocationLng, setNewLocationLng] = useState('')
+    const [isSavingLocation, setIsSavingLocation] = useState(false)
     const [reps, setReps] = useState<{ id: string; full_name: string; phone?: string }[]>([])
     const [selectedRepId, setSelectedRepId] = useState<string>(initialRepresentativeId || '')
     const [activeCustomerPhone, setActiveCustomerPhone] = useState<string>(customerPhone || '')
@@ -155,24 +162,43 @@ export default function QuickAppointmentModal({
         }
     }, [open, customerId, profiles])
 
-    // Load custom locations from localStorage
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const saved = localStorage.getItem('quick_appointment_locations')
-                if (saved) {
-                    const parsed = JSON.parse(saved)
-                    if (Array.isArray(parsed)) {
-                        setCustomLocations(parsed)
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to load custom locations', err)
-            }
+    // Smart parser for Google Maps URL, share link, or pasted coordinates
+    const handleMapsInput = (inputVal: string) => {
+        setNewLocationMapsUrl(inputVal)
+        const trimmed = inputVal.trim()
+        if (!trimmed) {
+            setNewLocationLat('')
+            setNewLocationLng('')
+            return
         }
-    }, [])
 
-    // Build all available locations: Registered Offices + Static + Custom
+        // 1. Pure coordinates: "41.1068, 28.9892" or "41.1068 28.9892"
+        const coordMatch = trimmed.match(/^([-+]?\d{1,2}(?:\.\d+)?)[,\s]+([-+]?\d{1,3}(?:\.\d+)?)$/)
+        if (coordMatch) {
+            setNewLocationLat(coordMatch[1])
+            setNewLocationLng(coordMatch[2])
+            setNewLocationMapsUrl(`https://maps.google.com/?q=${coordMatch[1]},${coordMatch[2]}`)
+            return
+        }
+
+        // 2. Google Maps URL with @lat,lng
+        const atCoordMatch = trimmed.match(/@([-+]?\d{1,2}\.\d+),([-+]?\d{1,3}\.\d+)/)
+        if (atCoordMatch) {
+            setNewLocationLat(atCoordMatch[1])
+            setNewLocationLng(atCoordMatch[2])
+            return
+        }
+
+        // 3. Google Maps URL with ?q=lat,lng
+        const queryCoordMatch = trimmed.match(/[?&](?:q|ll|query)=([-+]?\d{1,2}\.\d+),([-+]?\d{1,3}\.\d+)/)
+        if (queryCoordMatch) {
+            setNewLocationLat(queryCoordMatch[1])
+            setNewLocationLng(queryCoordMatch[2])
+            return
+        }
+    }
+
+    // Build all available locations: Registered Offices + Static
     const officeLocations = salesOffices.map((off: any) => ({
         value: off.name,
         label: `🏢 ${off.name}${off.projectName ? ` (${off.projectName})` : ''}`,
@@ -182,8 +208,7 @@ export default function QuickAppointmentModal({
 
     const allLocations = [
         ...officeLocations,
-        ...STATIC_LOCATIONS,
-        ...customLocations
+        ...STATIC_LOCATIONS
     ]
 
     // Find currently selected sales office details
@@ -191,34 +216,63 @@ export default function QuickAppointmentModal({
         (o: any) => o.name === location || location.includes(o.name)
     )
 
-    const handleAddLocation = (e?: React.FormEvent) => {
+    const resetLocationForm = () => {
+        setNewLocationInput('')
+        setNewLocationAddress('')
+        setNewLocationMapsUrl('')
+        setNewLocationLat('')
+        setNewLocationLng('')
+    }
+
+    const handleAddLocation = async (e?: React.FormEvent) => {
         if (e) e.preventDefault()
         const trimmed = newLocationInput.trim()
         if (!trimmed) return
 
+        // If location already exists in list, just select it
         const exists = allLocations.some(l => l.value.toLowerCase() === trimmed.toLowerCase())
         if (exists) {
             setLocation(trimmed)
             setIsAddingLocation(false)
-            setNewLocationInput('')
+            resetLocationForm()
             return
         }
 
-        const newLocObj = { value: trimmed, label: `📍 ${trimmed}` }
-        const updated = [...customLocations, newLocObj]
-        setCustomLocations(updated)
-        setLocation(trimmed)
-        setIsAddingLocation(false)
-        setNewLocationInput('')
+        setIsSavingLocation(true)
 
-        if (typeof window !== 'undefined') {
-            try {
-                localStorage.setItem('quick_appointment_locations', JSON.stringify(updated))
-            } catch (err) {
-                console.error(err)
+        // Compute effective maps URL
+        let effectiveMapsUrl = newLocationMapsUrl.trim()
+        if (!effectiveMapsUrl) {
+            if (newLocationLat && newLocationLng) {
+                effectiveMapsUrl = `https://maps.google.com/?q=${newLocationLat},${newLocationLng}`
+            } else if (newLocationAddress || trimmed) {
+                const searchQ = [trimmed, newLocationAddress].filter(Boolean).join(' ')
+                effectiveMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQ)}`
             }
         }
-        toast.success(`"${trimmed}" konumu eklendi ve seçildi.`)
+
+        // Save to tenant's brand_config.sales_offices via server action
+        const res = await saveSalesOffice({
+            name: trimmed,
+            type: 'other',
+            address: newLocationAddress.trim(),
+            latitude: newLocationLat ? parseFloat(newLocationLat) : null,
+            longitude: newLocationLng ? parseFloat(newLocationLng) : null,
+            mapsUrl: effectiveMapsUrl || undefined,
+            isActive: true
+        })
+
+        if (res.success && res.office) {
+            setSalesOffices(prev => [res.office!, ...prev])
+            setLocation(res.office.name)
+            toast.success(`"${trimmed}" konumu eklendi ve Satış Ofisleri'ne kaydedildi.`)
+        } else {
+            toast.error(res.error || 'Konum kaydedilemedi')
+        }
+
+        setIsSavingLocation(false)
+        setIsAddingLocation(false)
+        resetLocationForm()
     }
 
     if (disabled) {
@@ -246,6 +300,11 @@ export default function QuickAppointmentModal({
 
         startTransition(async () => {
             try {
+                // Find selected location's metadata from salesOffices
+                const selectedOfficeData = salesOffices.find(
+                    (o: any) => o.name === location || location.includes(o.name)
+                )
+
                 const res = await createQuickAppointment({
                     customerId,
                     saleId,
@@ -255,7 +314,11 @@ export default function QuickAppointmentModal({
                     notes: notes.trim(),
                     representativeId: selectedRepId || undefined,
                     sendCustomerWa,
-                    sendRepWa
+                    sendRepWa,
+                    locationAddress: selectedOfficeData?.address || undefined,
+                    locationLat: selectedOfficeData?.latitude || undefined,
+                    locationLng: selectedOfficeData?.longitude || undefined,
+                    locationMapsUrl: selectedOfficeData?.mapsUrl || undefined
                 })
 
                 if (res?.error) {
@@ -377,13 +440,14 @@ export default function QuickAppointmentModal({
                         </div>
 
                         {isAddingLocation && (
-                            <div className="p-3 bg-emerald-50/80 border border-emerald-300 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-1">
-                                <Label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
-                                    Yeni Konum Adı
-                                </Label>
-                                <div className="flex items-center gap-2">
+                            <div className="p-4 bg-emerald-50/80 border border-emerald-300 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-1">
+                                {/* Konum Adı */}
+                                <div className="space-y-1">
+                                    <Label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
+                                        Konum Adı *
+                                    </Label>
                                     <Input
-                                        placeholder="Örn: Bornova Şube, Starbucks vb."
+                                        placeholder="Örn: Bornova Şube, Starbucks Forum, Narlıdere Ofis"
                                         value={newLocationInput}
                                         onChange={e => setNewLocationInput(e.target.value)}
                                         onKeyDown={e => {
@@ -395,13 +459,109 @@ export default function QuickAppointmentModal({
                                         autoFocus
                                         className="h-9 text-xs font-medium text-slate-900 bg-white border-emerald-300 focus-visible:ring-emerald-600"
                                     />
+                                </div>
+
+                                {/* Adres */}
+                                <div className="space-y-1">
+                                    <Label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                                        <MapPin className="w-3 h-3 text-rose-500" />
+                                        Adres (müşteriye iletilir)
+                                    </Label>
+                                    <Input
+                                        placeholder="Örn: Forum Bornova AVM, 1. Kat, No: 122, Bornova / İzmir"
+                                        value={newLocationAddress}
+                                        onChange={e => setNewLocationAddress(e.target.value)}
+                                        className="h-9 text-xs font-medium text-slate-900 bg-white border-slate-300 focus-visible:ring-emerald-600"
+                                    />
+                                </div>
+
+                                {/* Google Maps Link / Koordinat */}
+                                <div className="space-y-1">
+                                    <Label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                                        <Navigation className="w-3 h-3 text-blue-500" />
+                                        Google Maps Linki / Koordinat
+                                    </Label>
+                                    <Input
+                                        placeholder="Maps'ten Paylaş > Link Kopyala veya koordinat yapıştırın"
+                                        value={newLocationMapsUrl}
+                                        onChange={e => handleMapsInput(e.target.value)}
+                                        className="h-9 text-xs font-medium text-slate-900 bg-white border-slate-300 focus-visible:ring-emerald-600"
+                                    />
+                                    {newLocationLat && newLocationLng && (
+                                        <p className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
+                                            <CheckCircle2 className="w-3 h-3" />
+                                            Koordinat algılandı: {newLocationLat}, {newLocationLng}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Harita Önizleme */}
+                                {(newLocationMapsUrl || (newLocationAddress && newLocationInput)) && (
+                                    <div className="p-2.5 bg-white border border-slate-200 rounded-lg space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                                                <Search className="w-3 h-3" />
+                                                Konum Önizleme
+                                            </span>
+                                            <a
+                                                href={
+                                                    newLocationLat && newLocationLng
+                                                        ? `https://maps.google.com/?q=${newLocationLat},${newLocationLng}`
+                                                        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([newLocationInput, newLocationAddress].filter(Boolean).join(' '))}`
+                                                }
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-0.5"
+                                            >
+                                                Haritada Aç <ExternalLink className="w-2.5 h-2.5" />
+                                            </a>
+                                        </div>
+                                        {newLocationLat && newLocationLng ? (
+                                            <div className="rounded-md overflow-hidden border border-slate-200 h-[120px]">
+                                                <iframe
+                                                    src={`https://maps.google.com/maps?q=${newLocationLat},${newLocationLng}&z=15&output=embed`}
+                                                    className="w-full h-full border-0"
+                                                    loading="lazy"
+                                                    allowFullScreen={false}
+                                                    title="Konum Önizleme"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <p className="text-[10px] text-slate-500 italic">
+                                                📍 Koordinat veya Maps linki yapıştırıldığında harita önizlemesi görünecek.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Bilgi notu */}
+                                <div className="flex items-start gap-1.5 p-2 bg-blue-50/70 border border-blue-200 rounded-lg">
+                                    <Info className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-blue-800 font-medium leading-relaxed">
+                                        Bu konum <strong>Ayarlar → Satış Ofisleri</strong>'ne otomatik kaydedilir. Daha sonra orada düzenleme, silme ve aktif/pasif yapma işlemleri yapılabilir.
+                                    </p>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center gap-2 pt-1">
                                     <Button
                                         type="button"
                                         size="sm"
                                         onClick={handleAddLocation}
-                                        className="h-9 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0"
+                                        disabled={!newLocationInput.trim() || isSavingLocation}
+                                        className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0 gap-1.5"
                                     >
-                                        Ekle
+                                        {isSavingLocation ? (
+                                            <>
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                Kaydediliyor...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Plus className="w-3.5 h-3.5" />
+                                                Kaydet & Ekle
+                                            </>
+                                        )}
                                     </Button>
                                     <Button
                                         type="button"
@@ -409,8 +569,9 @@ export default function QuickAppointmentModal({
                                         variant="outline"
                                         onClick={() => {
                                             setIsAddingLocation(false)
-                                            setNewLocationInput('')
+                                            resetLocationForm()
                                         }}
+                                        disabled={isSavingLocation}
                                         className="h-9 px-2.5 text-xs text-slate-600 font-semibold border-slate-300 shrink-0"
                                     >
                                         İptal
