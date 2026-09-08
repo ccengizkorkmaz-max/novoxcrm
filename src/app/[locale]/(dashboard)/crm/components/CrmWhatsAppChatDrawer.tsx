@@ -61,6 +61,33 @@ function getDateDividerLabel(date: Date): string {
     return format(date, 'd MMMM yyyy, EEEE', { locale: tr })
 }
 
+/** Convert URLs in text into clickable <a> links */
+function linkifyContent(text: string) {
+    const urlRegex = /(https?:\/\/[^\s<>"']+)/gi
+    const parts = text.split(urlRegex)
+    if (parts.length === 1) return text
+
+    return parts.map((part, i) => {
+        if (urlRegex.test(part)) {
+            // Reset lastIndex since we reuse the regex
+            urlRegex.lastIndex = 0
+            return (
+                <a
+                    key={i}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 font-medium hover:opacity-80 break-all"
+                >
+                    {part}
+                </a>
+            )
+        }
+        urlRegex.lastIndex = 0
+        return part
+    })
+}
+
 const META_APPROVED_TEMPLATES = [
     {
         id: 'novo_talep_alindi',
@@ -558,7 +585,7 @@ export function CrmWhatsAppChatDrawer({
                                                     </div>
                                                 )}
                                                 <p className="whitespace-pre-wrap break-words font-normal text-[#111b21]">
-                                                    {msg.content}
+                                                    {linkifyContent(msg.content)}
                                                 </p>
                                                 <div
                                                     className={`flex items-center justify-end gap-1.5 mt-1.5 text-[11px] font-medium ${
