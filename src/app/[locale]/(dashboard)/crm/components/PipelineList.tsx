@@ -1177,6 +1177,22 @@ export default function PipelineList({
                                             >
                                                 Not Gir
                                             </Button>
+
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={async () => {
+                                                    const res = await updateFirstContact(sale.id, 'Aradım, Olumlu')
+                                                    if (!res.error) {
+                                                        toast.success(`${customerName} — Arandı olarak işaretlendi`)
+                                                        router.refresh()
+                                                    }
+                                                }}
+                                                className="h-6 px-1.5 text-[10px] font-bold text-amber-700 hover:bg-amber-50 dark:text-amber-400"
+                                                title="Arandı olarak işaretle (listeden çıkar)"
+                                            >
+                                                ✓ Arandı
+                                            </Button>
                                         </div>
                                     </div>
                                 )
