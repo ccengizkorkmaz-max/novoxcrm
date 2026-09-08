@@ -123,6 +123,7 @@ interface Message {
     content: string
     direction: 'inbound' | 'outbound'
     sender_type?: string
+    sender_name?: string
     role?: string
     status?: string
     created_at: string
@@ -548,6 +549,12 @@ export function CrmWhatsAppChatDrawer({
                                                     <div className="flex items-center gap-1.5 text-xs font-bold text-purple-700 mb-1 pb-1 border-b border-purple-100">
                                                         <Sparkles className="h-3.5 w-3.5" />
                                                         <span>Novo AI Otomatik Yanıt</span>
+                                                    </div>
+                                                )}
+                                                {isOutbound && !isAi && msg.sender_name && (
+                                                    <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 mb-1 pb-1 border-b border-emerald-100/60">
+                                                        <User className="h-3 w-3" />
+                                                        <span>{msg.sender_name}</span>
                                                     </div>
                                                 )}
                                                 <p className="whitespace-pre-wrap break-words font-normal text-[#111b21]">

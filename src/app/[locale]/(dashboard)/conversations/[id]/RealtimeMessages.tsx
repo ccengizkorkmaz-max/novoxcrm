@@ -116,6 +116,12 @@ export default function RealtimeMessages({
                                             : "bg-[#f0f2f5] dark:bg-slate-800 text-slate-900 dark:text-white rounded-[22px] rounded-bl-sm"
                                     )}
                                 >
+                                    {msg.direction === 'outbound' && msg.sender_name && (
+                                        <div className="flex items-center gap-1 text-[10px] font-bold text-white/80 mb-0.5">
+                                            <User className="h-2.5 w-2.5" />
+                                            <span>{msg.sender_name}</span>
+                                        </div>
+                                    )}
                                     <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                                     
                                     {/* Date and Time */}

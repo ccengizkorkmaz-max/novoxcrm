@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import { sendWhatsAppMessage } from '@/lib/whatsapp';
 
 /**
@@ -39,6 +40,23 @@ export async function POST(req: NextRequest) {
         }
 
         const supabase = createAdminClient();
+
+        // Resolve authenticated user name for sender_name tracking
+        let senderName = ''
+        try {
+            const authSupabase = await createClient()
+            const { data: { user } } = await authSupabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', user.id)
+                    .single()
+                senderName = profile?.full_name || ''
+            }
+        } catch (e) {
+            // Non-critical: continue without sender name
+        }
 
         // 1. Fetch Session Info
         const { data: session, error: sessError } = await supabase
@@ -114,7 +132,9 @@ export async function POST(req: NextRequest) {
             status: 'sent',
             role: 'assistant', // Manual replies show on the right side
             wa_message_id: waMessageId,
-            content: message
+            content: message,
+            sender_type: 'agent',
+            sender_name: senderName || null
         });
 
         if (msgError) {
