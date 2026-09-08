@@ -39,6 +39,18 @@ export async function sendLeadAssignmentAlert(params: LeadAssignmentAlertParams)
     try {
         const adminSupabase = createAdminClient()
 
+        // 0. Tenant seviyesi kontrolü — Ayarlar'dan kapatılmışsa hiçbir kullanıcıya gönderilmez
+        const { data: tenantSettings } = await adminSupabase
+            .from('tenants')
+            .select('wa_lead_assignment_notification_enabled')
+            .eq('id', tenantId)
+            .single()
+
+        if (!tenantSettings?.wa_lead_assignment_notification_enabled) {
+            console.log(`⏭️ [sendLeadAssignmentAlert] Tenant seviyesinde lead atama bildirimleri kapalı (tenant: ${tenantId})`)
+            return { success: false, reason: 'tenant_disabled' }
+        }
+
         // 1. Kullanıcı bildirim tercihlerini kontrol et
         const { data: pref } = await adminSupabase
             .from('user_notification_preferences')
